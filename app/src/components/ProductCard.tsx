@@ -46,7 +46,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onOpenCart,
               onClick={onOpenCart}
               className="relative w-[66px] h-[66px] rounded-full bg-[#80D1C1] flex items-center justify-center shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)]"
             >
-              <img src="/images/cart-icon.svg" alt="Cart" className="w-[45px] h-[45px]" />
+              <img src="/images/cart.svg" alt="Cart" className="w-[45px] h-[45px]" />
               {cartItemCount > 0 && (
                 <div className="absolute top-[7px] right-[11px] w-[15px] h-[15px] rounded-full bg-[#FF0000] flex items-center justify-center">
                   <span className="text-white text-[10px] font-normal leading-[1.21]">{cartItemCount}</span>

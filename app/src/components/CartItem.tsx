@@ -71,7 +71,7 @@ const CartItem: React.FC<CartItemProps> = ({
           className="w-5 h-5 flex items-center justify-center hover:opacity-70 transition-opacity"
           aria-label="Удалить товар"
         >
-          <img src="/images/icons/trash-icon.svg" alt="Удалить" className="w-full h-full" />
+          <img src="/images/trash.svg" alt="Удалить" className="w-full h-full" />
         </button>
       </div>
     </div>
