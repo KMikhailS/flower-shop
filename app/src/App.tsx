@@ -10,7 +10,6 @@ import MobileMenu from './components/MobileMenu';
 import ProductCard from './components/ProductCard';
 import Cart from './components/Cart';
 import StoreAddresses from './components/StoreAddresses';
-import Toast from './components/Toast';
 import { useTelegramWebApp } from './hooks/useTelegramWebApp';
 import { useCartPersistence } from './hooks/useCartPersistence';
 
