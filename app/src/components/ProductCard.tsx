@@ -16,9 +16,11 @@ interface ProductCardProps {
   onOpenCart: () => void;
   onAddToCart: (product: Product) => void;
   cartItems: CartItemData[];
+  webApp: TelegramWebApp | null;
+  showToast: (message: string) => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onOpenCart, onAddToCart, cartItems }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onOpenCart, onAddToCart, cartItems, webApp, showToast }) => {
   // Вычисляем общее количество товаров в корзине
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   return (
@@ -103,8 +105,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onOpenCart,
             </button>
             <button
               onClick={() => {
+                webApp?.HapticFeedback.notificationOccurred('success');
                 onAddToCart(product);
-                onClose();
+                showToast('Товар добавлен в корзину');
               }}
               className="flex-1 h-[66px] bg-[#80D1C1] rounded-[30px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] flex items-center justify-center"
             >

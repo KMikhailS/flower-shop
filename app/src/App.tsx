@@ -10,6 +10,7 @@ import MobileMenu from './components/MobileMenu';
 import ProductCard from './components/ProductCard';
 import Cart from './components/Cart';
 import StoreAddresses from './components/StoreAddresses';
+import Toast from './components/Toast';
 import { useTelegramWebApp } from './hooks/useTelegramWebApp';
 import { useCartPersistence } from './hooks/useCartPersistence';
 
@@ -36,6 +37,10 @@ function App() {
   const [cartItems, setCartItems] = useState<CartItemData[]>([]);
   const [cartDeliveryMethod, setCartDeliveryMethod] = useState<'pickup' | 'delivery'>('pickup');
   const [cartPaymentMethod, setCartPaymentMethod] = useState<'cash' | 'card' | 'sbp' | null>(null);
+
+  // Состояние toast уведомления
+  const [isToastVisible, setIsToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   // Функции управления корзиной
   const handleAddToCart = (product: Product) => {
@@ -101,6 +106,15 @@ function App() {
 
   const handleRemoveItem = (productId: number) => {
     setCartItems(prevItems => prevItems.filter(item => item.product.id !== productId));
+  };
+
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setIsToastVisible(true);
+  };
+
+  const handleCloseToast = () => {
+    setIsToastVisible(false);
   };
 
   const handleOpenStoreAddresses = (fromCart: boolean = false) => {
@@ -256,8 +270,15 @@ function App() {
           onOpenCart={handleOpenCart}
           onAddToCart={handleAddToCart}
           cartItems={cartItems}
+          webApp={webApp}
+          showToast={showToast}
         />
       )}
+      <Toast
+        message={toastMessage}
+        isVisible={isToastVisible}
+        onClose={handleCloseToast}
+      />
       <div className="flex flex-col gap-4">
         <AppHeader
           title="FanFanTulpan"
