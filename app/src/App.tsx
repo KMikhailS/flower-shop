@@ -155,7 +155,10 @@ function App() {
 
   // Автосохранение корзины при изменении состояния
   useEffect(() => {
-    if (cartItems.length === 0) return;
+    if (cartItems.length === 0) {
+      clearCart(); // Очищаем storage при пустой корзине
+      return;
+    }
 
     saveCart({
       cartItems,
@@ -164,7 +167,7 @@ function App() {
       selectedAddress: selectedAddress,
       timestamp: new Date().toISOString(),
     });
-  }, [cartItems, cartDeliveryMethod, cartPaymentMethod, selectedAddress, saveCart]);
+  }, [cartItems, cartDeliveryMethod, cartPaymentMethod, selectedAddress, saveCart, clearCart]);
 
   // Управление BackButton Telegram
   useEffect(() => {
