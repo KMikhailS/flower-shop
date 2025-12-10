@@ -46,7 +46,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onOpenCart,
               onClick={onOpenCart}
               className="relative w-[66px] h-[66px] rounded-full bg-[#80D1C1] flex items-center justify-center shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)]"
             >
-              <img src="/images/cart.svg" alt="Cart" className="w-9 h-8" />
+              <svg width="36" height="32" viewBox="0 0 36 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11 29C9.89543 29 8.99999 29.8954 8.99999 31C8.99999 32.1046 9.89543 33 11 33C12.1046 33 13 32.1046 13 31C13 29.8954 12.1046 29 11 29ZM11 29C9.89543 29 8.99999 29.8954 8.99999 31C8.99999 32.1046 9.89543 33 11 33C12.1046 33 13 32.1046 13 31C13 29.8954 12.1046 29 11 29Z" fill="#000000"/>
+                <path d="M27 29C25.8954 29 25 29.8954 25 31C25 32.1046 25.8954 33 27 33C28.1046 33 29 32.1046 29 31C29 29.8954 28.1046 29 27 29ZM27 29C25.8954 29 25 29.8954 25 31C25 32.1046 25.8954 33 27 33C28.1046 33 29 32.1046 29 31C29 29.8954 28.1046 29 27 29Z" fill="#000000"/>
+                <path d="M7.2 3H1V1H8.4L9.6 5H35L32 15H10L7.2 3ZM9.8 7L11.2 13H30L31.8 7H9.8Z" fill="#000000"/>
+                <path d="M10 17L8 25H30L32 17H10Z" fill="#000000"/>
+              </svg>
               {cartItemCount > 0 && (
                 <div className="absolute top-[7px] right-[11px] w-[15px] h-[15px] rounded-full bg-[#FF0000] flex items-center justify-center">
                   <span className="text-white text-[10px] font-normal leading-[1.21]">{cartItemCount}</span>
