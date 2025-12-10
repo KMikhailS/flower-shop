@@ -7,10 +7,10 @@ interface Category {
 
 const categories: Category[] = [
   { id: 'all', label: 'Все' },
-  { id: 'bouquets', label: 'Букеты' },
-  { id: 'roses', label: 'Розы' },
-  { id: 'vases', label: 'Вазы' },
-  { id: 'exotic', label: 'Экзотика' },
+  // { id: 'bouquets', label: 'Букеты' },
+  // { id: 'roses', label: 'Розы' },
+  // { id: 'vases', label: 'Вазы' },
+  // { id: 'exotic', label: 'Экзотика' },
 ];
 
 const CategoryTabs: React.FC = () => {
