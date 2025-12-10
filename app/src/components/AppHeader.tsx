@@ -39,7 +39,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ title, actionType, onAction }) =>
             className="flex-shrink-0 hover:opacity-70 transition-opacity"
           >
             <img
-              src="/images/icons/menu.svg"
+              src="/images/menu.svg"
               alt="Menu"
               className="w-6 h-6"
             />
