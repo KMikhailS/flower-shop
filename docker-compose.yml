@@ -16,6 +16,8 @@ services:
   backend:
     build:
       context: ./api
+    expose:
+      - "8000"
     networks:
       - network
 

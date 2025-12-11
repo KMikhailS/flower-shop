@@ -2,12 +2,14 @@ import asyncio
 import logging
 import os
 from dotenv import load_dotenv
+import uvicorn
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
 from database import init_db, add_or_update_user, get_user, update_user_mode
+from fastapi_app import app as fastapi_app
 
 # Load environment variables
 load_dotenv()
@@ -108,9 +110,9 @@ async def mode_callback_handler(callback_query: CallbackQuery):
     )
 
 
-async def main():
-    """Start the bot"""
-    logger.info("Starting bot...")
+async def run_bot():
+    """Run Telegram bot with polling"""
+    logger.info("Starting Telegram bot...")
 
     # Initialize database
     await init_db()
@@ -120,6 +122,30 @@ async def main():
 
     # Start polling
     await dp.start_polling(bot)
+
+
+async def run_fastapi():
+    """Run FastAPI server"""
+    logger.info("Starting FastAPI server on port 8000...")
+    config = uvicorn.Config(
+        app=fastapi_app,
+        host="0.0.0.0",
+        port=8000,
+        log_level="info"
+    )
+    server = uvicorn.Server(config)
+    await server.serve()
+
+
+async def main():
+    """Start both Telegram bot and FastAPI server"""
+    logger.info("Starting services...")
+
+    # Run both services concurrently
+    await asyncio.gather(
+        run_bot(),
+        run_fastapi()
+    )
 
 
 if __name__ == "__main__":

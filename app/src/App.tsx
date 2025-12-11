@@ -12,6 +12,7 @@ import Cart from './components/Cart';
 import StoreAddresses from './components/StoreAddresses';
 import { useTelegramWebApp } from './hooks/useTelegramWebApp';
 import { useCartPersistence } from './hooks/useCartPersistence';
+import { fetchUserInfo, UserInfo } from './api/client';
 
 export interface CartItemData {
   product: Product;
@@ -22,6 +23,7 @@ function App() {
   const { webApp } = useTelegramWebApp();
   const { saveCart, loadCart, clearCart } = useCartPersistence(webApp);
 
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -153,6 +155,20 @@ function App() {
     });
   }, [webApp, loadCart]);
 
+  // Получение информации о пользователе при инициализации
+  useEffect(() => {
+    if (!webApp || !webApp.initData) return;
+
+    fetchUserInfo(webApp.initData)
+      .then((data) => {
+        setUserInfo(data);
+        console.log('User info loaded:', data);
+      })
+      .catch((error) => {
+        console.error('Failed to fetch user info:', error);
+      });
+  }, [webApp]);
+
   // Автосохранение корзины при изменении состояния
   useEffect(() => {
     if (cartItems.length === 0) {
@@ -270,7 +286,7 @@ function App() {
             setIsMenuOpen(true);
           }}
         />
-        <SearchBar />
+        <SearchBar userId={userInfo?.id} />
         <PromoBanner />
         <PaginationDots />
         <CategoryTabs />
