@@ -18,6 +18,8 @@ services:
       context: ./api
     expose:
       - "8000"
+    volumes:
+      - /root/app/flower_shop.db:/app/flower_shop.db
     networks:
       - network
 
