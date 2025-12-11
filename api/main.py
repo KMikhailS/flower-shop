@@ -5,7 +5,9 @@ from dotenv import load_dotenv
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+
+from database import init_db, add_or_update_user, get_user, update_user_mode
 
 # Load environment variables
 load_dotenv()
@@ -26,6 +28,9 @@ dp = Dispatcher()
 async def start_handler(message: types.Message):
     """Handle /start command - show Mini App button"""
 
+    # Save or update user in database
+    await add_or_update_user(message.from_user.id)
+
     # Create inline keyboard with Mini App button
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -44,9 +49,71 @@ async def start_handler(message: types.Message):
     )
 
 
+@dp.message(Command("mode"))
+async def mode_handler(message: types.Message):
+    """Handle /mode command - allow ADMIN to switch modes"""
+
+    # Get user from database
+    user = await get_user(message.from_user.id)
+
+    # Check if user exists and has ADMIN role
+    if not user or user.get("role") != "ADMIN":
+        await message.answer("❌ Эта команда доступна только администраторам.")
+        return
+
+    # Create inline keyboard with mode selection buttons
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="🔧 Режим администратора",
+                    callback_data="mode_admin"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="👤 Режим клиента",
+                    callback_data="mode_user"
+                )
+            ]
+        ]
+    )
+
+    current_mode = user.get("mode", "USER")
+    mode_text = "администратора" if current_mode == "ADMIN" else "клиента"
+
+    await message.answer(
+        text=f"Текущий режим: {mode_text}\n\nВыберите режим работы:",
+        reply_markup=keyboard
+    )
+
+
+@dp.callback_query(lambda c: c.data and c.data.startswith("mode_"))
+async def mode_callback_handler(callback_query: CallbackQuery):
+    """Handle mode selection callback"""
+
+    # Extract mode from callback_data (mode_admin or mode_user)
+    new_mode = "ADMIN" if callback_query.data == "mode_admin" else "USER"
+
+    # Update user mode in database
+    await update_user_mode(callback_query.from_user.id, new_mode)
+
+    # Prepare confirmation message
+    mode_text = "администратора" if new_mode == "ADMIN" else "клиента"
+
+    # Answer callback query and update message
+    await callback_query.answer(f"✅ Режим изменен на: {mode_text}")
+    await callback_query.message.edit_text(
+        text=f"✅ Режим успешно изменен на: {mode_text}"
+    )
+
+
 async def main():
     """Start the bot"""
     logger.info("Starting bot...")
+
+    # Initialize database
+    await init_db()
 
     # Delete webhook to use polling
     await bot.delete_webhook(drop_pending_updates=True)
