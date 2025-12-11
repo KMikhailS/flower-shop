@@ -19,7 +19,7 @@ services:
     expose:
       - "8000"
     volumes:
-      - /root/app/flower_shop.db:/app/flower_shop.db
+      - /root/app:/app/data
     networks:
       - network
 
