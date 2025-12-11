@@ -56,9 +56,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onOpenCart,
           </div>
 
           {/* Navigation Arrows */}
-          <button className="absolute top-[245px] left-2 w-[50px] h-[50px] flex items-center justify-center">
-            <img src="/images/arrow-left.svg" alt="Previous" className="w-5 h-9" />
-          </button>
+          {/*<button className="absolute top-[245px] left-2 w-[50px] h-[50px] flex items-center justify-center">*/}
+          {/*  <img src="/images/arrow-left.svg" alt="Previous" className="w-5 h-9" />*/}
+          {/*</button>*/}
           <button className="absolute top-[245px] right-2 w-[50px] h-[50px] flex items-center justify-center">
             <img src="/images/arrow-right.svg" alt="Next" className="w-5 h-9" style={{ transform: 'scaleX(-1)' }} />
           </button>
