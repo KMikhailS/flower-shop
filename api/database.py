@@ -1,62 +1,50 @@
 import aiosqlite
 import logging
-import os
-import stat
+# import os
+# import stat
 from datetime import datetime
 from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# Use /app/data for Docker volume, fallback to current directory for local dev
-print(f"[DB INIT] Checking /app/data existence: {os.path.exists('/app/data')}")
 
-if os.path.exists("/app/data"):
-    DB_PATH = "/app/data/flower_shop.db"
-    print(f"[DB INIT] Using Docker volume path for database: {DB_PATH}")
-else:
-    DB_PATH = "flower_shop.db"
-    print(f"[DB INIT] Using local path for database: {DB_PATH}")
+# if os.path.exists("/app/data"):
+#     DB_PATH = "/app/data/flower_shop.db"
+#     print(f"[DB INIT] Using Docker volume path for database: {DB_PATH}")
+# else:
+#     DB_PATH = "flower_shop.db"
+#     print(f"[DB INIT] Using local path for database: {DB_PATH}")
+
+DB_PATH = "/app/data/flower_shop.db"
 
 # Ensure directory exists and has write permissions
-db_dir = os.path.dirname(os.path.abspath(DB_PATH))
-print(f"[DB INIT] Resolved database directory: {db_dir}")
-
-try:
-    print(f"[DB INIT] Attempting to create directory: {db_dir}")
-    os.makedirs(db_dir, exist_ok=True)
-    print(f"[DB INIT] Directory created successfully")
-
-    # Make sure directory is writable
-    os.chmod(db_dir, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-    print(f"[DB INIT] Directory permissions set successfully")
-
-    print(f"[DB INIT] Directory exists: {os.path.exists(db_dir)}")
-    print(f"[DB INIT] Directory writable: {os.access(db_dir, os.W_OK)}")
-    print(f"[DB INIT] Directory readable: {os.access(db_dir, os.R_OK)}")
-
-    # List contents
-    if os.path.exists(db_dir):
-        contents = os.listdir(db_dir)
-        print(f"[DB INIT] Directory contents: {contents}")
-
-    # Check if database file exists and fix permissions
-    if os.path.exists(DB_PATH):
-        print(f"[DB INIT] Database file exists at: {DB_PATH}")
-        file_stat = os.stat(DB_PATH)
-        print(f"[DB INIT] File permissions: {oct(file_stat.st_mode)}")
-        print(f"[DB INIT] File writable: {os.access(DB_PATH, os.W_OK)}")
-        print(f"[DB INIT] File readable: {os.access(DB_PATH, os.R_OK)}")
-
-        # Fix file permissions
-        os.chmod(DB_PATH, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH | stat.S_IWOTH)
-        print(f"[DB INIT] Database file permissions updated")
-    else:
-        print(f"[DB INIT] Database file does not exist yet: {DB_PATH}")
-
-except Exception as e:
-    print(f"[DB INIT ERROR] Failed to prepare database: {e}")
-    import traceback
-    traceback.print_exc()
+# db_dir = os.path.dirname(os.path.abspath(DB_PATH))
+#
+# try:
+#     os.makedirs(db_dir, exist_ok=True)
+#
+#     # List contents
+#     if os.path.exists(db_dir):
+#         contents = os.listdir(db_dir)
+#
+#     # Check if database file exists and fix permissions
+#     if os.path.exists(DB_PATH):
+#         print(f"[DB INIT] Database file exists at: {DB_PATH}")
+#         file_stat = os.stat(DB_PATH)
+#         print(f"[DB INIT] File permissions: {oct(file_stat.st_mode)}")
+#         print(f"[DB INIT] File writable: {os.access(DB_PATH, os.W_OK)}")
+#         print(f"[DB INIT] File readable: {os.access(DB_PATH, os.R_OK)}")
+#
+#         # Fix file permissions
+#         os.chmod(DB_PATH, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH | stat.S_IWOTH)
+#         print(f"[DB INIT] Database file permissions updated")
+#     else:
+#         print(f"[DB INIT] Database file does not exist yet: {DB_PATH}")
+#
+# except Exception as e:
+#     print(f"[DB INIT ERROR] Failed to prepare database: {e}")
+#     import traceback
+#     traceback.print_exc()
 
 
 async def init_db():
