@@ -8,24 +8,40 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 # Use /app/data for Docker volume, fallback to current directory for local dev
+print(f"[DB INIT] Checking /app/data existence: {os.path.exists('/app/data')}")
+
 if os.path.exists("/app/data"):
     DB_PATH = "/app/data/flower_shop.db"
-    logger.info(f"Using Docker volume path for database: {DB_PATH}")
+    print(f"[DB INIT] Using Docker volume path for database: {DB_PATH}")
 else:
     DB_PATH = "flower_shop.db"
-    logger.info(f"Using local path for database: {DB_PATH}")
+    print(f"[DB INIT] Using local path for database: {DB_PATH}")
 
 # Ensure directory exists and has write permissions
 db_dir = os.path.dirname(os.path.abspath(DB_PATH))
+print(f"[DB INIT] Resolved database directory: {db_dir}")
+
 try:
+    print(f"[DB INIT] Attempting to create directory: {db_dir}")
     os.makedirs(db_dir, exist_ok=True)
+    print(f"[DB INIT] Directory created successfully")
+
     # Make sure directory is writable
     os.chmod(db_dir, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-    logger.info(f"Database directory: {db_dir}")
-    logger.info(f"Directory exists: {os.path.exists(db_dir)}")
-    logger.info(f"Directory writable: {os.access(db_dir, os.W_OK)}")
+    print(f"[DB INIT] Permissions set successfully")
+
+    print(f"[DB INIT] Directory exists: {os.path.exists(db_dir)}")
+    print(f"[DB INIT] Directory writable: {os.access(db_dir, os.W_OK)}")
+    print(f"[DB INIT] Directory readable: {os.access(db_dir, os.R_OK)}")
+
+    # List contents
+    if os.path.exists(db_dir):
+        contents = os.listdir(db_dir)
+        print(f"[DB INIT] Directory contents: {contents}")
 except Exception as e:
-    logger.error(f"Failed to prepare database directory: {e}")
+    print(f"[DB INIT ERROR] Failed to prepare database directory: {e}")
+    import traceback
+    traceback.print_exc()
 
 
 async def init_db():
