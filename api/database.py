@@ -21,6 +21,19 @@ async def init_db():
                 mode TEXT DEFAULT 'USER'
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS goods (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                createstamp TIMESTAMP,
+                changestamp TIMESTAMP,
+                status TEXT DEFAULT 'NEW',
+                name TEXT NOT NULL,
+                category TEXT,
+                price INTEGER NOT NULL,
+                description TEXT,
+                image_url TEXT
+            )
+        """)
         await db.commit()
         logger.info("Database initialized successfully")
 
@@ -78,3 +91,34 @@ async def update_user_mode(user_id: int, mode: str) -> None:
         )
         await db.commit()
         logger.info(f"Updated mode for user {user_id} to {mode}")
+
+
+async def create_good_card(
+    name: str,
+    category: str,
+    price: int,
+    description: str,
+    image_url: Optional[str] = None
+) -> dict:
+    """Create a new good card"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        current_time = datetime.now().isoformat()
+
+        cursor = await db.execute(
+            """INSERT INTO goods (createstamp, changestamp, status, name, category, price, description, image_url)
+               VALUES (?, ?, 'NEW', ?, ?, ?, ?, ?)""",
+            (current_time, current_time, name, category, price, description, image_url)
+        )
+        await db.commit()
+
+        # Get the created good card
+        good_id = cursor.lastrowid
+        cursor = await db.execute(
+            "SELECT * FROM goods WHERE id = ?",
+            (good_id,)
+        )
+        row = await cursor.fetchone()
+
+        logger.info(f"Created new good card with id={good_id}")
+        return dict(row)

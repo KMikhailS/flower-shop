@@ -10,9 +10,10 @@ import MobileMenu from './components/MobileMenu';
 import ProductCard from './components/ProductCard';
 import Cart from './components/Cart';
 import StoreAddresses from './components/StoreAddresses';
+import AdminProductCard from './components/AdminProductCard';
 import { useTelegramWebApp } from './hooks/useTelegramWebApp';
 import { useCartPersistence } from './hooks/useCartPersistence';
-import { fetchUserInfo, UserInfo } from './api/client';
+import { fetchUserInfo, UserInfo, createGoodCard } from './api/client';
 
 export interface CartItemData {
   product: Product;
@@ -33,6 +34,7 @@ function App() {
   const [previousScreen, setPreviousScreen] = useState<'home' | 'cart' | 'storeAddresses' | null>(null);
   const [previousScreenBeforeCart, setPreviousScreenBeforeCart] = useState<'home' | 'productCard' | null>(null);
   const [previousProduct, setPreviousProduct] = useState<Product | null>(null);
+  const [isAdminCardOpen, setIsAdminCardOpen] = useState(false);
 
   // Состояние корзины - теперь массив товаров
   const [cartItems, setCartItems] = useState<CartItemData[]>([]);
@@ -141,6 +143,42 @@ function App() {
     setPreviousScreen(null);
   };
 
+  const handleOpenAdminCard = () => {
+    setIsAdminCardOpen(true);
+  };
+
+  const handleSaveAdminCard = async (data: {
+    name: string;
+    category: string;
+    price: number;
+    description: string;
+    image_url: string;
+  }) => {
+    if (!webApp || !webApp.initData) {
+      alert('Ошибка: недоступен Telegram WebApp');
+      return;
+    }
+
+    try {
+      await createGoodCard(
+        {
+          name: data.name,
+          category: data.category,
+          price: data.price,
+          description: data.description,
+          image_url: data.image_url,
+        },
+        webApp.initData
+      );
+
+      setIsAdminCardOpen(false);
+      alert('Товар успешно добавлен!');
+    } catch (error) {
+      console.error('Failed to create good card:', error);
+      alert('Ошибка при создании товара. Проверьте права доступа.');
+    }
+  };
+
   // Восстановление корзины при инициализации
   useEffect(() => {
     if (!webApp) return;
@@ -189,7 +227,7 @@ function App() {
   useEffect(() => {
     if (!webApp) return;
 
-    const isNotOnHome = isCartOpen || selectedProduct !== null || isStoreAddressesOpen || isMenuOpen;
+    const isNotOnHome = isCartOpen || selectedProduct !== null || isStoreAddressesOpen || isMenuOpen || isAdminCardOpen;
 
     if (isNotOnHome) {
       webApp.BackButton.show();
@@ -205,6 +243,8 @@ function App() {
           setPreviousScreenBeforeCart(null);
         } else if (selectedProduct) {
           setSelectedProduct(null);
+        } else if (isAdminCardOpen) {
+          setIsAdminCardOpen(false);
         } else if (isStoreAddressesOpen) {
           setIsStoreAddressesOpen(false);
           if (returnToCart && cartItems.length > 0) {
@@ -224,7 +264,7 @@ function App() {
     } else {
       webApp.BackButton.hide();
     }
-  }, [webApp, isCartOpen, selectedProduct, isStoreAddressesOpen, isMenuOpen, returnToCart, cartItems, previousProduct, previousScreenBeforeCart]);
+  }, [webApp, isCartOpen, selectedProduct, isStoreAddressesOpen, isMenuOpen, isAdminCardOpen, returnToCart, cartItems, previousProduct, previousScreenBeforeCart]);
 
   return (
     <div className="min-h-screen bg-white max-w-[402px] mx-auto">
@@ -277,6 +317,12 @@ function App() {
           cartItems={cartItems}
         />
       )}
+      {isAdminCardOpen && (
+        <AdminProductCard
+          onClose={() => setIsAdminCardOpen(false)}
+          onSave={handleSaveAdminCard}
+        />
+      )}
       <div className="flex flex-col gap-4">
         <AppHeader
           title="FanFanTulpan"
@@ -290,7 +336,11 @@ function App() {
         <PromoBanner />
         <PaginationDots />
         <CategoryTabs />
-        <ProductGrid onProductClick={setSelectedProduct} />
+        <ProductGrid
+          onProductClick={setSelectedProduct}
+          isAdminMode={userInfo?.mode === 'ADMIN'}
+          onAddNewCard={handleOpenAdminCard}
+        />
         <div className="mt-4">
           <BottomButton />
         </div>

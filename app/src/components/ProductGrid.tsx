@@ -1,4 +1,5 @@
 import React from 'react';
+import AdminAddCard from './AdminAddCard';
 
 export interface Product {
   id: number;
@@ -46,9 +47,11 @@ export const products: Product[] = [
 
 interface ProductGridProps {
   onProductClick?: (product: Product) => void;
+  isAdminMode?: boolean;
+  onAddNewCard?: () => void;
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({ onProductClick }) => {
+const ProductGrid: React.FC<ProductGridProps> = ({ onProductClick, isAdminMode, onAddNewCard }) => {
   return (
     <div className="grid grid-cols-2 gap-[21px] px-8">
       {products.map((product) => (
@@ -64,6 +67,9 @@ const ProductGrid: React.FC<ProductGridProps> = ({ onProductClick }) => {
           />
         </div>
       ))}
+      {isAdminMode && onAddNewCard && (
+        <AdminAddCard onClick={onAddNewCard} />
+      )}
     </div>
   );
 };
