@@ -2,7 +2,6 @@ import os
 import logging
 from fastapi import Header, HTTPException, status
 from aiogram.utils.web_app import safe_parse_webapp_init_data
-from aiogram.types import WebAppInitData
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +48,8 @@ async def verify_telegram_init_data(authorization: str = Header(...)) -> int:
 
     try:
         # Validate initData signature using aiogram
-        init_data: WebAppInitData = safe_parse_webapp_init_data(
+        # safe_parse_webapp_init_data returns WebAppInitData object
+        init_data = safe_parse_webapp_init_data(
             token=bot_token,
             init_data=init_data_str
         )
