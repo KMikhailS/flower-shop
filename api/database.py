@@ -28,7 +28,7 @@ try:
 
     # Make sure directory is writable
     os.chmod(db_dir, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-    print(f"[DB INIT] Permissions set successfully")
+    print(f"[DB INIT] Directory permissions set successfully")
 
     print(f"[DB INIT] Directory exists: {os.path.exists(db_dir)}")
     print(f"[DB INIT] Directory writable: {os.access(db_dir, os.W_OK)}")
@@ -38,8 +38,23 @@ try:
     if os.path.exists(db_dir):
         contents = os.listdir(db_dir)
         print(f"[DB INIT] Directory contents: {contents}")
+
+    # Check if database file exists and fix permissions
+    if os.path.exists(DB_PATH):
+        print(f"[DB INIT] Database file exists at: {DB_PATH}")
+        file_stat = os.stat(DB_PATH)
+        print(f"[DB INIT] File permissions: {oct(file_stat.st_mode)}")
+        print(f"[DB INIT] File writable: {os.access(DB_PATH, os.W_OK)}")
+        print(f"[DB INIT] File readable: {os.access(DB_PATH, os.R_OK)}")
+
+        # Fix file permissions
+        os.chmod(DB_PATH, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH | stat.S_IWOTH)
+        print(f"[DB INIT] Database file permissions updated")
+    else:
+        print(f"[DB INIT] Database file does not exist yet: {DB_PATH}")
+
 except Exception as e:
-    print(f"[DB INIT ERROR] Failed to prepare database directory: {e}")
+    print(f"[DB INIT ERROR] Failed to prepare database: {e}")
     import traceback
     traceback.print_exc()
 
