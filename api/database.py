@@ -1,6 +1,7 @@
 import aiosqlite
 import logging
 import os
+import stat
 from datetime import datetime
 from typing import Optional
 
@@ -9,11 +10,22 @@ logger = logging.getLogger(__name__)
 # Use /app/data for Docker volume, fallback to current directory for local dev
 if os.path.exists("/app/data"):
     DB_PATH = "/app/data/flower_shop.db"
+    logger.info(f"Using Docker volume path for database: {DB_PATH}")
 else:
     DB_PATH = "flower_shop.db"
+    logger.info(f"Using local path for database: {DB_PATH}")
 
-# Ensure directory exists
-os.makedirs(os.path.dirname(os.path.abspath(DB_PATH)), exist_ok=True)
+# Ensure directory exists and has write permissions
+db_dir = os.path.dirname(os.path.abspath(DB_PATH))
+try:
+    os.makedirs(db_dir, exist_ok=True)
+    # Make sure directory is writable
+    os.chmod(db_dir, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+    logger.info(f"Database directory: {db_dir}")
+    logger.info(f"Directory exists: {os.path.exists(db_dir)}")
+    logger.info(f"Directory writable: {os.access(db_dir, os.W_OK)}")
+except Exception as e:
+    logger.error(f"Failed to prepare database directory: {e}")
 
 
 async def init_db():
