@@ -73,13 +73,13 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave }) 
       return;
     }
 
-    // Convert price from rubles to kopeks (price * 100)
-    const priceKopeks = Math.round(Number(priceRub) * 100);
+    // Price is stored as integer rubles
+    const price = Math.round(Number(priceRub));
 
     onSave({
       name: name.trim(),
       category: category,
-      price: priceKopeks,
+      price: price,
       description: description.trim(),
       image_url: imageUrl.trim() || '/images/flower-1-59d765.png', // Default image if not provided
     });
@@ -146,14 +146,6 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave }) 
               <p className="text-gray-medium text-base">Добавить фото</p>
             </div>
           )}
-
-          {/* Back Button */}
-          {/*<button*/}
-          {/*  onClick={onClose}*/}
-          {/*  className="absolute top-12 left-9 w-[35px] h-[35px] flex items-center justify-center"*/}
-          {/*>*/}
-          {/*  <img src="/images/back-button.svg" alt="Back" className="w-full h-full" />*/}
-          {/*</button>*/}
         </div>
 
         {/* Form Section */}
