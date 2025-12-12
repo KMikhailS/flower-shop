@@ -13,7 +13,7 @@ import StoreAddresses from './components/StoreAddresses';
 import AdminProductCard from './components/AdminProductCard';
 import { useTelegramWebApp } from './hooks/useTelegramWebApp';
 import { useCartPersistence } from './hooks/useCartPersistence';
-import { fetchUserInfo, UserInfo, createGoodCard } from './api/client';
+import { fetchUserInfo, UserInfo, createGoodCard, fetchGoods, GoodDTO } from './api/client';
 
 export interface CartItemData {
   product: Product;
@@ -25,6 +25,7 @@ function App() {
   const { saveCart, loadCart, clearCart } = useCartPersistence(webApp);
 
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -147,6 +148,28 @@ function App() {
     setIsAdminCardOpen(true);
   };
 
+  // Функция для загрузки товаров с бэкенда
+  const loadProducts = async () => {
+    try {
+      const goods = await fetchGoods();
+
+      // Маппинг GoodDTO → Product
+      const mappedProducts: Product[] = goods.map((good: GoodDTO) => ({
+        id: good.id,
+        image: good.image_url || '/images/placeholder.png',
+        alt: good.name,
+        title: good.name,
+        price: `${good.price} руб.`,
+        description: good.description,
+      }));
+
+      setProducts(mappedProducts);
+      console.log('Products loaded:', mappedProducts.length);
+    } catch (error) {
+      console.error('Failed to fetch goods:', error);
+    }
+  };
+
   const handleSaveAdminCard = async (data: {
     name: string;
     category: string;
@@ -173,6 +196,9 @@ function App() {
 
       setIsAdminCardOpen(false);
       alert('Товар успешно добавлен!');
+
+      // Обновляем список товаров после добавления
+      await loadProducts();
     } catch (error) {
       console.error('Failed to create good card:', error);
       alert('Ошибка при создании товара. Проверьте права доступа.');
@@ -206,6 +232,11 @@ function App() {
         console.error('Failed to fetch user info:', error);
       });
   }, [webApp]);
+
+  // Загрузка товаров при инициализации
+  useEffect(() => {
+    loadProducts();
+  }, []);
 
   // Автосохранение корзины при изменении состояния
   useEffect(() => {
@@ -337,6 +368,7 @@ function App() {
         <PaginationDots />
         <CategoryTabs />
         <ProductGrid
+          products={products}
           onProductClick={setSelectedProduct}
           isAdminMode={userInfo?.mode === 'ADMIN'}
           onAddNewCard={handleOpenAdminCard}

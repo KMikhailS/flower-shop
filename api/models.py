@@ -30,3 +30,13 @@ class GoodCardResponse(BaseModel):
     price: int
     description: str
     image_url: Optional[str] = None
+
+
+class GoodDTO(BaseModel):
+    """Data transfer object for public goods listing"""
+    id: int
+    name: str
+    category: str
+    price: int
+    description: str
+    image_url: Optional[str] = None

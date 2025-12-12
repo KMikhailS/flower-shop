@@ -8,44 +8,7 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
-# if os.path.exists("/app/data"):
-#     DB_PATH = "/app/data/flower_shop.db"
-#     print(f"[DB INIT] Using Docker volume path for database: {DB_PATH}")
-# else:
-#     DB_PATH = "flower_shop.db"
-#     print(f"[DB INIT] Using local path for database: {DB_PATH}")
-
 DB_PATH = "/app/data/flower_shop.db"
-
-# Ensure directory exists and has write permissions
-# db_dir = os.path.dirname(os.path.abspath(DB_PATH))
-#
-# try:
-#     os.makedirs(db_dir, exist_ok=True)
-#
-#     # List contents
-#     if os.path.exists(db_dir):
-#         contents = os.listdir(db_dir)
-#
-#     # Check if database file exists and fix permissions
-#     if os.path.exists(DB_PATH):
-#         print(f"[DB INIT] Database file exists at: {DB_PATH}")
-#         file_stat = os.stat(DB_PATH)
-#         print(f"[DB INIT] File permissions: {oct(file_stat.st_mode)}")
-#         print(f"[DB INIT] File writable: {os.access(DB_PATH, os.W_OK)}")
-#         print(f"[DB INIT] File readable: {os.access(DB_PATH, os.R_OK)}")
-#
-#         # Fix file permissions
-#         os.chmod(DB_PATH, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH | stat.S_IWOTH)
-#         print(f"[DB INIT] Database file permissions updated")
-#     else:
-#         print(f"[DB INIT] Database file does not exist yet: {DB_PATH}")
-#
-# except Exception as e:
-#     print(f"[DB INIT ERROR] Failed to prepare database: {e}")
-#     import traceback
-#     traceback.print_exc()
-
 
 async def init_db():
     """Initialize database and create tables if they don't exist"""
@@ -161,3 +124,17 @@ async def create_good_card(
 
         logger.info(f"Created new good card with id={good_id}")
         return dict(row)
+
+
+async def get_goods_by_status(status: str = 'NEW') -> list[dict]:
+    """Get all goods with specified status"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            "SELECT * FROM goods WHERE status = ? ORDER BY id DESC",
+            (status,)
+        )
+        rows = await cursor.fetchall()
+
+        logger.info(f"Retrieved {len(rows)} goods with status={status}")
+        return [dict(row) for row in rows]

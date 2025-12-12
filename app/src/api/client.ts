@@ -28,6 +28,16 @@ export interface GoodCardResponse {
   image_url?: string;
 }
 
+// Good DTO for public goods listing
+export interface GoodDTO {
+  id: number;
+  name: string;
+  category: string;
+  price: number;
+  description: string;
+  image_url?: string;
+}
+
 // API base URL - uses relative path to work with nginx proxy
 // In development with Vite proxy or production with nginx, both route /api to backend
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
@@ -110,4 +120,27 @@ export async function uploadImage(file: File): Promise<string> {
 
   const data = await response.json();
   return data.imageUrl;
+}
+
+/**
+ * Fetch all goods with status NEW (public endpoint)
+ *
+ * @returns Promise<GoodDTO[]> - List of goods
+ * @throws Error if request fails
+ */
+export async function fetchGoods(): Promise<GoodDTO[]> {
+  const response = await fetch(`${API_BASE_URL}/goods`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch goods: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as GoodDTO[];
 }

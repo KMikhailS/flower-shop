@@ -7,8 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from auth import verify_telegram_init_data
-from models import UserInfoDTO, GoodCardRequest, GoodCardResponse
-from database import get_user, create_good_card
+from models import UserInfoDTO, GoodCardRequest, GoodCardResponse, GoodDTO
+from database import get_user, create_good_card, get_goods_by_status
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +68,39 @@ async def get_current_user(user_id: int = Depends(verify_telegram_init_data)):
         mode=user["mode"],
         status=user["status"]
     )
+
+
+@app.get("/goods", response_model=list[GoodDTO])
+async def get_goods():
+    """
+    Get all goods with status NEW (public endpoint)
+
+    No authentication required
+    """
+    logger.info("Fetching all goods with status NEW")
+
+    try:
+        # Get goods from database
+        goods = await get_goods_by_status('NEW')
+
+        # Convert to DTOs
+        return [
+            GoodDTO(
+                id=good["id"],
+                name=good["name"],
+                category=good["category"],
+                price=good["price"],
+                description=good["description"],
+                image_url=good["image_url"]
+            )
+            for good in goods
+        ]
+    except Exception as e:
+        logger.error(f"Failed to fetch goods: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch goods"
+        )
 
 
 async def verify_admin_mode(user_id: int = Depends(verify_telegram_init_data)) -> int:
