@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 import { CartState } from '../types/cart';
-import { products } from '../components/ProductGrid';
 
 const CART_STORAGE_KEY = 'fanfantulpan_cart';
 const CART_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 часа
@@ -112,17 +111,6 @@ function validateAndParseCart(data: string | null): CartState | null {
     if (now - timestamp > CART_MAX_AGE_MS) {
       console.log('Cart data is too old, discarding');
       return null;
-    }
-
-    // Проверяем существование всех продуктов в корзине
-    if (cartState.cartItems && Array.isArray(cartState.cartItems)) {
-      const allProductsExist = cartState.cartItems.every(item =>
-        products.some(p => p.id === item.product.id)
-      );
-      if (!allProductsExist) {
-        console.log('Some products no longer exist, discarding cart');
-        return null;
-      }
     }
 
     return cartState;
