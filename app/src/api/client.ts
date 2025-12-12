@@ -86,3 +86,28 @@ export async function createGoodCard(
   const data = await response.json();
   return data as GoodCardResponse;
 }
+
+/**
+ * Upload product image
+ *
+ * @param file - Image file to upload (jpg, jpeg, png, webp, max 5MB)
+ * @returns Promise<string> - Image URL (/static/xxx.jpg)
+ * @throws Error if upload fails
+ */
+export async function uploadImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const response = await fetch(`${API_BASE_URL}/shop/upload`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to upload image: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.imageUrl;
+}

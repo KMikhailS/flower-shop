@@ -1,5 +1,8 @@
 import logging
-from fastapi import FastAPI, Depends, HTTPException, status
+import uuid
+from pathlib import Path
+from datetime import datetime
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 
 from auth import verify_telegram_init_data
@@ -10,6 +13,12 @@ logger = logging.getLogger(__name__)
 
 # Create FastAPI app
 app = FastAPI(title="FanFanTulpan API", version="1.0.0")
+
+# Upload configuration
+UPLOAD_DIR = Path("/home/mikhail/brobrocode/flower-shop/api/uploads")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
 # Configure CORS
 # Note: In production behind nginx proxy, requests come from same origin
@@ -111,6 +120,68 @@ async def create_good_card_endpoint(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create good card"
         )
+
+
+@app.post("/shop/upload")
+async def upload_image(image: UploadFile = File(...)):
+    """
+    Upload product image
+
+    Accepts image file (jpg, jpeg, png, webp) up to 5MB
+    Returns image URL for use in product cards
+    """
+    logger.info(f"Uploading image: {image.filename}")
+
+    # Validate file extension
+    file_ext = Path(image.filename).suffix.lower()
+    if file_ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Only images are allowed ({', '.join(ALLOWED_EXTENSIONS)})"
+        )
+
+    # Validate content type
+    if not image.content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only image files are allowed"
+        )
+
+    # Read file content
+    contents = await image.read()
+
+    # Validate file size
+    if len(contents) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File size exceeds 5MB limit"
+        )
+
+    # Generate unique filename
+    timestamp = int(datetime.now().timestamp())
+    unique_id = uuid.uuid4().hex[:8]
+    filename = f"{timestamp}-{unique_id}{file_ext}"
+    file_path = UPLOAD_DIR / filename
+
+    # Save file
+    try:
+        with open(file_path, "wb") as f:
+            f.write(contents)
+        logger.info(f"Image saved: {filename}")
+    except Exception as e:
+        logger.error(f"Failed to save image: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to save image"
+        )
+
+    # Return URL
+    image_url = f"/static/{filename}"
+    return {
+        "success": True,
+        "imageUrl": image_url,
+        "filename": filename
+    }
 
 
 @app.get("/health")

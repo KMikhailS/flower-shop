@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { uploadImage } from '../api/client';
 
 interface AdminProductCardProps {
   onClose: () => void;
@@ -17,6 +18,43 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave }) 
   const [priceRub, setPriceRub] = useState('');
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Размер файла не должен превышать 5MB');
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Можно загружать только изображения');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const url = await uploadImage(file);
+      setImageUrl(url);
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Ошибка при загрузке изображения');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSave = () => {
     // Validation
@@ -51,8 +89,25 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave }) 
     <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto overflow-y-auto">
       <div className="min-h-full flex flex-col">
         {/* Image Placeholder Section */}
-        <div className="relative h-[505px] flex-shrink-0 bg-gray-light flex items-center justify-center rounded-b-[30px]">
-          {imageUrl ? (
+        <div
+          className="relative h-[505px] flex-shrink-0 bg-gray-light flex items-center justify-center rounded-b-[30px] cursor-pointer"
+          onClick={handleImageClick}
+        >
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+
+          {isUploading ? (
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-teal mx-auto mb-4"></div>
+              <p className="text-gray-medium text-base">Загрузка...</p>
+            </div>
+          ) : imageUrl ? (
             <img
               src={imageUrl}
               alt="Preview"
@@ -93,12 +148,12 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave }) 
           )}
 
           {/* Back Button */}
-          <button
-            onClick={onClose}
-            className="absolute top-12 left-9 w-[35px] h-[35px] flex items-center justify-center"
-          >
-            <img src="/images/back-button.svg" alt="Back" className="w-full h-full" />
-          </button>
+          {/*<button*/}
+          {/*  onClick={onClose}*/}
+          {/*  className="absolute top-12 left-9 w-[35px] h-[35px] flex items-center justify-center"*/}
+          {/*>*/}
+          {/*  <img src="/images/back-button.svg" alt="Back" className="w-full h-full" />*/}
+          {/*</button>*/}
         </div>
 
         {/* Form Section */}

@@ -18,7 +18,7 @@ interface ProductCardProps {
   cartItems: CartItemData[];
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onOpenCart, onAddToCart, cartItems }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, onAddToCart, cartItems }) => {
   // Вычисляем общее количество товаров в корзине
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   return (
@@ -33,12 +33,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onOpenCart,
           />
 
           {/* Back Button */}
-          <button
-            onClick={onClose}
-            className="absolute top-12 left-9 w-[35px] h-[35px] flex items-center justify-center"
-          >
-            <img src="/images/back-button.svg" alt="Back" className="w-full h-full" />
-          </button>
+          {/*<button*/}
+          {/*  onClick={onClose}*/}
+          {/*  className="absolute top-12 left-9 w-[35px] h-[35px] flex items-center justify-center"*/}
+          {/*>*/}
+          {/*  <img src="/images/back-button.svg" alt="Back" className="w-full h-full" />*/}
+          {/*</button>*/}
 
           {/* Cart Icon with Badge */}
           <div className="absolute top-[42px] right-[25px]">
@@ -56,9 +56,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onOpenCart,
           </div>
 
           {/* Navigation Arrows */}
-          {/*<button className="absolute top-[245px] left-2 w-[50px] h-[50px] flex items-center justify-center">*/}
-          {/*  <img src="/images/arrow-left.svg" alt="Previous" className="w-5 h-9" />*/}
-          {/*</button>*/}
+          <button className="absolute top-[245px] left-2 w-[50px] h-[50px] flex items-center justify-center">
+            <img src="/images/arrow-left.svg" alt="Previous" className="w-5 h-9" />
+          </button>
           <button className="absolute top-[245px] right-2 w-[50px] h-[50px] flex items-center justify-center">
             <img src="/images/arrow-right.svg" alt="Next" className="w-5 h-9" style={{ transform: 'scaleX(-1)' }} />
           </button>
