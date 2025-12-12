@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import AppHeader from './AppHeader';
 import CartItem from './CartItem';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
@@ -36,6 +36,14 @@ const Cart: React.FC<CartProps> = ({
   onClearCart
 }) => {
   const { webApp, user } = useTelegramWebApp();
+
+  // Отключаем прокрутку body при открытии модального окна
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   // Рассчитываем общую сумму всех товаров
   const totalPrice = cartItems.reduce((sum, item) => {

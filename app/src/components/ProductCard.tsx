@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { CartItemData } from '../App';
 
 interface Product {
@@ -21,6 +21,14 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, onAddToCart, cartItems }) => {
   // Вычисляем общее количество товаров в корзине
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Отключаем прокрутку body при открытии модального окна
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
   return (
     <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto overflow-y-auto">
       <div className="min-h-full flex flex-col">

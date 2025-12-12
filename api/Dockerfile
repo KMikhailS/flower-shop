@@ -7,7 +7,7 @@ RUN  pip3 install -r requirements.txt
 
 COPY . .
 
-# Create data directory for database
-RUN mkdir -p /app/data
+# Create data directory for database and uploads
+RUN mkdir -p /app/data/uploads
 
 CMD [ "python", "main.py" ]

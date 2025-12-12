@@ -4,6 +4,7 @@ from pathlib import Path
 from datetime import datetime
 from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from auth import verify_telegram_init_data
 from models import UserInfoDTO, GoodCardRequest, GoodCardResponse
@@ -15,7 +16,8 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="FanFanTulpan API", version="1.0.0")
 
 # Upload configuration
-UPLOAD_DIR = Path("/home/mikhail/brobrocode/flower-shop/api/uploads")
+# Use /app/data/uploads to leverage the Docker volume mount
+UPLOAD_DIR = Path("/app/data/uploads")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
@@ -35,6 +37,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
+
+# Mount static files directory for serving uploaded images
+app.mount("/static", StaticFiles(directory=UPLOAD_DIR), name="static")
 
 
 @app.get("/users/me", response_model=UserInfoDTO)
@@ -175,8 +180,8 @@ async def upload_image(image: UploadFile = File(...)):
             detail="Failed to save image"
         )
 
-    # Return URL
-    image_url = f"/static/{filename}"
+    # Return URL (including /api prefix for nginx proxy routing)
+    image_url = f"/api/static/{filename}"
     return {
         "success": True,
         "imageUrl": image_url,
