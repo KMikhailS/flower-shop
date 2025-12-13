@@ -12,7 +12,6 @@ export interface GoodCardData {
   category: string;
   price: number;
   description: string;
-  image_url?: string;
 }
 
 // Good card response from backend
@@ -25,7 +24,7 @@ export interface GoodCardResponse {
   category: string;
   price: number;
   description: string;
-  image_url?: string;
+  image_urls: string[];
 }
 
 // Good DTO for public goods listing
@@ -35,7 +34,7 @@ export interface GoodDTO {
   category: string;
   price: number;
   description: string;
-  image_url?: string;
+  image_urls: string[];
 }
 
 // API base URL - uses relative path to work with nginx proxy
@@ -98,15 +97,17 @@ export async function createGoodCard(
 }
 
 /**
- * Upload product image
+ * Upload product images
  *
- * @param file - Image file to upload (jpg, jpeg, png, webp, max 5MB)
- * @returns Promise<string> - Image URL (/static/xxx.jpg)
+ * @param files - Array of image files to upload (jpg, jpeg, png, webp, max 5MB each)
+ * @returns Promise<string[]> - Array of image URLs (/api/static/xxx.jpg)
  * @throws Error if upload fails
  */
-export async function uploadImage(file: File): Promise<string> {
+export async function uploadImages(files: File[]): Promise<string[]> {
   const formData = new FormData();
-  formData.append('image', file);
+  files.forEach(file => {
+    formData.append('images', file);
+  });
 
   const response = await fetch(`${API_BASE_URL}/shop/upload`, {
     method: 'POST',
@@ -115,11 +116,47 @@ export async function uploadImage(file: File): Promise<string> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to upload image: ${response.status} ${errorText}`);
+    throw new Error(`Failed to upload images: ${response.status} ${errorText}`);
   }
 
   const data = await response.json();
-  return data.imageUrl;
+  return data.imageUrls;
+}
+
+/**
+ * Add images to an existing good (ADMIN only)
+ *
+ * @param goodId - ID of the good to add images to
+ * @param files - Array of image files to upload
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<string[]> - Array of uploaded image URLs
+ * @throws Error if upload fails
+ */
+export async function addGoodImages(
+  goodId: number,
+  files: File[],
+  initData: string
+): Promise<string[]> {
+  const formData = new FormData();
+  files.forEach(file => {
+    formData.append('images', file);
+  });
+
+  const response = await fetch(`${API_BASE_URL}/goods/${goodId}/images`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `tma ${initData}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to add images to good: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.imageUrls;
 }
 
 /**

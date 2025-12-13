@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CartItemData } from '../App';
 
 interface Product {
   id: number;
   image: string;
+  images?: string[];
   alt: string;
   title: string;
   price: string;
@@ -22,6 +23,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, onAddToC
   // Вычисляем общее количество товаров в корзине
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
+  // Состояние для навигации по изображениям
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Получаем массив изображений (или используем основное изображение)
+  const images = product.images && product.images.length > 0 ? product.images : [product.image];
+
+  const handlePrevImage = () => {
+    setCurrentImageIndex(prev => prev === 0 ? images.length - 1 : prev - 1);
+  };
+
+  const handleNextImage = () => {
+    setCurrentImageIndex(prev => prev === images.length - 1 ? 0 : prev + 1);
+  };
+
   // Отключаем прокрутку body при открытии модального окна
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -35,7 +50,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, onAddToC
         {/* Product Image Section */}
         <div className="relative h-[505px] flex-shrink-0">
           <img
-            src={product.image}
+            src={images[currentImageIndex]}
             alt={product.alt}
             className="w-full h-full object-cover rounded-b-[30px]"
           />
@@ -63,21 +78,34 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, onAddToC
             </button>
           </div>
 
-          {/* Navigation Arrows */}
-          <button className="absolute top-[245px] left-2 w-[50px] h-[50px] flex items-center justify-center">
-            <img src="/images/arrow-left.svg" alt="Previous" className="w-5 h-9" />
-          </button>
-          <button className="absolute top-[245px] right-2 w-[50px] h-[50px] flex items-center justify-center">
-            <img src="/images/arrow-right.svg" alt="Next" className="w-5 h-9" style={{ transform: 'scaleX(-1)' }} />
-          </button>
+          {/* Navigation Arrows - only show if there are multiple images */}
+          {images.length > 1 && (
+            <>
+              <button
+                onClick={handlePrevImage}
+                className="absolute top-[245px] left-2 w-[50px] h-[50px] flex items-center justify-center"
+              >
+                <img src="/images/arrow-left.svg" alt="Previous" className="w-5 h-9" />
+              </button>
+              <button
+                onClick={handleNextImage}
+                className="absolute top-[245px] right-2 w-[50px] h-[50px] flex items-center justify-center"
+              >
+                <img src="/images/arrow-right.svg" alt="Next" className="w-5 h-9" style={{ transform: 'scaleX(-1)' }} />
+              </button>
+            </>
+          )}
 
           {/* Pagination Dots */}
           <div className="absolute bottom-[43px] left-1/2 transform -translate-x-1/2 flex gap-5">
-            <div className="w-2 h-2 rounded-full bg-[#898989]"></div>
-            <div className="w-2 h-2 rounded-full bg-[#FFF5F5]"></div>
-            <div className="w-2 h-2 rounded-full bg-[#FFF5F5]"></div>
-            <div className="w-2 h-2 rounded-full bg-[#FFF5F5]"></div>
-            <div className="w-2 h-2 rounded-full bg-[#FFF5F5]"></div>
+            {images.map((_, index) => (
+              <div
+                key={index}
+                className={`w-2 h-2 rounded-full ${
+                  index === currentImageIndex ? 'bg-[#898989]' : 'bg-[#FFF5F5]'
+                }`}
+              />
+            ))}
           </div>
         </div>
 

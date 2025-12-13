@@ -32,8 +32,16 @@ async def init_db():
                 name TEXT NOT NULL,
                 category TEXT,
                 price INTEGER NOT NULL,
-                description TEXT,
-                image_url TEXT
+                description TEXT
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS goods_images (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                good_id INTEGER NOT NULL,
+                image_url TEXT NOT NULL,
+                display_order INTEGER DEFAULT 0,
+                FOREIGN KEY (good_id) REFERENCES goods(id) ON DELETE CASCADE
             )
         """)
         await db.commit()
@@ -99,8 +107,7 @@ async def create_good_card(
     name: str,
     category: str,
     price: int,
-    description: str,
-    image_url: Optional[str] = None
+    description: str
 ) -> dict:
     """Create a new good card"""
     async with aiosqlite.connect(DB_PATH) as db:
@@ -108,9 +115,9 @@ async def create_good_card(
         current_time = datetime.now().isoformat()
 
         cursor = await db.execute(
-            """INSERT INTO goods (createstamp, changestamp, status, name, category, price, description, image_url)
-               VALUES (?, ?, 'NEW', ?, ?, ?, ?, ?)""",
-            (current_time, current_time, name, category, price, description, image_url)
+            """INSERT INTO goods (createstamp, changestamp, status, name, category, price, description)
+               VALUES (?, ?, 'NEW', ?, ?, ?, ?)""",
+            (current_time, current_time, name, category, price, description)
         )
         await db.commit()
 
@@ -122,19 +129,64 @@ async def create_good_card(
         )
         row = await cursor.fetchone()
 
+        # Add empty image_urls list to match new schema
+        result = dict(row)
+        result['image_urls'] = []
+
         logger.info(f"Created new good card with id={good_id}")
-        return dict(row)
+        return result
+
+
+async def save_good_images(good_id: int, image_urls: list[str]) -> None:
+    """Save list of image URLs for a good"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        for index, image_url in enumerate(image_urls):
+            await db.execute(
+                """INSERT INTO goods_images (good_id, image_url, display_order)
+                   VALUES (?, ?, ?)""",
+                (good_id, image_url, index)
+            )
+        await db.commit()
+        logger.info(f"Saved {len(image_urls)} images for good_id={good_id}")
 
 
 async def get_goods_by_status(status: str = 'NEW') -> list[dict]:
-    """Get all goods with specified status"""
+    """Get all goods with specified status along with their images"""
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
+
+        # Get goods with their images via LEFT JOIN
         cursor = await db.execute(
-            "SELECT * FROM goods WHERE status = ? ORDER BY id DESC",
+            """SELECT g.*, gi.image_url, gi.display_order
+               FROM goods g
+               LEFT JOIN goods_images gi ON g.id = gi.good_id
+               WHERE g.status = ?
+               ORDER BY g.id DESC, gi.display_order ASC""",
             (status,)
         )
         rows = await cursor.fetchall()
 
-        logger.info(f"Retrieved {len(rows)} goods with status={status}")
-        return [dict(row) for row in rows]
+        # Group images by good_id
+        goods_dict = {}
+        for row in rows:
+            good_id = row['id']
+            if good_id not in goods_dict:
+                goods_dict[good_id] = {
+                    'id': row['id'],
+                    'createstamp': row['createstamp'],
+                    'changestamp': row['changestamp'],
+                    'status': row['status'],
+                    'name': row['name'],
+                    'category': row['category'],
+                    'price': row['price'],
+                    'description': row['description'],
+                    'image_urls': []
+                }
+
+            # Add image_url if exists (LEFT JOIN may return NULL)
+            if row['image_url']:
+                goods_dict[good_id]['image_urls'].append(row['image_url'])
+
+        result = list(goods_dict.values())
+        logger.info(f"Retrieved {len(result)} goods with status={status}")
+        return result

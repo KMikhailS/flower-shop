@@ -4,6 +4,7 @@ import AdminAddCard from './AdminAddCard';
 export interface Product {
   id: number;
   image: string;
+  images?: string[];
   alt: string;
   title: string;
   price: string;

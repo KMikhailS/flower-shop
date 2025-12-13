@@ -13,7 +13,7 @@ import StoreAddresses from './components/StoreAddresses';
 import AdminProductCard from './components/AdminProductCard';
 import { useTelegramWebApp } from './hooks/useTelegramWebApp';
 import { useCartPersistence } from './hooks/useCartPersistence';
-import { fetchUserInfo, UserInfo, createGoodCard, fetchGoods, GoodDTO } from './api/client';
+import { fetchUserInfo, UserInfo, createGoodCard, fetchGoods, GoodDTO, addGoodImages } from './api/client';
 
 export interface CartItemData {
   product: Product;
@@ -156,7 +156,8 @@ function App() {
       // Маппинг GoodDTO → Product
       const mappedProducts: Product[] = goods.map((good: GoodDTO) => ({
         id: good.id,
-        image: good.image_url || '/images/placeholder.png',
+        image: good.image_urls[0] || '/images/placeholder.png',
+        images: good.image_urls,
         alt: good.name,
         title: good.name,
         price: `${good.price} руб.`,
@@ -175,7 +176,7 @@ function App() {
     category: string;
     price: number;
     description: string;
-    image_url: string;
+    imageFiles: File[];
   }) => {
     if (!webApp || !webApp.initData) {
       alert('Ошибка: недоступен Telegram WebApp');
@@ -183,16 +184,21 @@ function App() {
     }
 
     try {
-      await createGoodCard(
+      // Создаем товар без изображений
+      const createdGood = await createGoodCard(
         {
           name: data.name,
           category: data.category,
           price: data.price,
           description: data.description,
-          image_url: data.image_url,
         },
         webApp.initData
       );
+
+      // Если есть изображения, загружаем их
+      if (data.imageFiles.length > 0) {
+        await addGoodImages(createdGood.id, data.imageFiles, webApp.initData);
+      }
 
       setIsAdminCardOpen(false);
       alert('Товар успешно добавлен!');

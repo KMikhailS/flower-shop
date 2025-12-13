@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from auth import verify_telegram_init_data
 from models import UserInfoDTO, GoodCardRequest, GoodCardResponse, GoodDTO
-from database import get_user, create_good_card, get_goods_by_status
+from database import get_user, create_good_card, get_goods_by_status, save_good_images
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +91,7 @@ async def get_goods():
                 category=good["category"],
                 price=good["price"],
                 description=good["description"],
-                image_url=good["image_url"]
+                image_urls=good["image_urls"]
             )
             for good in goods
         ]
@@ -146,8 +146,7 @@ async def create_good_card_endpoint(
             name=good_card.name,
             category=good_card.category,
             price=good_card.price,
-            description=good_card.description,
-            image_url=good_card.image_url
+            description=good_card.description
         )
 
         # Return response
@@ -161,64 +160,150 @@ async def create_good_card_endpoint(
 
 
 @app.post("/shop/upload")
-async def upload_image(image: UploadFile = File(...)):
+async def upload_images(images: list[UploadFile] = File(...)):
     """
-    Upload product image
+    Upload multiple product images
 
-    Accepts image file (jpg, jpeg, png, webp) up to 5MB
-    Returns image URL for use in product cards
+    Accepts list of image files (jpg, jpeg, png, webp) up to 5MB each
+    Returns list of image URLs for use in product cards
     """
-    logger.info(f"Uploading image: {image.filename}")
+    logger.info(f"Uploading {len(images)} images")
 
-    # Validate file extension
-    file_ext = Path(image.filename).suffix.lower()
-    if file_ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Only images are allowed ({', '.join(ALLOWED_EXTENSIONS)})"
-        )
+    uploaded_urls = []
 
-    # Validate content type
-    if not image.content_type.startswith("image/"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only image files are allowed"
-        )
+    for image in images:
+        # Validate file extension
+        file_ext = Path(image.filename).suffix.lower()
+        if file_ext not in ALLOWED_EXTENSIONS:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Only images are allowed ({', '.join(ALLOWED_EXTENSIONS)})"
+            )
 
-    # Read file content
-    contents = await image.read()
+        # Validate content type
+        if not image.content_type.startswith("image/"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only image files are allowed"
+            )
 
-    # Validate file size
-    if len(contents) > MAX_FILE_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File size exceeds 5MB limit"
-        )
+        # Read file content
+        contents = await image.read()
 
-    # Generate unique filename
-    timestamp = int(datetime.now().timestamp())
-    unique_id = uuid.uuid4().hex[:8]
-    filename = f"{timestamp}-{unique_id}{file_ext}"
-    file_path = UPLOAD_DIR / filename
+        # Validate file size
+        if len(contents) > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"File {image.filename} size exceeds 5MB limit"
+            )
 
-    # Save file
-    try:
-        with open(file_path, "wb") as f:
-            f.write(contents)
-        logger.info(f"Image saved: {filename}")
-    except Exception as e:
-        logger.error(f"Failed to save image: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to save image"
-        )
+        # Generate unique filename
+        timestamp = int(datetime.now().timestamp())
+        unique_id = uuid.uuid4().hex[:8]
+        filename = f"{timestamp}-{unique_id}{file_ext}"
+        file_path = UPLOAD_DIR / filename
 
-    # Return URL (including /api prefix for nginx proxy routing)
-    image_url = f"/api/static/{filename}"
+        # Save file
+        try:
+            with open(file_path, "wb") as f:
+                f.write(contents)
+            logger.info(f"Image saved: {filename}")
+        except Exception as e:
+            logger.error(f"Failed to save image: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to save image {image.filename}"
+            )
+
+        # Add URL to list (including /api prefix for nginx proxy routing)
+        image_url = f"/api/static/{filename}"
+        uploaded_urls.append(image_url)
+
     return {
         "success": True,
-        "imageUrl": image_url,
-        "filename": filename
+        "imageUrls": uploaded_urls
+    }
+
+
+@app.post("/goods/{good_id}/images")
+async def add_good_images(
+    good_id: int,
+    images: list[UploadFile] = File(...),
+    user_id: int = Depends(verify_admin_mode)
+):
+    """
+    Add images to existing good (ADMIN only)
+
+    Uploads images and associates them with the specified good
+    Returns list of uploaded image URLs
+    """
+    logger.info(f"User {user_id} adding {len(images)} images to good {good_id}")
+
+    uploaded_urls = []
+
+    # Upload all images first
+    for image in images:
+        # Validate file extension
+        file_ext = Path(image.filename).suffix.lower()
+        if file_ext not in ALLOWED_EXTENSIONS:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Only images are allowed ({', '.join(ALLOWED_EXTENSIONS)})"
+            )
+
+        # Validate content type
+        if not image.content_type.startswith("image/"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only image files are allowed"
+            )
+
+        # Read file content
+        contents = await image.read()
+
+        # Validate file size
+        if len(contents) > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"File {image.filename} size exceeds 5MB limit"
+            )
+
+        # Generate unique filename
+        timestamp = int(datetime.now().timestamp())
+        unique_id = uuid.uuid4().hex[:8]
+        filename = f"{timestamp}-{unique_id}{file_ext}"
+        file_path = UPLOAD_DIR / filename
+
+        # Save file
+        try:
+            with open(file_path, "wb") as f:
+                f.write(contents)
+            logger.info(f"Image saved: {filename}")
+        except Exception as e:
+            logger.error(f"Failed to save image: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to save image {image.filename}"
+            )
+
+        # Add URL to list
+        image_url = f"/api/static/{filename}"
+        uploaded_urls.append(image_url)
+
+    # Save image URLs to database
+    try:
+        await save_good_images(good_id, uploaded_urls)
+    except Exception as e:
+        logger.error(f"Failed to save image URLs to database: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to associate images with good"
+        )
+
+    return {
+        "success": True,
+        "goodId": good_id,
+        "imageUrls": uploaded_urls
     }
 
 

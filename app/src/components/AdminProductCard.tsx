@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { uploadImage } from '../api/client';
 
 interface AdminProductCardProps {
   onClose: () => void;
@@ -8,7 +7,7 @@ interface AdminProductCardProps {
     category: string;
     price: number;
     description: string;
-    image_url: string;
+    imageFiles: File[];
   }) => void;
 }
 
@@ -17,43 +16,40 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave }) 
   const [category, setCategory] = useState('Букеты');
   const [priceRub, setPriceRub] = useState('');
   const [description, setDescription] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    const file = files[0];
+    const fileArray = Array.from(files);
 
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Размер файла не должен превышать 5MB');
-      return;
+    // Validate each file
+    for (const file of fileArray) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`Размер файла ${file.name} не должен превышать 5MB`);
+        return;
+      }
+
+      if (!file.type.startsWith('image/')) {
+        alert(`Файл ${file.name} должен быть изображением`);
+        return;
+      }
     }
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Можно загружать только изображения');
-      return;
-    }
+    // Create preview URLs for all files
+    const urls = fileArray.map(file => URL.createObjectURL(file));
 
-    setIsUploading(true);
-
-    try {
-      const url = await uploadImage(file);
-      setImageUrl(url);
-    } catch (error) {
-      console.error('Upload error:', error);
-      alert('Ошибка при загрузке изображения');
-    } finally {
-      setIsUploading(false);
-    }
+    setSelectedFiles(fileArray);
+    setPreviewUrls(urls);
+    setCurrentPreviewIndex(0);
   };
 
   const handleSave = () => {
@@ -81,7 +77,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave }) 
       category: category,
       price: price,
       description: description.trim(),
-      image_url: imageUrl.trim() || '/images/flower-1-59d765.png', // Default image if not provided
+      imageFiles: selectedFiles,
     });
   };
 
@@ -98,24 +94,55 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave }) 
             ref={fileInputRef}
             type="file"
             accept="image/*"
+            multiple
             onChange={handleFileChange}
             className="hidden"
           />
 
-          {isUploading ? (
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-teal mx-auto mb-4"></div>
-              <p className="text-gray-medium text-base">Загрузка...</p>
-            </div>
-          ) : imageUrl ? (
-            <img
-              src={imageUrl}
-              alt="Preview"
-              className="w-full h-full object-cover rounded-b-[30px]"
-              onError={(e) => {
-                e.currentTarget.src = '/images/flower-1-59d765.png';
-              }}
-            />
+          {previewUrls.length > 0 ? (
+            <>
+              <img
+                src={previewUrls[currentPreviewIndex]}
+                alt={`Preview ${currentPreviewIndex + 1}`}
+                className="w-full h-full object-cover rounded-b-[30px]"
+              />
+
+              {/* Navigation arrows for multiple images */}
+              {previewUrls.length > 1 && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentPreviewIndex(prev => prev === 0 ? previewUrls.length - 1 : prev - 1);
+                    }}
+                    className="absolute top-[245px] left-2 w-[50px] h-[50px] flex items-center justify-center bg-white/80 rounded-full"
+                  >
+                    <img src="/images/arrow-left.svg" alt="Previous" className="w-5 h-9" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentPreviewIndex(prev => prev === previewUrls.length - 1 ? 0 : prev + 1);
+                    }}
+                    className="absolute top-[245px] right-2 w-[50px] h-[50px] flex items-center justify-center bg-white/80 rounded-full"
+                  >
+                    <img src="/images/arrow-right.svg" alt="Next" className="w-5 h-9" style={{ transform: 'scaleX(-1)' }} />
+                  </button>
+
+                  {/* Pagination dots */}
+                  <div className="absolute bottom-[43px] left-1/2 transform -translate-x-1/2 flex gap-5">
+                    {previewUrls.map((_, index) => (
+                      <div
+                        key={index}
+                        className={`w-2 h-2 rounded-full ${
+                          index === currentPreviewIndex ? 'bg-[#898989]' : 'bg-[#FFF5F5]'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
           ) : (
             <div className="text-center">
               <svg
@@ -143,27 +170,13 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave }) 
                   strokeDasharray="4 4"
                 />
               </svg>
-              <p className="text-gray-medium text-base">Добавить фото</p>
+              <p className="text-gray-medium text-base">Добавить фото (можно несколько)</p>
             </div>
           )}
         </div>
 
         {/* Form Section */}
         <div className="px-8 pt-6 pb-8 flex-1">
-          {/* Image URL Input */}
-          <div className="mb-4">
-            <label className="block text-sm font-semibold text-black mb-2">
-              URL изображения
-            </label>
-            <input
-              type="text"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://example.com/image.png"
-              className="w-full px-4 py-3 rounded-[20px] bg-gray-light border-none text-base text-black placeholder-gray-medium focus:outline-none focus:ring-2 focus:ring-teal"
-            />
-          </div>
-
           {/* Name Input */}
           <div className="mb-4">
             <label className="block text-sm font-semibold text-black mb-2">

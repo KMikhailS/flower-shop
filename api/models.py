@@ -16,7 +16,6 @@ class GoodCardRequest(BaseModel):
     category: str
     price: int
     description: str
-    image_url: Optional[str] = None
 
 
 class GoodCardResponse(BaseModel):
@@ -29,7 +28,7 @@ class GoodCardResponse(BaseModel):
     category: str
     price: int
     description: str
-    image_url: Optional[str] = None
+    image_urls: list[str] = []
 
 
 class GoodDTO(BaseModel):
@@ -39,4 +38,4 @@ class GoodDTO(BaseModel):
     category: str
     price: int
     description: str
-    image_url: Optional[str] = None
+    image_urls: list[str] = []
