@@ -23,7 +23,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   };
 
   // Минимальное расстояние для срабатывания свайпа (в пикселях)
-  const minSwipeDistance = 50;
+  const minSwipeDistance = 30;
 
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
