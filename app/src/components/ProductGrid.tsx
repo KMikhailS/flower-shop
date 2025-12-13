@@ -1,5 +1,6 @@
 import React from 'react';
 import AdminAddCard from './AdminAddCard';
+import ProductGridCard from './ProductGridCard';
 
 export interface Product {
   id: number;
@@ -24,22 +25,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductClick, isA
   return (
     <div className="grid grid-cols-2 gap-[21px] px-8">
       {products.map((product) => (
-        <div
+        <ProductGridCard
           key={product.id}
-          className="relative rounded-[20px] overflow-hidden h-[200px] cursor-pointer"
+          product={product}
           onClick={() => onProductClick?.(product)}
-        >
-          <img
-            src={product.image}
-            alt={product.alt}
-            className="w-full h-full object-cover"
-          />
-          {product.status === 'BLOCKED' && (
-            <div className="absolute top-2 left-2 bg-gray-medium bg-opacity-90 text-white text-xs font-semibold px-3 py-1 rounded-full">
-              Не активен
-            </div>
-          )}
-        </div>
+        />
       ))}
       {isAdminMode && onAddNewCard && (
         <AdminAddCard onClick={onAddNewCard} />
