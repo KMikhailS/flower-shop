@@ -13,7 +13,7 @@ import StoreAddresses from './components/StoreAddresses';
 import AdminProductCard from './components/AdminProductCard';
 import { useTelegramWebApp } from './hooks/useTelegramWebApp';
 import { useCartPersistence } from './hooks/useCartPersistence';
-import { fetchUserInfo, UserInfo, createGoodCard, fetchGoods, GoodDTO, addGoodImages, updateGoodCard } from './api/client';
+import { fetchUserInfo, UserInfo, createGoodCard, fetchGoods, fetchAllGoods, GoodDTO, addGoodImages, updateGoodCard, deleteGood, blockGood, activateGood } from './api/client';
 
 export interface CartItemData {
   product: Product;
@@ -156,10 +156,65 @@ function App() {
     setSelectedProduct(null);
   };
 
+  const handleDeleteProduct = async () => {
+    if (!webApp || !webApp.initData || !editingProduct) {
+      alert('Ошибка: недоступен Telegram WebApp или товар не выбран');
+      return;
+    }
+
+    const confirmDelete = window.confirm(`Удалить товар "${editingProduct.title}"?`);
+    if (!confirmDelete) return;
+
+    try {
+      await deleteGood(editingProduct.id, webApp.initData);
+      alert('Товар успешно удалён');
+      setIsAdminCardOpen(false);
+      setEditingProduct(null);
+      await loadProducts();
+    } catch (error) {
+      console.error('Failed to delete good:', error);
+      alert('Ошибка при удалении товара');
+    }
+  };
+
+  const handleToggleBlockProduct = async () => {
+    if (!webApp || !webApp.initData || !editingProduct) {
+      alert('Ошибка: недоступен Telegram WebApp или товар не выбран');
+      return;
+    }
+
+    try {
+      if (editingProduct.status === 'BLOCKED') {
+        // Активируем товар
+        await activateGood(editingProduct.id, webApp.initData);
+        alert('Товар успешно активирован');
+      } else {
+        // Блокируем товар
+        await blockGood(editingProduct.id, webApp.initData);
+        alert('Товар успешно заблокирован');
+      }
+      setIsAdminCardOpen(false);
+      setEditingProduct(null);
+      await loadProducts();
+    } catch (error) {
+      console.error('Failed to toggle block status:', error);
+      alert('Ошибка при изменении статуса товара');
+    }
+  };
+
   // Функция для загрузки товаров с бэкенда
   const loadProducts = async () => {
     try {
-      const goods = await fetchGoods();
+      let goods: GoodDTO[];
+
+      // Если пользователь ADMIN - загружаем все товары, иначе только NEW
+      if (userInfo?.mode === 'ADMIN' && webApp?.initData) {
+        goods = await fetchAllGoods(webApp.initData);
+        console.log('Loading all goods for ADMIN');
+      } else {
+        goods = await fetchGoods();
+        console.log('Loading NEW goods only');
+      }
 
       // Маппинг GoodDTO → Product
       const mappedProducts: Product[] = goods.map((good: GoodDTO) => ({
@@ -171,6 +226,7 @@ function App() {
         price: `${good.price} руб.`,
         description: good.description,
         category: good.category,
+        status: good.status,
       }));
 
       setProducts(mappedProducts);
@@ -272,10 +328,11 @@ function App() {
       });
   }, [webApp]);
 
-  // Загрузка товаров при инициализации
+  // Загрузка товаров при инициализации и при изменении режима пользователя
   useEffect(() => {
     loadProducts();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userInfo?.mode]);
 
   // Автосохранение корзины при изменении состояния
   useEffect(() => {
@@ -397,6 +454,8 @@ function App() {
           }}
           onSave={handleSaveAdminCard}
           editingProduct={editingProduct || undefined}
+          onDelete={editingProduct ? handleDeleteProduct : undefined}
+          onBlock={editingProduct ? handleToggleBlockProduct : undefined}
         />
       )}
       <div className="flex flex-col gap-4">

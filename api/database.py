@@ -249,3 +249,119 @@ async def get_goods_by_status(status: str = 'NEW') -> list[dict]:
         result = list(goods_dict.values())
         logger.info(f"Retrieved {len(result)} goods with status={status}")
         return result
+
+
+async def get_all_goods() -> list[dict]:
+    """Get all goods regardless of status along with their images (for ADMIN)"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+
+        # Get all goods with their images via LEFT JOIN
+        cursor = await db.execute(
+            """SELECT g.*, gi.image_url, gi.display_order
+               FROM goods g
+               LEFT JOIN goods_images gi ON g.id = gi.good_id
+               ORDER BY g.id DESC, gi.display_order ASC"""
+        )
+        rows = await cursor.fetchall()
+
+        # Group images by good_id
+        goods_dict = {}
+        for row in rows:
+            good_id = row['id']
+            if good_id not in goods_dict:
+                goods_dict[good_id] = {
+                    'id': row['id'],
+                    'createstamp': row['createstamp'],
+                    'changestamp': row['changestamp'],
+                    'status': row['status'],
+                    'name': row['name'],
+                    'category': row['category'],
+                    'price': row['price'],
+                    'description': row['description'],
+                    'image_urls': []
+                }
+
+            # Add image_url if exists (LEFT JOIN may return NULL)
+            if row['image_url']:
+                goods_dict[good_id]['image_urls'].append(row['image_url'])
+
+        result = list(goods_dict.values())
+        logger.info(f"Retrieved {len(result)} goods (all statuses)")
+        return result
+
+
+async def delete_good(good_id: int) -> None:
+    """Delete good and its images (CASCADE)"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Check if good exists
+        cursor = await db.execute(
+            "SELECT id FROM goods WHERE id = ?",
+            (good_id,)
+        )
+        row = await cursor.fetchone()
+
+        if not row:
+            logger.error(f"Good with id={good_id} not found")
+            raise ValueError(f"Good with id={good_id} not found")
+
+        # Delete good (images will be deleted automatically due to CASCADE)
+        await db.execute(
+            "DELETE FROM goods WHERE id = ?",
+            (good_id,)
+        )
+        await db.commit()
+        logger.info(f"Deleted good with id={good_id}")
+
+
+async def update_good_status(good_id: int, new_status: str) -> dict:
+    """Update good status (NEW or BLOCKED)"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        current_time = datetime.now().isoformat()
+
+        # Update the status
+        await db.execute(
+            """UPDATE goods
+               SET status = ?, changestamp = ?
+               WHERE id = ?""",
+            (new_status, current_time, good_id)
+        )
+        await db.commit()
+
+        # Get the updated good with images
+        cursor = await db.execute(
+            """SELECT g.*, gi.image_url, gi.display_order
+               FROM goods g
+               LEFT JOIN goods_images gi ON g.id = gi.good_id
+               WHERE g.id = ?
+               ORDER BY gi.display_order ASC""",
+            (good_id,)
+        )
+        rows = await cursor.fetchall()
+
+        if not rows:
+            logger.error(f"Good with id={good_id} not found")
+            raise ValueError(f"Good with id={good_id} not found")
+
+        # Build result with images
+        first_row = rows[0]
+        result = {
+            'id': first_row['id'],
+            'createstamp': first_row['createstamp'],
+            'changestamp': first_row['changestamp'],
+            'status': first_row['status'],
+            'name': first_row['name'],
+            'category': first_row['category'],
+            'price': first_row['price'],
+            'description': first_row['description'],
+            'image_urls': []
+        }
+
+        # Add all image URLs
+        for row in rows:
+            if row['image_url']:
+                result['image_urls'].append(row['image_url'])
+
+        logger.info(f"Updated status for good_id={good_id} to {new_status}")
+        return result

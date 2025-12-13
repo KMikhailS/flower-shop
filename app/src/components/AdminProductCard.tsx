@@ -12,9 +12,11 @@ interface AdminProductCardProps {
     imageFiles: File[];
   }) => void;
   editingProduct?: Product;
+  onDelete?: () => void;
+  onBlock?: () => void;
 }
 
-const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, editingProduct }) => {
+const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, editingProduct, onDelete, onBlock }) => {
   const [name, setName] = useState('');
   const [category, setCategory] = useState('Букеты');
   const [priceRub, setPriceRub] = useState('');
@@ -278,6 +280,30 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
               <span className="text-sm font-semibold leading-[1.174] text-black">Отмена</span>
             </button>
           </div>
+
+          {/* Delete and Block Buttons - shown only when editing existing product */}
+          {editingProduct && (onDelete || onBlock) && (
+            <div className="flex gap-[10px] mt-4">
+              {onDelete && (
+                <button
+                  onClick={onDelete}
+                  className="flex-1 h-[66px] bg-red-500 rounded-[30px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] flex items-center justify-center"
+                >
+                  <span className="text-sm font-semibold leading-[1.174] text-white">Удалить</span>
+                </button>
+              )}
+              {onBlock && (
+                <button
+                  onClick={onBlock}
+                  className="flex-1 h-[66px] bg-gray-medium rounded-[30px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] flex items-center justify-center"
+                >
+                  <span className="text-sm font-semibold leading-[1.174] text-white">
+                    {editingProduct.status === 'BLOCKED' ? 'Активировать' : 'Заблокировать'}
+                  </span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

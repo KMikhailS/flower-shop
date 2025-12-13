@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from auth import verify_telegram_init_data
 from models import UserInfoDTO, GoodCardRequest, GoodCardResponse, GoodDTO
-from database import get_user, create_good_card, get_goods_by_status, save_good_images, update_good_card
+from database import get_user, create_good_card, get_goods_by_status, save_good_images, update_good_card, delete_good, update_good_status, get_all_goods
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +91,8 @@ async def get_goods():
                 category=good["category"],
                 price=good["price"],
                 description=good["description"],
-                image_urls=good["image_urls"]
+                image_urls=good["image_urls"],
+                status=good["status"]
             )
             for good in goods
         ]
@@ -100,6 +101,41 @@ async def get_goods():
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch goods"
+        )
+
+
+@app.get("/goods/all", response_model=list[GoodDTO])
+async def get_all_goods_endpoint(user_id: int = Depends(verify_admin_mode)):
+    """
+    Get all goods regardless of status (ADMIN only)
+
+    Requires valid Telegram WebApp initData in Authorization header
+    User must be in ADMIN mode
+    """
+    logger.info(f"User {user_id} fetching all goods (all statuses)")
+
+    try:
+        # Get all goods from database
+        goods = await get_all_goods()
+
+        # Convert to DTOs
+        return [
+            GoodDTO(
+                id=good["id"],
+                name=good["name"],
+                category=good["category"],
+                price=good["price"],
+                description=good["description"],
+                image_urls=good["image_urls"],
+                status=good["status"]
+            )
+            for good in goods
+        ]
+    except Exception as e:
+        logger.error(f"Failed to fetch all goods: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch all goods"
         )
 
 
@@ -345,6 +381,96 @@ async def add_good_images(
         "goodId": good_id,
         "imageUrls": uploaded_urls
     }
+
+
+@app.delete("/goods/{good_id}")
+async def delete_good_endpoint(
+    good_id: int,
+    user_id: int = Depends(verify_admin_mode)
+):
+    """
+    Delete good (ADMIN only)
+
+    Requires valid Telegram WebApp initData in Authorization header
+    User must be in ADMIN mode
+    """
+    logger.info(f"User {user_id} deleting good {good_id}")
+
+    try:
+        await delete_good(good_id)
+        return {"success": True, "message": f"Good {good_id} deleted"}
+    except ValueError as e:
+        logger.error(f"Good not found: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Good with id {good_id} not found"
+        )
+    except Exception as e:
+        logger.error(f"Failed to delete good: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete good"
+        )
+
+
+@app.put("/goods/{good_id}/block", response_model=GoodCardResponse)
+async def block_good_endpoint(
+    good_id: int,
+    user_id: int = Depends(verify_admin_mode)
+):
+    """
+    Block good - set status to BLOCKED (ADMIN only)
+
+    Requires valid Telegram WebApp initData in Authorization header
+    User must be in ADMIN mode
+    """
+    logger.info(f"User {user_id} blocking good {good_id}")
+
+    try:
+        updated_good = await update_good_status(good_id, 'BLOCKED')
+        return GoodCardResponse(**updated_good)
+    except ValueError as e:
+        logger.error(f"Good not found: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Good with id {good_id} not found"
+        )
+    except Exception as e:
+        logger.error(f"Failed to block good: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to block good"
+        )
+
+
+@app.put("/goods/{good_id}/activate", response_model=GoodCardResponse)
+async def activate_good_endpoint(
+    good_id: int,
+    user_id: int = Depends(verify_admin_mode)
+):
+    """
+    Activate good - set status to NEW (ADMIN only)
+
+    Requires valid Telegram WebApp initData in Authorization header
+    User must be in ADMIN mode
+    """
+    logger.info(f"User {user_id} activating good {good_id}")
+
+    try:
+        updated_good = await update_good_status(good_id, 'NEW')
+        return GoodCardResponse(**updated_good)
+    except ValueError as e:
+        logger.error(f"Good not found: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Good with id {good_id} not found"
+        )
+    except Exception as e:
+        logger.error(f"Failed to activate good: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to activate good"
+        )
 
 
 @app.get("/health")

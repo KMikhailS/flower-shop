@@ -35,6 +35,7 @@ export interface GoodDTO {
   price: number;
   description: string;
   image_urls: string[];
+  status: string;
 }
 
 // API base URL - uses relative path to work with nginx proxy
@@ -212,4 +213,113 @@ export async function fetchGoods(): Promise<GoodDTO[]> {
 
   const data = await response.json();
   return data as GoodDTO[];
+}
+
+/**
+ * Fetch all goods regardless of status (ADMIN only)
+ *
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<GoodDTO[]> - List of all goods
+ * @throws Error if request fails
+ */
+export async function fetchAllGoods(initData: string): Promise<GoodDTO[]> {
+  const response = await fetch(`${API_BASE_URL}/goods/all`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch all goods: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as GoodDTO[];
+}
+
+/**
+ * Delete good (ADMIN only)
+ *
+ * @param goodId - ID of the good to delete
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<void>
+ * @throws Error if request fails
+ */
+export async function deleteGood(
+  goodId: number,
+  initData: string
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/goods/${goodId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to delete good: ${response.status} ${errorText}`);
+  }
+}
+
+/**
+ * Block good - set status to BLOCKED (ADMIN only)
+ *
+ * @param goodId - ID of the good to block
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<GoodCardResponse> - Updated good card data
+ * @throws Error if request fails
+ */
+export async function blockGood(
+  goodId: number,
+  initData: string
+): Promise<GoodCardResponse> {
+  const response = await fetch(`${API_BASE_URL}/goods/${goodId}/block`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to block good: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as GoodCardResponse;
+}
+
+/**
+ * Activate good - set status to NEW (ADMIN only)
+ *
+ * @param goodId - ID of the good to activate
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<GoodCardResponse> - Updated good card data
+ * @throws Error if request fails
+ */
+export async function activateGood(
+  goodId: number,
+  initData: string
+): Promise<GoodCardResponse> {
+  const response = await fetch(`${API_BASE_URL}/goods/${goodId}/activate`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to activate good: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as GoodCardResponse;
 }

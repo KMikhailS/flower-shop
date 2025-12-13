@@ -10,6 +10,7 @@ export interface Product {
   price: string;
   description: string;
   category?: string;
+  status?: string;
 }
 
 interface ProductGridProps {
@@ -25,7 +26,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductClick, isA
       {products.map((product) => (
         <div
           key={product.id}
-          className="rounded-[20px] overflow-hidden h-[200px] cursor-pointer"
+          className="relative rounded-[20px] overflow-hidden h-[200px] cursor-pointer"
           onClick={() => onProductClick?.(product)}
         >
           <img
@@ -33,6 +34,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductClick, isA
             alt={product.alt}
             className="w-full h-full object-cover"
           />
+          {product.status === 'BLOCKED' && (
+            <div className="absolute top-2 left-2 bg-gray-medium bg-opacity-90 text-white text-xs font-semibold px-3 py-1 rounded-full">
+              Не активен
+            </div>
+          )}
         </div>
       ))}
       {isAdminMode && onAddNewCard && (
