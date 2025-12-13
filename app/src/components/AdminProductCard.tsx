@@ -1,17 +1,20 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Product } from './ProductGrid';
 
 interface AdminProductCardProps {
   onClose: () => void;
   onSave: (data: {
+    id?: number;
     name: string;
     category: string;
     price: number;
     description: string;
     imageFiles: File[];
   }) => void;
+  editingProduct?: Product;
 }
 
-const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave }) => {
+const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, editingProduct }) => {
   const [name, setName] = useState('');
   const [category, setCategory] = useState('Букеты');
   const [priceRub, setPriceRub] = useState('');
@@ -20,6 +23,27 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave }) 
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // При редактировании заполняем форму данными товара
+  useEffect(() => {
+    if (editingProduct) {
+      setName(editingProduct.title);
+      setCategory(editingProduct.category || 'Букеты');
+      // Извлекаем числовое значение из строки "2999 руб."
+      const priceMatch = editingProduct.price.match(/\d+/);
+      if (priceMatch) {
+        setPriceRub(priceMatch[0]);
+      }
+      setDescription(editingProduct.description);
+
+      // Устанавливаем превью изображений из товара (не File, а URL)
+      if (editingProduct.images && editingProduct.images.length > 0) {
+        setPreviewUrls(editingProduct.images);
+      } else if (editingProduct.image) {
+        setPreviewUrls([editingProduct.image]);
+      }
+    }
+  }, [editingProduct]);
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
@@ -73,6 +97,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave }) 
     const price = Math.round(Number(priceRub));
 
     onSave({
+      id: editingProduct?.id,
       name: name.trim(),
       category: category,
       price: price,
@@ -126,7 +151,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave }) 
                     }}
                     className="absolute top-[245px] right-2 w-[50px] h-[50px] flex items-center justify-center bg-white/80 rounded-full"
                   >
-                    <img src="/images/arrow-right.svg" alt="Next" className="w-5 h-9" style={{ transform: 'scaleX(-1)' }} />
+                    <img src="/images/arrow-right.svg" alt="Next" className="w-5 h-9" />
                   </button>
 
                   {/* Pagination dots */}

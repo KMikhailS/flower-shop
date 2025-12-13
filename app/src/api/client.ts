@@ -97,6 +97,38 @@ export async function createGoodCard(
 }
 
 /**
+ * Update an existing good card (ADMIN only)
+ *
+ * @param goodId - ID of the good to update
+ * @param goodCardData - The updated good card data
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<GoodCardResponse> - Updated good card data
+ * @throws Error if request fails
+ */
+export async function updateGoodCard(
+  goodId: number,
+  goodCardData: GoodCardData,
+  initData: string
+): Promise<GoodCardResponse> {
+  const response = await fetch(`${API_BASE_URL}/goods/${goodId}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(goodCardData),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to update good card: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as GoodCardResponse;
+}
+
+/**
  * Upload product images
  *
  * @param files - Array of image files to upload (jpg, jpeg, png, webp, max 5MB each)

@@ -9,6 +9,7 @@ export interface Product {
   title: string;
   price: string;
   description: string;
+  category?: string;
 }
 
 interface ProductGridProps {

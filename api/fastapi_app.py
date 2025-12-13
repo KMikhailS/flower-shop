@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from auth import verify_telegram_init_data
 from models import UserInfoDTO, GoodCardRequest, GoodCardResponse, GoodDTO
-from database import get_user, create_good_card, get_goods_by_status, save_good_images
+from database import get_user, create_good_card, get_goods_by_status, save_good_images, update_good_card
 
 logger = logging.getLogger(__name__)
 
@@ -156,6 +156,46 @@ async def create_good_card_endpoint(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create good card"
+        )
+
+
+@app.put("/goods/{good_id}", response_model=GoodCardResponse)
+async def update_good_card_endpoint(
+    good_id: int,
+    good_card: GoodCardRequest,
+    user_id: int = Depends(verify_admin_mode)
+):
+    """
+    Update existing good card (ADMIN only)
+
+    Requires valid Telegram WebApp initData in Authorization header
+    User must be in ADMIN mode
+    """
+    logger.info(f"User {user_id} updating good card {good_id}: {good_card.name}")
+
+    try:
+        # Update good card in database
+        updated_good = await update_good_card(
+            good_id=good_id,
+            name=good_card.name,
+            category=good_card.category,
+            price=good_card.price,
+            description=good_card.description
+        )
+
+        # Return response
+        return GoodCardResponse(**updated_good)
+    except ValueError as e:
+        logger.error(f"Good not found: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Good with id {good_id} not found"
+        )
+    except Exception as e:
+        logger.error(f"Failed to update good card: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update good card"
         )
 
 

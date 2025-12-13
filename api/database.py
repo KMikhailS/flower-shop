@@ -137,6 +137,65 @@ async def create_good_card(
         return result
 
 
+async def update_good_card(
+    good_id: int,
+    name: str,
+    category: str,
+    price: int,
+    description: str
+) -> dict:
+    """Update existing good card"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        current_time = datetime.now().isoformat()
+
+        # Update the good
+        await db.execute(
+            """UPDATE goods
+               SET name = ?, category = ?, price = ?, description = ?, changestamp = ?
+               WHERE id = ?""",
+            (name, category, price, description, current_time, good_id)
+        )
+        await db.commit()
+
+        # Get the updated good with images
+        cursor = await db.execute(
+            """SELECT g.*, gi.image_url, gi.display_order
+               FROM goods g
+               LEFT JOIN goods_images gi ON g.id = gi.good_id
+               WHERE g.id = ?
+               ORDER BY gi.display_order ASC""",
+            (good_id,)
+        )
+        rows = await cursor.fetchall()
+
+        if not rows:
+            logger.error(f"Good with id={good_id} not found")
+            raise ValueError(f"Good with id={good_id} not found")
+
+        # Build result with images
+        first_row = rows[0]
+        result = {
+            'id': first_row['id'],
+            'createstamp': first_row['createstamp'],
+            'changestamp': first_row['changestamp'],
+            'status': first_row['status'],
+            'name': first_row['name'],
+            'category': first_row['category'],
+            'price': first_row['price'],
+            'description': first_row['description'],
+            'image_urls': []
+        }
+
+        # Add all image URLs
+        for row in rows:
+            if row['image_url']:
+                result['image_urls'].append(row['image_url'])
+
+        logger.info(f"Updated good card with id={good_id}")
+        return result
+
+
 async def save_good_images(good_id: int, image_urls: list[str]) -> None:
     """Save list of image URLs for a good"""
     async with aiosqlite.connect(DB_PATH) as db:

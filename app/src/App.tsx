@@ -13,7 +13,7 @@ import StoreAddresses from './components/StoreAddresses';
 import AdminProductCard from './components/AdminProductCard';
 import { useTelegramWebApp } from './hooks/useTelegramWebApp';
 import { useCartPersistence } from './hooks/useCartPersistence';
-import { fetchUserInfo, UserInfo, createGoodCard, fetchGoods, GoodDTO, addGoodImages } from './api/client';
+import { fetchUserInfo, UserInfo, createGoodCard, fetchGoods, GoodDTO, addGoodImages, updateGoodCard } from './api/client';
 
 export interface CartItemData {
   product: Product;
@@ -36,6 +36,7 @@ function App() {
   const [previousScreenBeforeCart, setPreviousScreenBeforeCart] = useState<'home' | 'productCard' | null>(null);
   const [previousProduct, setPreviousProduct] = useState<Product | null>(null);
   const [isAdminCardOpen, setIsAdminCardOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   // Состояние корзины - теперь массив товаров
   const [cartItems, setCartItems] = useState<CartItemData[]>([]);
@@ -145,7 +146,14 @@ function App() {
   };
 
   const handleOpenAdminCard = () => {
+    setEditingProduct(null);
     setIsAdminCardOpen(true);
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setIsAdminCardOpen(true);
+    setSelectedProduct(null);
   };
 
   // Функция для загрузки товаров с бэкенда
@@ -162,6 +170,7 @@ function App() {
         title: good.name,
         price: `${good.price} руб.`,
         description: good.description,
+        category: good.category,
       }));
 
       setProducts(mappedProducts);
@@ -172,6 +181,7 @@ function App() {
   };
 
   const handleSaveAdminCard = async (data: {
+    id?: number;
     name: string;
     category: string;
     price: number;
@@ -184,30 +194,53 @@ function App() {
     }
 
     try {
-      // Создаем товар без изображений
-      const createdGood = await createGoodCard(
-        {
-          name: data.name,
-          category: data.category,
-          price: data.price,
-          description: data.description,
-        },
-        webApp.initData
-      );
+      if (data.id) {
+        // Обновляем существующий товар
+        await updateGoodCard(
+          data.id,
+          {
+            name: data.name,
+            category: data.category,
+            price: data.price,
+            description: data.description,
+          },
+          webApp.initData
+        );
 
-      // Если есть изображения, загружаем их
-      if (data.imageFiles.length > 0) {
-        await addGoodImages(createdGood.id, data.imageFiles, webApp.initData);
+        // Если есть новые изображения, загружаем их
+        if (data.imageFiles.length > 0) {
+          await addGoodImages(data.id, data.imageFiles, webApp.initData);
+        }
+
+        setIsAdminCardOpen(false);
+        setEditingProduct(null);
+        alert('Товар успешно обновлен!');
+      } else {
+        // Создаем новый товар
+        const createdGood = await createGoodCard(
+          {
+            name: data.name,
+            category: data.category,
+            price: data.price,
+            description: data.description,
+          },
+          webApp.initData
+        );
+
+        // Если есть изображения, загружаем их
+        if (data.imageFiles.length > 0) {
+          await addGoodImages(createdGood.id, data.imageFiles, webApp.initData);
+        }
+
+        setIsAdminCardOpen(false);
+        alert('Товар успешно добавлен!');
       }
 
-      setIsAdminCardOpen(false);
-      alert('Товар успешно добавлен!');
-
-      // Обновляем список товаров после добавления
+      // Обновляем список товаров
       await loadProducts();
     } catch (error) {
-      console.error('Failed to create good card:', error);
-      alert('Ошибка при создании товара. Проверьте права доступа.');
+      console.error('Failed to save good card:', error);
+      alert('Ошибка при сохранении товара. Проверьте права доступа.');
     }
   };
 
@@ -352,12 +385,18 @@ function App() {
           onOpenCart={handleOpenCart}
           onAddToCart={handleAddToCart}
           cartItems={cartItems}
+          userInfo={userInfo || undefined}
+          onEdit={() => handleEditProduct(selectedProduct)}
         />
       )}
       {isAdminCardOpen && (
         <AdminProductCard
-          onClose={() => setIsAdminCardOpen(false)}
+          onClose={() => {
+            setIsAdminCardOpen(false);
+            setEditingProduct(null);
+          }}
           onSave={handleSaveAdminCard}
+          editingProduct={editingProduct || undefined}
         />
       )}
       <div className="flex flex-col gap-4">
