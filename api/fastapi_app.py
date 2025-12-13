@@ -7,8 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from auth import verify_telegram_init_data
-from models import UserInfoDTO, GoodCardRequest, GoodCardResponse, GoodDTO
-from database import get_user, create_good_card, get_goods_by_status, save_good_images, update_good_card, delete_good, update_good_status, get_all_goods
+from models import UserInfoDTO, GoodCardRequest, GoodCardResponse, GoodDTO, ShopAddressDTO, ShopAddressRequest
+from database import get_user, create_good_card, get_goods_by_status, save_good_images, update_good_card, delete_good, update_good_status, get_all_goods, get_shop_addresses, create_shop_address, update_shop_address, delete_shop_address
 
 logger = logging.getLogger(__name__)
 
@@ -477,3 +477,123 @@ async def activate_good_endpoint(
 async def health_check():
     """Health check endpoint"""
     return {"status": "ok"}
+
+
+@app.get("/shop/addresses", response_model=list[ShopAddressDTO])
+async def get_shop_addresses_endpoint():
+    """
+    Get all shop addresses (public endpoint)
+
+    No authentication required
+    """
+    logger.info("Fetching all shop addresses")
+
+    try:
+        # Get addresses from database
+        addresses = await get_shop_addresses()
+
+        # Convert to DTOs
+        return [
+            ShopAddressDTO(
+                id=address["id"],
+                address=address["address"]
+            )
+            for address in addresses
+        ]
+    except Exception as e:
+        logger.error(f"Failed to fetch shop addresses: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch shop addresses"
+        )
+
+
+@app.post("/shop/addresses", response_model=ShopAddressDTO)
+async def create_shop_address_endpoint(
+    address_request: ShopAddressRequest,
+    user_id: int = Depends(verify_admin_mode)
+):
+    """
+    Create a new shop address (ADMIN only)
+
+    Requires valid Telegram WebApp initData in Authorization header
+    User must be in ADMIN mode
+    """
+    logger.info(f"User {user_id} creating new shop address: {address_request.address}")
+
+    try:
+        # Create address in database
+        created_address = await create_shop_address(address_request.address)
+
+        # Return response
+        return ShopAddressDTO(**created_address)
+    except Exception as e:
+        logger.error(f"Failed to create shop address: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create shop address"
+        )
+
+
+@app.put("/shop/addresses/{address_id}", response_model=ShopAddressDTO)
+async def update_shop_address_endpoint(
+    address_id: int,
+    address_request: ShopAddressRequest,
+    user_id: int = Depends(verify_admin_mode)
+):
+    """
+    Update existing shop address (ADMIN only)
+
+    Requires valid Telegram WebApp initData in Authorization header
+    User must be in ADMIN mode
+    """
+    logger.info(f"User {user_id} updating shop address {address_id}: {address_request.address}")
+
+    try:
+        # Update address in database
+        updated_address = await update_shop_address(address_id, address_request.address)
+
+        # Return response
+        return ShopAddressDTO(**updated_address)
+    except ValueError as e:
+        logger.error(f"Shop address not found: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Shop address with id {address_id} not found"
+        )
+    except Exception as e:
+        logger.error(f"Failed to update shop address: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update shop address"
+        )
+
+
+@app.delete("/shop/addresses/{address_id}")
+async def delete_shop_address_endpoint(
+    address_id: int,
+    user_id: int = Depends(verify_admin_mode)
+):
+    """
+    Delete shop address (ADMIN only)
+
+    Requires valid Telegram WebApp initData in Authorization header
+    User must be in ADMIN mode
+    """
+    logger.info(f"User {user_id} deleting shop address {address_id}")
+
+    try:
+        await delete_shop_address(address_id)
+        return {"success": True, "message": f"Shop address {address_id} deleted"}
+    except ValueError as e:
+        logger.error(f"Shop address not found: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Shop address with id {address_id} not found"
+        )
+    except Exception as e:
+        logger.error(f"Failed to delete shop address: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete shop address"
+        )

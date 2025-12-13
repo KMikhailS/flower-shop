@@ -40,3 +40,14 @@ class GoodDTO(BaseModel):
     description: str
     image_urls: list[str] = []
     status: str
+
+
+class ShopAddressDTO(BaseModel):
+    """Data transfer object for shop addresses"""
+    id: int
+    address: str
+
+
+class ShopAddressRequest(BaseModel):
+    """Request model for creating or updating a shop address"""
+    address: str

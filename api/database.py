@@ -44,6 +44,12 @@ async def init_db():
                 FOREIGN KEY (good_id) REFERENCES goods(id) ON DELETE CASCADE
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS shop_addresses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                address TEXT NOT NULL
+            )
+        """)
         await db.commit()
         logger.info("Database initialized successfully")
 
@@ -365,3 +371,92 @@ async def update_good_status(good_id: int, new_status: str) -> dict:
 
         logger.info(f"Updated status for good_id={good_id} to {new_status}")
         return result
+
+
+async def get_shop_addresses() -> list[dict]:
+    """Get all shop addresses"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            "SELECT id, address FROM shop_addresses ORDER BY id ASC"
+        )
+        rows = await cursor.fetchall()
+
+        result = [dict(row) for row in rows]
+        logger.info(f"Retrieved {len(result)} shop addresses")
+        return result
+
+
+async def create_shop_address(address: str) -> dict:
+    """Create a new shop address"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+
+        cursor = await db.execute(
+            "INSERT INTO shop_addresses (address) VALUES (?)",
+            (address,)
+        )
+        await db.commit()
+
+        # Get the created address
+        address_id = cursor.lastrowid
+        cursor = await db.execute(
+            "SELECT id, address FROM shop_addresses WHERE id = ?",
+            (address_id,)
+        )
+        row = await cursor.fetchone()
+
+        result = dict(row)
+        logger.info(f"Created shop address with id={address_id}")
+        return result
+
+
+async def update_shop_address(address_id: int, address: str) -> dict:
+    """Update existing shop address"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+
+        # Update the address
+        await db.execute(
+            "UPDATE shop_addresses SET address = ? WHERE id = ?",
+            (address, address_id)
+        )
+        await db.commit()
+
+        # Get the updated address
+        cursor = await db.execute(
+            "SELECT id, address FROM shop_addresses WHERE id = ?",
+            (address_id,)
+        )
+        row = await cursor.fetchone()
+
+        if not row:
+            logger.error(f"Shop address with id={address_id} not found")
+            raise ValueError(f"Shop address with id={address_id} not found")
+
+        result = dict(row)
+        logger.info(f"Updated shop address with id={address_id}")
+        return result
+
+
+async def delete_shop_address(address_id: int) -> None:
+    """Delete shop address"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Check if address exists
+        cursor = await db.execute(
+            "SELECT id FROM shop_addresses WHERE id = ?",
+            (address_id,)
+        )
+        row = await cursor.fetchone()
+
+        if not row:
+            logger.error(f"Shop address with id={address_id} not found")
+            raise ValueError(f"Shop address with id={address_id} not found")
+
+        # Delete address
+        await db.execute(
+            "DELETE FROM shop_addresses WHERE id = ?",
+            (address_id,)
+        )
+        await db.commit()
+        logger.info(f"Deleted shop address with id={address_id}")

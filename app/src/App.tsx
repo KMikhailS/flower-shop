@@ -410,6 +410,8 @@ function App() {
           setIsStoreAddressesOpen(false);
           setIsMenuOpen(true);
         }}
+        userMode={userInfo?.mode}
+        initData={webApp?.initData}
       />
       {isCartOpen && (
         <Cart

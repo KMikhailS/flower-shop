@@ -6,6 +6,12 @@ export interface UserInfo {
   status: string;
 }
 
+// Shop address from backend
+export interface ShopAddress {
+  id: number;
+  address: string;
+}
+
 // Good card data for creating new products
 export interface GoodCardData {
   name: string;
@@ -322,4 +328,115 @@ export async function activateGood(
 
   const data = await response.json();
   return data as GoodCardResponse;
+}
+
+/**
+ * Fetch all shop addresses (public endpoint)
+ *
+ * @returns Promise<ShopAddress[]> - List of shop addresses
+ * @throws Error if request fails
+ */
+export async function fetchShopAddresses(): Promise<ShopAddress[]> {
+  const response = await fetch(`${API_BASE_URL}/shop/addresses`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch shop addresses: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as ShopAddress[];
+}
+
+/**
+ * Create a new shop address (ADMIN only)
+ *
+ * @param address - The address string
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<ShopAddress> - Created shop address
+ * @throws Error if request fails
+ */
+export async function createShopAddress(
+  address: string,
+  initData: string
+): Promise<ShopAddress> {
+  const response = await fetch(`${API_BASE_URL}/shop/addresses`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ address }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create shop address: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as ShopAddress;
+}
+
+/**
+ * Update existing shop address (ADMIN only)
+ *
+ * @param addressId - ID of the address to update
+ * @param address - The updated address string
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<ShopAddress> - Updated shop address
+ * @throws Error if request fails
+ */
+export async function updateShopAddress(
+  addressId: number,
+  address: string,
+  initData: string
+): Promise<ShopAddress> {
+  const response = await fetch(`${API_BASE_URL}/shop/addresses/${addressId}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ address }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to update shop address: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as ShopAddress;
+}
+
+/**
+ * Delete shop address (ADMIN only)
+ *
+ * @param addressId - ID of the address to delete
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<void>
+ * @throws Error if request fails
+ */
+export async function deleteShopAddress(
+  addressId: number,
+  initData: string
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/shop/addresses/${addressId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to delete shop address: ${response.status} ${errorText}`);
+  }
 }
