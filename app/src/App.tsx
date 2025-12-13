@@ -31,7 +31,7 @@ function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isStoreAddressesOpen, setIsStoreAddressesOpen] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState('г. Тюмень ул. Пермякова, 62');
-  const [returnToCart, setReturnToCart] = useState(false);
+  const [previousScreenBeforeAddresses, setPreviousScreenBeforeAddresses] = useState<'cart' | 'menu' | null>(null);
   const [previousScreen, setPreviousScreen] = useState<'home' | 'cart' | 'storeAddresses' | null>(null);
   const [previousScreenBeforeCart, setPreviousScreenBeforeCart] = useState<'home' | 'productCard' | null>(null);
   const [previousProduct, setPreviousProduct] = useState<Product | null>(null);
@@ -110,7 +110,7 @@ function App() {
   };
 
   const handleOpenStoreAddresses = (fromCart: boolean = false) => {
-    setReturnToCart(fromCart);
+    setPreviousScreenBeforeAddresses(fromCart ? 'cart' : 'menu');
     if (fromCart) {
       setIsCartOpen(false);
     } else {
@@ -122,10 +122,15 @@ function App() {
   const handleSelectAddress = (address: string) => {
     setSelectedAddress(address);
     setIsStoreAddressesOpen(false);
-    if (returnToCart && cartItems.length > 0) {
+
+    // Возвращаемся на предыдущий экран
+    if (previousScreenBeforeAddresses === 'cart' && cartItems.length > 0) {
       setIsCartOpen(true);
-      setReturnToCart(false);
+    } else if (previousScreenBeforeAddresses === 'menu') {
+      setIsMenuOpen(true);
     }
+
+    setPreviousScreenBeforeAddresses(null);
   };
 
   const handleNavigateHome = () => {
@@ -374,10 +379,12 @@ function App() {
           setIsAdminCardOpen(false);
         } else if (isStoreAddressesOpen) {
           setIsStoreAddressesOpen(false);
-          if (returnToCart && cartItems.length > 0) {
+          if (previousScreenBeforeAddresses === 'cart' && cartItems.length > 0) {
             setIsCartOpen(true);
-            setReturnToCart(false);
+          } else if (previousScreenBeforeAddresses === 'menu') {
+            setIsMenuOpen(true);
           }
+          setPreviousScreenBeforeAddresses(null);
         } else if (isMenuOpen) {
           handleCloseMenu();
         }
@@ -391,7 +398,7 @@ function App() {
     } else {
       webApp.BackButton.hide();
     }
-  }, [webApp, isCartOpen, selectedProduct, isStoreAddressesOpen, isMenuOpen, isAdminCardOpen, returnToCart, cartItems, previousProduct, previousScreenBeforeCart]);
+  }, [webApp, isCartOpen, selectedProduct, isStoreAddressesOpen, isMenuOpen, isAdminCardOpen, previousScreenBeforeAddresses, cartItems, previousProduct, previousScreenBeforeCart]);
 
   return (
     <div className="min-h-screen bg-white max-w-[402px] mx-auto">
