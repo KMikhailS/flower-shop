@@ -212,10 +212,10 @@ const StoreAddresses: React.FC<StoreAddressesProps> = ({
                 <button
                   onClick={() => handleAddressClick(address.address)}
                   disabled={!fromCart || isEditing || isSubmitting}
-                  className={`flex-1 text-base font-semibold leading-[1.174] text-left transition-opacity ${
+                  className={`flex-1 text-base font-semibold leading-[1.174] text-black text-left transition-opacity ${
                     fromCart && !isEditing && !isSubmitting
-                      ? 'text-black hover:opacity-70 cursor-pointer'
-                      : 'text-gray-400 cursor-default opacity-60'
+                      ? 'hover:opacity-70 cursor-pointer'
+                      : 'cursor-default'
                   }`}
                 >
                   {address.address}

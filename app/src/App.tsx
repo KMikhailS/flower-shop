@@ -122,7 +122,7 @@ function App() {
   const handleSelectAddress = (address: string) => {
     setSelectedAddress(address);
     setIsStoreAddressesOpen(false);
-    if (returnToCart && cartItems.length > 0) {
+    if (returnToCart) {
       setIsCartOpen(true);
       setReturnToCart(false);
     }
@@ -374,7 +374,7 @@ function App() {
           setIsAdminCardOpen(false);
         } else if (isStoreAddressesOpen) {
           setIsStoreAddressesOpen(false);
-          if (returnToCart && cartItems.length > 0) {
+          if (returnToCart) {
             setIsCartOpen(true);
             setReturnToCart(false);
           }
