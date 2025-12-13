@@ -31,10 +31,10 @@ function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isStoreAddressesOpen, setIsStoreAddressesOpen] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState('г. Тюмень ул. Пермякова, 62');
-  const [previousScreenBeforeAddresses, setPreviousScreenBeforeAddresses] = useState<'cart' | 'menu' | null>(null);
   const [previousScreen, setPreviousScreen] = useState<'home' | 'cart' | 'storeAddresses' | null>(null);
   const [previousScreenBeforeCart, setPreviousScreenBeforeCart] = useState<'home' | 'productCard' | null>(null);
   const [previousProduct, setPreviousProduct] = useState<Product | null>(null);
+  const [returnToCart, setReturnToCart] = useState(false);
   const [isAdminCardOpen, setIsAdminCardOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
@@ -110,7 +110,7 @@ function App() {
   };
 
   const handleOpenStoreAddresses = (fromCart: boolean = false) => {
-    setPreviousScreenBeforeAddresses(fromCart ? 'cart' : 'menu');
+    setReturnToCart(fromCart);
     if (fromCart) {
       setIsCartOpen(false);
     } else {
@@ -122,15 +122,10 @@ function App() {
   const handleSelectAddress = (address: string) => {
     setSelectedAddress(address);
     setIsStoreAddressesOpen(false);
-
-    // Возвращаемся на предыдущий экран
-    if (previousScreenBeforeAddresses === 'cart' && cartItems.length > 0) {
+    if (returnToCart && cartItems.length > 0) {
       setIsCartOpen(true);
-    } else if (previousScreenBeforeAddresses === 'menu') {
-      setIsMenuOpen(true);
+      setReturnToCart(false);
     }
-
-    setPreviousScreenBeforeAddresses(null);
   };
 
   const handleNavigateHome = () => {
@@ -379,12 +374,10 @@ function App() {
           setIsAdminCardOpen(false);
         } else if (isStoreAddressesOpen) {
           setIsStoreAddressesOpen(false);
-          if (previousScreenBeforeAddresses === 'cart' && cartItems.length > 0) {
+          if (returnToCart && cartItems.length > 0) {
             setIsCartOpen(true);
-          } else if (previousScreenBeforeAddresses === 'menu') {
-            setIsMenuOpen(true);
+            setReturnToCart(false);
           }
-          setPreviousScreenBeforeAddresses(null);
         } else if (isMenuOpen) {
           handleCloseMenu();
         }
@@ -398,7 +391,7 @@ function App() {
     } else {
       webApp.BackButton.hide();
     }
-  }, [webApp, isCartOpen, selectedProduct, isStoreAddressesOpen, isMenuOpen, isAdminCardOpen, previousScreenBeforeAddresses, cartItems, previousProduct, previousScreenBeforeCart]);
+  }, [webApp, isCartOpen, selectedProduct, isStoreAddressesOpen, isMenuOpen, isAdminCardOpen, returnToCart, cartItems, previousProduct, previousScreenBeforeCart]);
 
   return (
     <div className="min-h-screen bg-white max-w-[402px] mx-auto">
@@ -410,7 +403,6 @@ function App() {
       />
       <StoreAddresses
         isOpen={isStoreAddressesOpen}
-        onClose={() => setIsStoreAddressesOpen(false)}
         onSelectAddress={handleSelectAddress}
         onMenuClick={() => {
           setPreviousScreen('storeAddresses');
@@ -419,6 +411,7 @@ function App() {
         }}
         userMode={userInfo?.mode}
         initData={webApp?.initData}
+        fromCart={returnToCart}
       />
       {isCartOpen && (
         <Cart

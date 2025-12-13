@@ -4,20 +4,20 @@ import { fetchShopAddresses, ShopAddress, createShopAddress, updateShopAddress, 
 
 interface StoreAddressesProps {
   isOpen: boolean;
-  onClose: () => void;
   onSelectAddress: (address: string) => void;
   onMenuClick: () => void;
   userMode?: string;
   initData?: string;
+  fromCart?: boolean;
 }
 
 const StoreAddresses: React.FC<StoreAddressesProps> = ({
   isOpen,
-  onClose,
   onSelectAddress,
   onMenuClick,
   userMode,
-  initData
+  initData,
+  fromCart = false
 }) => {
   const [addresses, setAddresses] = useState<ShopAddress[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,10 +53,13 @@ const StoreAddresses: React.FC<StoreAddressesProps> = ({
   }, [isOpen]);
 
   const handleAddressClick = (address: string) => {
-    if (!isEditing) {
-      onSelectAddress(address);
-      onClose();
+    // Если зашли из меню (fromCart=false), выбор адреса недоступен
+    if (!fromCart || isEditing) {
+      return;
     }
+
+    // Если зашли из корзины (fromCart=true), выбираем адрес и возвращаемся в корзину
+    onSelectAddress(address);
   };
 
   const handleAddNew = () => {
@@ -208,8 +211,12 @@ const StoreAddresses: React.FC<StoreAddressesProps> = ({
               <div key={address.id} className="flex items-center justify-between gap-3">
                 <button
                   onClick={() => handleAddressClick(address.address)}
-                  disabled={isEditing || isSubmitting}
-                  className="flex-1 text-base font-semibold leading-[1.174] text-black text-left hover:opacity-70 transition-opacity disabled:opacity-50"
+                  disabled={!fromCart || isEditing || isSubmitting}
+                  className={`flex-1 text-base font-semibold leading-[1.174] text-left transition-opacity ${
+                    fromCart && !isEditing && !isSubmitting
+                      ? 'text-black hover:opacity-70 cursor-pointer'
+                      : 'text-gray-400 cursor-default opacity-60'
+                  }`}
                 >
                   {address.address}
                 </button>
