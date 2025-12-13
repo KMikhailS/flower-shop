@@ -39,3 +39,4 @@ class GoodDTO(BaseModel):
     price: int
     description: str
     image_urls: list[str] = []
+    status: str
