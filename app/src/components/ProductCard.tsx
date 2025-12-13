@@ -29,6 +29,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, onAddToC
   // Состояние для навигации по изображениям
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // Состояние для отслеживания touch events
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
   // Получаем массив изображений (или используем основное изображение)
   const images = product.images && product.images.length > 0 ? product.images : [product.image];
 
@@ -38,6 +42,32 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, onAddToC
 
   const handleNextImage = () => {
     setCurrentImageIndex(prev => prev === images.length - 1 ? 0 : prev + 1);
+  };
+
+  // Минимальное расстояние для срабатывания свайпа (в пикселях)
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      handleNextImage();
+    } else if (isRightSwipe) {
+      handlePrevImage();
+    }
   };
 
   // Отключаем прокрутку body при открытии модального окна
@@ -51,7 +81,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, onAddToC
     <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto overflow-y-auto">
       <div className="min-h-full flex flex-col">
         {/* Product Image Section */}
-        <div className="relative h-[505px] flex-shrink-0">
+        <div
+          className="relative h-[505px] flex-shrink-0"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
           <img
             src={images[currentImageIndex]}
             alt={product.alt}
