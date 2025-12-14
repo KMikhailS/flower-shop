@@ -29,6 +29,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
 
   // Drag-and-drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [orderedImageUrls, setOrderedImageUrls] = useState<string[]>([]);
 
   // При редактировании заполняем форму данными товара
@@ -86,16 +87,29 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
   };
 
   // Drag-and-drop handlers
-  const handleDragStart = (index: number) => {
+  const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index.toString());
+  };
+
+  const handleDragEnter = (index: number) => {
+    setDragOverIndex(index);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
   };
 
-  const handleDrop = (dropIndex: number) => {
-    if (draggedIndex === null || draggedIndex === dropIndex) return;
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
 
     const newOrder = [...orderedImageUrls];
     const draggedItem = newOrder[draggedIndex];
@@ -107,10 +121,12 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
 
     setOrderedImageUrls(newOrder);
     setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
   const handleDragEnd = () => {
     setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
   const handleSave = async () => {
@@ -266,22 +282,27 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
                 <div
                   key={url}
                   draggable
-                  onDragStart={() => handleDragStart(index)}
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragEnter={() => handleDragEnter(index)}
                   onDragOver={handleDragOver}
-                  onDrop={() => handleDrop(index)}
+                  onDrop={(e) => handleDrop(e, index)}
                   onDragEnd={handleDragEnd}
-                  className={`relative w-[60px] h-[60px] flex-shrink-0 cursor-move ${
-                    draggedIndex === index ? 'opacity-50' : ''
+                  className={`relative w-[60px] h-[60px] flex-shrink-0 cursor-move transition-all ${
+                    draggedIndex === index ? 'opacity-50 scale-95' : ''
+                  } ${
+                    dragOverIndex === index && draggedIndex !== index ? 'scale-110' : ''
                   }`}
                 >
                   <img
                     src={url}
                     alt={`Preview ${index + 1}`}
-                    className={`w-full h-full object-cover rounded-[10px] ${
+                    className={`w-full h-full object-cover rounded-[10px] pointer-events-none ${
                       draggedIndex === index ? 'border-2 border-teal' : ''
+                    } ${
+                      dragOverIndex === index && draggedIndex !== index ? 'border-2 border-green' : ''
                     }`}
                   />
-                  <div className="absolute top-1 right-1 w-5 h-5 bg-black/70 rounded-full flex items-center justify-center">
+                  <div className="absolute top-1 right-1 w-5 h-5 bg-black/70 rounded-full flex items-center justify-center pointer-events-none">
                     <span className="text-white text-xs font-semibold">{index + 1}</span>
                   </div>
                 </div>
