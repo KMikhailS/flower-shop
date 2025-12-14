@@ -5,7 +5,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 
 from dependencies import verify_admin_mode
-from models import GoodCardRequest, GoodCardResponse, GoodDTO
+from models import GoodCardRequest, GoodDTO, ImageDTO
 from database import (
     create_good_card,
     get_goods_by_status,
@@ -47,7 +47,7 @@ async def get_goods():
                 category=good["category"],
                 price=good["price"],
                 description=good["description"],
-                image_urls=good["image_urls"],
+                images=[ImageDTO(**img) for img in good["images"]],
                 status=good["status"]
             )
             for good in goods
@@ -82,7 +82,7 @@ async def get_all_goods_endpoint(user_id: int = Depends(verify_admin_mode)):
                 category=good["category"],
                 price=good["price"],
                 description=good["description"],
-                image_urls=good["image_urls"],
+                images=[ImageDTO(**img) for img in good["images"]],
                 status=good["status"]
             )
             for good in goods
@@ -95,7 +95,7 @@ async def get_all_goods_endpoint(user_id: int = Depends(verify_admin_mode)):
         )
 
 
-@router.post("/card", response_model=GoodCardResponse)
+@router.post("/card", response_model=GoodDTO)
 async def create_good_card_endpoint(
     good_card: GoodCardRequest,
     user_id: int = Depends(verify_admin_mode)
@@ -118,7 +118,15 @@ async def create_good_card_endpoint(
         )
 
         # Return response
-        return GoodCardResponse(**created_good)
+        return GoodDTO(
+            id=created_good["id"],
+            name=created_good["name"],
+            category=created_good["category"],
+            price=created_good["price"],
+            description=created_good["description"],
+            images=[ImageDTO(**img) for img in created_good["images"]],
+            status=created_good["status"]
+        )
     except Exception as e:
         logger.error(f"Failed to create good card: {str(e)}")
         raise HTTPException(
@@ -127,7 +135,7 @@ async def create_good_card_endpoint(
         )
 
 
-@router.put("/{good_id}", response_model=GoodCardResponse)
+@router.put("/{good_id}", response_model=GoodDTO)
 async def update_good_card_endpoint(
     good_id: int,
     good_card: GoodCardRequest,
@@ -152,7 +160,15 @@ async def update_good_card_endpoint(
         )
 
         # Return response
-        return GoodCardResponse(**updated_good)
+        return GoodDTO(
+            id=updated_good["id"],
+            name=updated_good["name"],
+            category=updated_good["category"],
+            price=updated_good["price"],
+            description=updated_good["description"],
+            images=[ImageDTO(**img) for img in updated_good["images"]],
+            status=updated_good["status"]
+        )
     except ValueError as e:
         logger.error(f"Good not found: {str(e)}")
         raise HTTPException(
@@ -279,7 +295,7 @@ async def delete_good_endpoint(
         )
 
 
-@router.put("/{good_id}/block", response_model=GoodCardResponse)
+@router.put("/{good_id}/block", response_model=GoodDTO)
 async def block_good_endpoint(
     good_id: int,
     user_id: int = Depends(verify_admin_mode)
@@ -294,7 +310,15 @@ async def block_good_endpoint(
 
     try:
         updated_good = await update_good_status(good_id, 'BLOCKED')
-        return GoodCardResponse(**updated_good)
+        return GoodDTO(
+            id=updated_good["id"],
+            name=updated_good["name"],
+            category=updated_good["category"],
+            price=updated_good["price"],
+            description=updated_good["description"],
+            images=[ImageDTO(**img) for img in updated_good["images"]],
+            status=updated_good["status"]
+        )
     except ValueError as e:
         logger.error(f"Good not found: {str(e)}")
         raise HTTPException(
@@ -309,7 +333,7 @@ async def block_good_endpoint(
         )
 
 
-@router.put("/{good_id}/activate", response_model=GoodCardResponse)
+@router.put("/{good_id}/activate", response_model=GoodDTO)
 async def activate_good_endpoint(
     good_id: int,
     user_id: int = Depends(verify_admin_mode)
@@ -324,7 +348,15 @@ async def activate_good_endpoint(
 
     try:
         updated_good = await update_good_status(good_id, 'NEW')
-        return GoodCardResponse(**updated_good)
+        return GoodDTO(
+            id=updated_good["id"],
+            name=updated_good["name"],
+            category=updated_good["category"],
+            price=updated_good["price"],
+            description=updated_good["description"],
+            images=[ImageDTO(**img) for img in updated_good["images"]],
+            status=updated_good["status"]
+        )
     except ValueError as e:
         logger.error(f"Good not found: {str(e)}")
         raise HTTPException(

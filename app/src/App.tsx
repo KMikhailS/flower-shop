@@ -217,17 +217,24 @@ function App() {
       }
 
       // Маппинг GoodDTO → Product
-      const mappedProducts: Product[] = goods.map((good: GoodDTO) => ({
-        id: good.id,
-        image: good.image_urls[0] || '/images/placeholder.png',
-        images: good.image_urls,
-        alt: good.name,
-        title: good.name,
-        price: `${good.price} руб.`,
-        description: good.description,
-        category: good.category,
-        status: good.status,
-      }));
+      const mappedProducts: Product[] = goods.map((good: GoodDTO) => {
+        // Сортируем изображения по display_order и извлекаем URL
+        const sortedImages = [...good.images]
+          .sort((a, b) => a.display_order - b.display_order)
+          .map(img => img.image_url);
+
+        return {
+          id: good.id,
+          image: sortedImages[0] || '/images/placeholder.png',
+          images: sortedImages,
+          alt: good.name,
+          title: good.name,
+          price: `${good.price} руб.`,
+          description: good.description,
+          category: good.category,
+          status: good.status,
+        };
+      });
 
       setProducts(mappedProducts);
       console.log('Products loaded:', mappedProducts.length);

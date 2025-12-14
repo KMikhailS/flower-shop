@@ -20,17 +20,10 @@ export interface GoodCardData {
   description: string;
 }
 
-// Good card response from backend
-export interface GoodCardResponse {
-  id: number;
-  createstamp: string;
-  changestamp: string;
-  status: string;
-  name: string;
-  category: string;
-  price: number;
-  description: string;
-  image_urls: string[];
+// Image DTO for product images
+export interface ImageDTO {
+  image_url: string;
+  display_order: number;
 }
 
 // Good DTO for public goods listing
@@ -40,7 +33,7 @@ export interface GoodDTO {
   category: string;
   price: number;
   description: string;
-  image_urls: string[];
+  images: ImageDTO[];
   status: string;
 }
 
@@ -78,13 +71,13 @@ export async function fetchUserInfo(initData: string): Promise<UserInfo> {
  *
  * @param goodCardData - The good card data to create
  * @param initData - Telegram WebApp initData string
- * @returns Promise<GoodCardResponse> - Created good card data
+ * @returns Promise<GoodDTO> - Created good card data
  * @throws Error if request fails
  */
 export async function createGoodCard(
   goodCardData: GoodCardData,
   initData: string
-): Promise<GoodCardResponse> {
+): Promise<GoodDTO> {
   const response = await fetch(`${API_BASE_URL}/goods/card`, {
     method: 'POST',
     headers: {
@@ -100,7 +93,7 @@ export async function createGoodCard(
   }
 
   const data = await response.json();
-  return data as GoodCardResponse;
+  return data as GoodDTO;
 }
 
 /**
@@ -109,14 +102,14 @@ export async function createGoodCard(
  * @param goodId - ID of the good to update
  * @param goodCardData - The updated good card data
  * @param initData - Telegram WebApp initData string
- * @returns Promise<GoodCardResponse> - Updated good card data
+ * @returns Promise<GoodDTO> - Updated good card data
  * @throws Error if request fails
  */
 export async function updateGoodCard(
   goodId: number,
   goodCardData: GoodCardData,
   initData: string
-): Promise<GoodCardResponse> {
+): Promise<GoodDTO> {
   const response = await fetch(`${API_BASE_URL}/goods/${goodId}`, {
     method: 'PUT',
     headers: {
@@ -132,7 +125,7 @@ export async function updateGoodCard(
   }
 
   const data = await response.json();
-  return data as GoodCardResponse;
+  return data as GoodDTO;
 }
 
 /**
@@ -277,13 +270,13 @@ export async function deleteGood(
  *
  * @param goodId - ID of the good to block
  * @param initData - Telegram WebApp initData string
- * @returns Promise<GoodCardResponse> - Updated good card data
+ * @returns Promise<GoodDTO> - Updated good card data
  * @throws Error if request fails
  */
 export async function blockGood(
   goodId: number,
   initData: string
-): Promise<GoodCardResponse> {
+): Promise<GoodDTO> {
   const response = await fetch(`${API_BASE_URL}/goods/${goodId}/block`, {
     method: 'PUT',
     headers: {
@@ -298,7 +291,7 @@ export async function blockGood(
   }
 
   const data = await response.json();
-  return data as GoodCardResponse;
+  return data as GoodDTO;
 }
 
 /**
@@ -306,13 +299,13 @@ export async function blockGood(
  *
  * @param goodId - ID of the good to activate
  * @param initData - Telegram WebApp initData string
- * @returns Promise<GoodCardResponse> - Updated good card data
+ * @returns Promise<GoodDTO> - Updated good card data
  * @throws Error if request fails
  */
 export async function activateGood(
   goodId: number,
   initData: string
-): Promise<GoodCardResponse> {
+): Promise<GoodDTO> {
   const response = await fetch(`${API_BASE_URL}/goods/${goodId}/activate`, {
     method: 'PUT',
     headers: {
@@ -327,7 +320,7 @@ export async function activateGood(
   }
 
   const data = await response.json();
-  return data as GoodCardResponse;
+  return data as GoodDTO;
 }
 
 /**

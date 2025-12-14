@@ -135,9 +135,9 @@ async def create_good_card(
         )
         row = await cursor.fetchone()
 
-        # Add empty image_urls list to match new schema
+        # Add empty images list to match new schema
         result = dict(row)
-        result['image_urls'] = []
+        result['images'] = []
 
         logger.info(f"Created new good card with id={good_id}")
         return result
@@ -190,13 +190,16 @@ async def update_good_card(
             'category': first_row['category'],
             'price': first_row['price'],
             'description': first_row['description'],
-            'image_urls': []
+            'images': []
         }
 
-        # Add all image URLs
+        # Add all images with display_order
         for row in rows:
             if row['image_url']:
-                result['image_urls'].append(row['image_url'])
+                result['images'].append({
+                    'image_url': row['image_url'],
+                    'display_order': row['display_order']
+                })
 
         logger.info(f"Updated good card with id={good_id}")
         return result
@@ -245,12 +248,15 @@ async def get_goods_by_status(status: str = 'NEW') -> list[dict]:
                     'category': row['category'],
                     'price': row['price'],
                     'description': row['description'],
-                    'image_urls': []
+                    'images': []
                 }
 
-            # Add image_url if exists (LEFT JOIN may return NULL)
+            # Add image with display_order if exists (LEFT JOIN may return NULL)
             if row['image_url']:
-                goods_dict[good_id]['image_urls'].append(row['image_url'])
+                goods_dict[good_id]['images'].append({
+                    'image_url': row['image_url'],
+                    'display_order': row['display_order']
+                })
 
         result = list(goods_dict.values())
         logger.info(f"Retrieved {len(result)} goods with status={status}")
@@ -285,12 +291,15 @@ async def get_all_goods() -> list[dict]:
                     'category': row['category'],
                     'price': row['price'],
                     'description': row['description'],
-                    'image_urls': []
+                    'images': []
                 }
 
-            # Add image_url if exists (LEFT JOIN may return NULL)
+            # Add image with display_order if exists (LEFT JOIN may return NULL)
             if row['image_url']:
-                goods_dict[good_id]['image_urls'].append(row['image_url'])
+                goods_dict[good_id]['images'].append({
+                    'image_url': row['image_url'],
+                    'display_order': row['display_order']
+                })
 
         result = list(goods_dict.values())
         logger.info(f"Retrieved {len(result)} goods (all statuses)")
@@ -361,13 +370,16 @@ async def update_good_status(good_id: int, new_status: str) -> dict:
             'category': first_row['category'],
             'price': first_row['price'],
             'description': first_row['description'],
-            'image_urls': []
+            'images': []
         }
 
-        # Add all image URLs
+        # Add all images with display_order
         for row in rows:
             if row['image_url']:
-                result['image_urls'].append(row['image_url'])
+                result['images'].append({
+                    'image_url': row['image_url'],
+                    'display_order': row['display_order']
+                })
 
         logger.info(f"Updated status for good_id={good_id} to {new_status}")
         return result

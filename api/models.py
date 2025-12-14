@@ -18,17 +18,10 @@ class GoodCardRequest(BaseModel):
     description: str
 
 
-class GoodCardResponse(BaseModel):
-    """Response model for good card"""
-    id: int
-    createstamp: str
-    changestamp: str
-    status: str
-    name: str
-    category: str
-    price: int
-    description: str
-    image_urls: list[str] = []
+class ImageDTO(BaseModel):
+    """Data transfer object for product images"""
+    image_url: str
+    display_order: int
 
 
 class GoodDTO(BaseModel):
@@ -38,7 +31,7 @@ class GoodDTO(BaseModel):
     category: str
     price: int
     description: str
-    image_urls: list[str] = []
+    images: list[ImageDTO] = []
     status: str
 
 
