@@ -44,3 +44,8 @@ class ShopAddressDTO(BaseModel):
 class ShopAddressRequest(BaseModel):
     """Request model for creating or updating a shop address"""
     address: str
+
+
+class ImageReorderRequest(BaseModel):
+    """Request model for reordering product images"""
+    imageUrls: list[str]

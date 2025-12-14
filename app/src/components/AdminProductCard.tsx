@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Product } from './ProductGrid';
+import { reorderGoodImages } from '../api/client';
 
 interface AdminProductCardProps {
   onClose: () => void;
@@ -26,6 +27,10 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
   const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Drag-and-drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [orderedImageUrls, setOrderedImageUrls] = useState<string[]>([]);
+
   // При редактировании заполняем форму данными товара
   useEffect(() => {
     if (editingProduct) {
@@ -41,8 +46,10 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
       // Устанавливаем превью изображений из товара (не File, а URL)
       if (editingProduct.images && editingProduct.images.length > 0) {
         setPreviewUrls(editingProduct.images);
+        setOrderedImageUrls(editingProduct.images);
       } else if (editingProduct.image) {
         setPreviewUrls([editingProduct.image]);
+        setOrderedImageUrls([editingProduct.image]);
       }
     }
   }, [editingProduct]);
@@ -78,7 +85,35 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
     setCurrentPreviewIndex(0);
   };
 
-  const handleSave = () => {
+  // Drag-and-drop handlers
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (dropIndex: number) => {
+    if (draggedIndex === null || draggedIndex === dropIndex) return;
+
+    const newOrder = [...orderedImageUrls];
+    const draggedItem = newOrder[draggedIndex];
+
+    // Remove item from old position
+    newOrder.splice(draggedIndex, 1);
+    // Insert at new position
+    newOrder.splice(dropIndex, 0, draggedItem);
+
+    setOrderedImageUrls(newOrder);
+    setDraggedIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
+
+  const handleSave = async () => {
     // Validation
     if (!name.trim()) {
       alert('Введите название товара');
@@ -106,6 +141,27 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
       description: description.trim(),
       imageFiles: selectedFiles,
     });
+
+    // Check if image order changed and update if needed
+    if (editingProduct && editingProduct.images && orderedImageUrls.length > 0) {
+      const originalOrder = editingProduct.images;
+      const orderChanged = !originalOrder.every((url, index) => url === orderedImageUrls[index]);
+
+      if (orderChanged) {
+        try {
+          const initData = window.Telegram?.WebApp?.initData || '';
+          if (!initData) {
+            alert('Не удалось получить данные авторизации');
+            return;
+          }
+
+          await reorderGoodImages(editingProduct.id, orderedImageUrls, initData);
+        } catch (error) {
+          console.error('Failed to reorder images:', error);
+          alert('Не удалось обновить порядок изображений');
+        }
+      }
+    }
   };
 
   return (
@@ -203,16 +259,32 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
         </div>
 
         {/* Image Previews - shown only when editing and multiple images */}
-        {editingProduct && previewUrls.length > 1 && (
+        {editingProduct && orderedImageUrls.length > 1 && (
           <div className="px-8 pt-4 pb-2">
             <div className="flex gap-2 overflow-x-auto">
-              {previewUrls.map((url, index) => (
-                <img
-                  key={index}
-                  src={url}
-                  alt={`Preview ${index + 1}`}
-                  className="w-[60px] h-[60px] object-cover rounded-[10px] flex-shrink-0"
-                />
+              {orderedImageUrls.map((url, index) => (
+                <div
+                  key={url}
+                  draggable
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={handleDragOver}
+                  onDrop={() => handleDrop(index)}
+                  onDragEnd={handleDragEnd}
+                  className={`relative w-[60px] h-[60px] flex-shrink-0 cursor-move ${
+                    draggedIndex === index ? 'opacity-50' : ''
+                  }`}
+                >
+                  <img
+                    src={url}
+                    alt={`Preview ${index + 1}`}
+                    className={`w-full h-full object-cover rounded-[10px] ${
+                      draggedIndex === index ? 'border-2 border-teal' : ''
+                    }`}
+                  />
+                  <div className="absolute top-1 right-1 w-5 h-5 bg-black/70 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs font-semibold">{index + 1}</span>
+                  </div>
+                </div>
               ))}
             </div>
           </div>

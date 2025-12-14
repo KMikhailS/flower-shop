@@ -472,3 +472,66 @@ async def delete_shop_address(address_id: int) -> None:
         )
         await db.commit()
         logger.info(f"Deleted shop address with id={address_id}")
+
+
+async def update_images_order(good_id: int, image_urls: list[str]) -> dict:
+    """Update display order of images for a good based on provided URL order"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        current_time = datetime.now().isoformat()
+
+        # Update display_order for each image based on position in list
+        for index, image_url in enumerate(image_urls):
+            await db.execute(
+                """UPDATE goods_images
+                   SET display_order = ?
+                   WHERE good_id = ? AND image_url = ?""",
+                (index, good_id, image_url)
+            )
+
+        # Update changestamp for the good
+        await db.execute(
+            "UPDATE goods SET changestamp = ? WHERE id = ?",
+            (current_time, good_id)
+        )
+        await db.commit()
+
+        # Get the updated good with images
+        cursor = await db.execute(
+            """SELECT g.*, gi.image_url, gi.display_order
+               FROM goods g
+               LEFT JOIN goods_images gi ON g.id = gi.good_id
+               WHERE g.id = ?
+               ORDER BY gi.display_order ASC""",
+            (good_id,)
+        )
+        rows = await cursor.fetchall()
+
+        if not rows:
+            logger.error(f"Good with id={good_id} not found")
+            raise ValueError(f"Good with id={good_id} not found")
+
+        # Build result with images
+        first_row = rows[0]
+        result = {
+            'id': first_row['id'],
+            'createstamp': first_row['createstamp'],
+            'changestamp': first_row['changestamp'],
+            'status': first_row['status'],
+            'name': first_row['name'],
+            'category': first_row['category'],
+            'price': first_row['price'],
+            'description': first_row['description'],
+            'images': []
+        }
+
+        # Add all images with display_order
+        for row in rows:
+            if row['image_url']:
+                result['images'].append({
+                    'image_url': row['image_url'],
+                    'display_order': row['display_order']
+                })
+
+        logger.info(f"Updated image order for good_id={good_id}")
+        return result

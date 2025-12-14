@@ -5,7 +5,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 
 from dependencies import verify_admin_mode
-from models import GoodCardRequest, GoodDTO, ImageDTO
+from models import GoodCardRequest, GoodDTO, ImageDTO, ImageReorderRequest
 from database import (
     create_good_card,
     get_goods_by_status,
@@ -13,7 +13,8 @@ from database import (
     update_good_card,
     delete_good,
     update_good_status,
-    get_all_goods
+    get_all_goods,
+    update_images_order
 )
 
 logger = logging.getLogger(__name__)
@@ -368,4 +369,43 @@ async def activate_good_endpoint(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to activate good"
+        )
+
+
+@router.put("/{good_id}/images/reorder", response_model=GoodDTO)
+async def reorder_good_images_endpoint(
+    good_id: int,
+    request: ImageReorderRequest,
+    user_id: int = Depends(verify_admin_mode)
+):
+    """
+    Reorder images for a good (ADMIN only)
+
+    Requires valid Telegram WebApp initData in Authorization header
+    User must be in ADMIN mode
+    """
+    logger.info(f"User {user_id} reordering images for good {good_id}")
+
+    try:
+        updated_good = await update_images_order(good_id, request.imageUrls)
+        return GoodDTO(
+            id=updated_good["id"],
+            name=updated_good["name"],
+            category=updated_good["category"],
+            price=updated_good["price"],
+            description=updated_good["description"],
+            images=[ImageDTO(**img) for img in updated_good["images"]],
+            status=updated_good["status"]
+        )
+    except ValueError as e:
+        logger.error(f"Good not found: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Good with id {good_id} not found"
+        )
+    except Exception as e:
+        logger.error(f"Failed to reorder images: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to reorder images"
         )

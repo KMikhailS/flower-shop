@@ -433,3 +433,35 @@ export async function deleteShopAddress(
     throw new Error(`Failed to delete shop address: ${response.status} ${errorText}`);
   }
 }
+
+/**
+ * Reorder images for a good (ADMIN only)
+ *
+ * @param goodId - ID of the good to reorder images for
+ * @param imageUrls - Array of image URLs in new order
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<GoodDTO> - Updated good card data
+ * @throws Error if request fails
+ */
+export async function reorderGoodImages(
+  goodId: number,
+  imageUrls: string[],
+  initData: string
+): Promise<GoodDTO> {
+  const response = await fetch(`${API_BASE_URL}/goods/${goodId}/images/reorder`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ imageUrls }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to reorder images: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as GoodDTO;
+}
