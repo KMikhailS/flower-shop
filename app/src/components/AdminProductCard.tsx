@@ -32,6 +32,9 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [orderedImageUrls, setOrderedImageUrls] = useState<string[]>([]);
 
+  // Touch state for mobile
+  const [touchStartIndex, setTouchStartIndex] = useState<number | null>(null);
+
   // При редактировании заполняем форму данными товара
   useEffect(() => {
     if (editingProduct) {
@@ -142,6 +145,63 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
 
   const handleDragEnd = () => {
     console.log('🔴 Drag End');
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  // Touch handlers for mobile devices
+  const handleTouchStart = (index: number) => {
+    console.log('👆 Touch Start:', index);
+    setTouchStartIndex(index);
+    setDraggedIndex(index);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartIndex === null) return;
+
+    // Get touch position
+    const touch = e.touches[0];
+    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+
+    // Find which preview element we're over
+    if (element) {
+      const previewElement = element.closest('[data-preview-index]');
+      if (previewElement) {
+        const index = parseInt(previewElement.getAttribute('data-preview-index') || '-1');
+        if (index !== -1 && index !== dragOverIndex) {
+          console.log('👉 Touch Move Over:', index);
+          setDragOverIndex(index);
+        }
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    console.log('👋 Touch End:', { touchStartIndex, dragOverIndex });
+
+    if (touchStartIndex === null || dragOverIndex === null || touchStartIndex === dragOverIndex) {
+      console.log('⚠️ Touch Cancelled: same index or null');
+      setTouchStartIndex(null);
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const newOrder = [...orderedImageUrls];
+    const draggedItem = newOrder[touchStartIndex];
+
+    console.log('📦 Touch Before:', newOrder);
+    console.log('🎯 Touch Moving:', draggedItem, 'from', touchStartIndex, 'to', dragOverIndex);
+
+    // Remove item from old position
+    newOrder.splice(touchStartIndex, 1);
+    // Insert at new position
+    newOrder.splice(dragOverIndex, 0, draggedItem);
+
+    console.log('✅ Touch After:', newOrder);
+
+    setOrderedImageUrls(newOrder);
+    setTouchStartIndex(null);
     setDraggedIndex(null);
     setDragOverIndex(null);
   };
@@ -294,16 +354,19 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
         {/* Image Previews - shown only when editing and multiple images */}
         {editingProduct && orderedImageUrls.length > 1 && (
           <div className="px-8 pt-4 pb-2">
-            <div className="flex gap-2 overflow-x-auto">
+            <div className="flex gap-2 overflow-x-auto" onTouchMove={handleTouchMove}>
               {orderedImageUrls.map((url, index) => (
                 <div
                   key={`${url}-${index}`}
+                  data-preview-index={index}
                   draggable
                   onDragStart={(e) => handleDragStart(e, index)}
                   onDragEnter={() => handleDragEnter(index)}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, index)}
                   onDragEnd={handleDragEnd}
+                  onTouchStart={() => handleTouchStart(index)}
+                  onTouchEnd={handleTouchEnd}
                   className={`relative w-[60px] h-[60px] flex-shrink-0 cursor-move transition-all ${
                     draggedIndex === index ? 'opacity-50 scale-95' : ''
                   } ${
