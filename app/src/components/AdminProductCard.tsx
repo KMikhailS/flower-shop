@@ -202,6 +202,22 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
           )}
         </div>
 
+        {/* Image Previews - shown only when editing and multiple images */}
+        {editingProduct && previewUrls.length > 1 && (
+          <div className="px-8 pt-4 pb-2">
+            <div className="flex gap-2 overflow-x-auto">
+              {previewUrls.map((url, index) => (
+                <img
+                  key={index}
+                  src={url}
+                  alt={`Preview ${index + 1}`}
+                  className="w-[60px] h-[60px] object-cover rounded-[10px] flex-shrink-0"
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Form Section */}
         <div className="px-8 pt-6 pb-8 flex-1">
           {/* Name Input */}
