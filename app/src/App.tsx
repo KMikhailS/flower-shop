@@ -4,7 +4,6 @@ import SearchBar from './components/SearchBar';
 import PromoBanner from './components/PromoBanner';
 import CategoryTabs from './components/CategoryTabs';
 import ProductGrid, { Product } from './components/ProductGrid';
-import PaginationDots from './components/PaginationDots';
 import BottomButton from './components/BottomButton';
 import MobileMenu from './components/MobileMenu';
 import ProductCard from './components/ProductCard';
@@ -13,7 +12,7 @@ import StoreAddresses from './components/StoreAddresses';
 import AdminProductCard from './components/AdminProductCard';
 import { useTelegramWebApp } from './hooks/useTelegramWebApp';
 import { useCartPersistence } from './hooks/useCartPersistence';
-import { fetchUserInfo, UserInfo, createGoodCard, fetchGoods, fetchAllGoods, GoodDTO, addGoodImages, updateGoodCard, deleteGood, blockGood, activateGood } from './api/client';
+import { fetchUserInfo, UserInfo, createGoodCard, fetchGoods, fetchAllGoods, GoodDTO, addGoodImages, updateGoodCard, deleteGood, blockGood, activateGood, fetchPromoBanners, PromoBannerDTO } from './api/client';
 
 export interface CartItemData {
   product: Product;
@@ -26,6 +25,7 @@ function App() {
 
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [promoBanners, setPromoBanners] = useState<PromoBannerDTO[]>([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -202,6 +202,18 @@ function App() {
     }
   };
 
+  // Функция для загрузки акционных баннеров
+  const loadPromoBanners = async () => {
+    try {
+      const banners = await fetchPromoBanners();
+      setPromoBanners(banners);
+      console.log('Promo banners loaded:', banners.length);
+    } catch (error) {
+      console.error('Failed to fetch promo banners:', error);
+      setPromoBanners([]);
+    }
+  };
+
   // Функция для загрузки товаров с бэкенда
   const loadProducts = async () => {
     try {
@@ -355,6 +367,11 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userInfo?.mode]);
 
+  // Загрузка акционных баннеров при инициализации
+  useEffect(() => {
+    loadPromoBanners();
+  }, []);
+
   // Автосохранение корзины при изменении состояния
   useEffect(() => {
     if (cartItems.length === 0) {
@@ -491,8 +508,7 @@ function App() {
           }}
         />
         <SearchBar userId={userInfo?.id} />
-        <PromoBanner />
-        <PaginationDots />
+        <PromoBanner banners={promoBanners} />
         <CategoryTabs />
         <ProductGrid
           products={products}

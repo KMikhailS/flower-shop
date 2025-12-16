@@ -37,6 +37,14 @@ export interface GoodDTO {
   status: string;
 }
 
+// Promo banner from backend
+export interface PromoBannerDTO {
+  id: number;
+  status: string;
+  display_order: number;
+  image_url: string;
+}
+
 // API base URL - uses relative path to work with nginx proxy
 // In development with Vite proxy or production with nginx, both route /api to backend
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
@@ -321,6 +329,29 @@ export async function activateGood(
 
   const data = await response.json();
   return data as GoodDTO;
+}
+
+/**
+ * Fetch all promo banners with status NEW (public endpoint)
+ *
+ * @returns Promise<PromoBannerDTO[]> - List of promo banners
+ * @throws Error if request fails
+ */
+export async function fetchPromoBanners(): Promise<PromoBannerDTO[]> {
+  const response = await fetch(`${API_BASE_URL}/promo`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch promo banners: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as PromoBannerDTO[];
 }
 
 /**

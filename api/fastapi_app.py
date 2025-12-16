@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from routers import users, goods, uploads, shop_addresses, health
+from routers import users, goods, uploads, shop_addresses, health, promo_banners
 
 logger = logging.getLogger(__name__)
 
@@ -41,3 +41,4 @@ app.include_router(goods.router)
 app.include_router(uploads.router)
 app.include_router(shop_addresses.router)
 app.include_router(health.router)
+app.include_router(promo_banners.router)

@@ -49,3 +49,11 @@ class ShopAddressRequest(BaseModel):
 class ImageReorderRequest(BaseModel):
     """Request model for reordering product images"""
     imageUrls: list[str]
+
+
+class PromoBannerDTO(BaseModel):
+    """Data transfer object for promo banners"""
+    id: int
+    status: str
+    display_order: int
+    image_url: str

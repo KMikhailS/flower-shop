@@ -50,6 +50,16 @@ async def init_db():
                 address TEXT NOT NULL
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS promo_banner (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                createstamp TIMESTAMP,
+                changestamp TIMESTAMP,
+                status TEXT DEFAULT 'NEW',
+                display_order INTEGER DEFAULT 0,
+                image_url TEXT NOT NULL
+            )
+        """)
         await db.commit()
         logger.info("Database initialized successfully")
 
@@ -534,4 +544,21 @@ async def update_images_order(good_id: int, image_urls: list[str]) -> dict:
                 })
 
         logger.info(f"Updated image order for good_id={good_id}")
+        return result
+
+
+async def get_promo_banners() -> list[dict]:
+    """Get all promo banners with status NEW ordered by display_order"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            """SELECT id, status, display_order, image_url
+               FROM promo_banner
+               WHERE status = 'NEW'
+               ORDER BY display_order ASC"""
+        )
+        rows = await cursor.fetchall()
+
+        result = [dict(row) for row in rows]
+        logger.info(f"Retrieved {len(result)} promo banners with status=NEW")
         return result
