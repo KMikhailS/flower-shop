@@ -35,6 +35,9 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
   // Touch state for mobile
   const [touchStartIndex, setTouchStartIndex] = useState<number | null>(null);
 
+  // Mouse state for desktop
+  const [mouseStartIndex, setMouseStartIndex] = useState<number | null>(null);
+
   // При редактировании заполняем форму данными товара
   useEffect(() => {
     if (editingProduct) {
@@ -62,6 +65,19 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
   useEffect(() => {
     console.log('🔄 orderedImageUrls changed:', orderedImageUrls);
   }, [orderedImageUrls]);
+
+  // Global mouse listeners for drag functionality
+  useEffect(() => {
+    if (mouseStartIndex !== null) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [mouseStartIndex, dragOverIndex, orderedImageUrls]);
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
@@ -92,61 +108,6 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
     setSelectedFiles(fileArray);
     setPreviewUrls(urls);
     setCurrentPreviewIndex(0);
-  };
-
-  // Drag-and-drop handlers
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    console.log('🟢 Drag Start:', index);
-    setDraggedIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', index.toString());
-  };
-
-  const handleDragEnter = (index: number) => {
-    console.log('🔵 Drag Enter:', index);
-    setDragOverIndex(index);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    console.log('🟣 Drop:', { draggedIndex, dropIndex, orderedImageUrls });
-
-    if (draggedIndex === null || draggedIndex === dropIndex) {
-      console.log('⚠️ Cancelled: same index or null');
-      setDraggedIndex(null);
-      setDragOverIndex(null);
-      return;
-    }
-
-    const newOrder = [...orderedImageUrls];
-    const draggedItem = newOrder[draggedIndex];
-
-    console.log('📦 Before:', newOrder);
-    console.log('🎯 Moving:', draggedItem, 'from', draggedIndex, 'to', dropIndex);
-
-    // Remove item from old position
-    newOrder.splice(draggedIndex, 1);
-    // Insert at new position
-    newOrder.splice(dropIndex, 0, draggedItem);
-
-    console.log('✅ After:', newOrder);
-
-    setOrderedImageUrls(newOrder);
-    setDraggedIndex(null);
-    setDragOverIndex(null);
-  };
-
-  const handleDragEnd = () => {
-    console.log('🔴 Drag End');
-    setDraggedIndex(null);
-    setDragOverIndex(null);
   };
 
   // Touch handlers for mobile devices
@@ -202,6 +163,62 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
 
     setOrderedImageUrls(newOrder);
     setTouchStartIndex(null);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  // Mouse handlers for desktop devices
+  const handleMouseDown = (index: number) => {
+    console.log('🖱️ Mouse Down:', index);
+    setMouseStartIndex(index);
+    setDraggedIndex(index);
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (mouseStartIndex === null) return;
+
+    // Get mouse position
+    const element = document.elementFromPoint(e.clientX, e.clientY);
+
+    // Find which preview element we're over
+    if (element) {
+      const previewElement = element.closest('[data-preview-index]');
+      if (previewElement) {
+        const index = parseInt(previewElement.getAttribute('data-preview-index') || '-1');
+        if (index !== -1 && index !== dragOverIndex) {
+          console.log('🖱️ Mouse Move Over:', index);
+          setDragOverIndex(index);
+        }
+      }
+    }
+  };
+
+  const handleMouseUp = () => {
+    console.log('🖱️ Mouse Up:', { mouseStartIndex, dragOverIndex });
+
+    if (mouseStartIndex === null || dragOverIndex === null || mouseStartIndex === dragOverIndex) {
+      console.log('⚠️ Mouse Cancelled: same index or null');
+      setMouseStartIndex(null);
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const newOrder = [...orderedImageUrls];
+    const draggedItem = newOrder[mouseStartIndex];
+
+    console.log('📦 Mouse Before:', newOrder);
+    console.log('🎯 Mouse Moving:', draggedItem, 'from', mouseStartIndex, 'to', dragOverIndex);
+
+    // Remove item from old position
+    newOrder.splice(mouseStartIndex, 1);
+    // Insert at new position
+    newOrder.splice(dragOverIndex, 0, draggedItem);
+
+    console.log('✅ Mouse After:', newOrder);
+
+    setOrderedImageUrls(newOrder);
+    setMouseStartIndex(null);
     setDraggedIndex(null);
     setDragOverIndex(null);
   };
@@ -359,12 +376,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
                 <div
                   key={`${url}-${index}`}
                   data-preview-index={index}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, index)}
-                  onDragEnter={() => handleDragEnter(index)}
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, index)}
-                  onDragEnd={handleDragEnd}
+                  onMouseDown={() => handleMouseDown(index)}
                   onTouchStart={() => handleTouchStart(index)}
                   onTouchEnd={handleTouchEnd}
                   className={`relative w-[60px] h-[60px] flex-shrink-0 cursor-move transition-all ${
