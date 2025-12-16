@@ -13,7 +13,29 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNe
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
 
+  // Функции навигации по стрелкам
+  const handlePrevBanner = () => {
+    setCurrentBannerIndex((prev) => (prev - 1 + banners.length) % banners.length);
+  };
+
+  const handleNextBanner = () => {
+    setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
+  };
+
+  // Автоматическая смена баннеров каждые 3 секунды
+  // ВАЖНО: useEffect должен быть ДО любых условных returns (правило React hooks)
+  useEffect(() => {
+    if (banners.length <= 1) return; // Не нужен интервал для одного баннера
+
+    const interval = setInterval(() => {
+      setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
+    }, 3000); // 3 секунды
+
+    return () => clearInterval(interval); // Очистка при unmount
+  }, [currentBannerIndex, banners.length]);
+
   // If no banners, handle early returns
+  // ВАЖНО: Все условные returns должны быть ПОСЛЕ всех hooks
   if (banners.length === 0) {
     // Admin mode - show add card
     if (isAdminMode && onAddNew) {
@@ -28,26 +50,6 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNe
   }
 
   const currentBanner = banners[currentBannerIndex];
-
-  // Функции навигации по стрелкам
-  const handlePrevBanner = () => {
-    setCurrentBannerIndex((prev) => (prev - 1 + banners.length) % banners.length);
-  };
-
-  const handleNextBanner = () => {
-    setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
-  };
-
-  // Автоматическая смена баннеров каждые 3 секунды
-  useEffect(() => {
-    if (banners.length <= 1) return; // Не нужен интервал для одного баннера
-
-    const interval = setInterval(() => {
-      setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
-    }, 3000); // 3 секунды
-
-    return () => clearInterval(interval); // Очистка при unmount
-  }, [currentBannerIndex, banners.length]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart(e.targetTouches[0].clientX);
