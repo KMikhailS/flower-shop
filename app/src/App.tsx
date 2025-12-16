@@ -241,14 +241,24 @@ function App() {
 
       try {
         const initData = webApp?.initData || '';
+        console.log('Creating promo banner with initData length:', initData.length);
+
+        if (!initData) {
+          console.error('No initData available');
+          alert('Ошибка авторизации. Перезапустите приложение.');
+          return;
+        }
+
         const newBanner = await createPromoBanner(file, initData);
         console.log('Promo banner created:', newBanner);
 
         // Reload banners to show the new one
         await loadPromoBanners();
+        alert('Промо-баннер успешно создан!');
       } catch (error) {
         console.error('Failed to create promo banner:', error);
-        alert('Не удалось создать промо-баннер');
+        const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+        alert(`Не удалось создать промо-баннер: ${errorMessage}`);
       }
     };
 
