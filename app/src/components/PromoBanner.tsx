@@ -29,7 +29,7 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNe
 
     const interval = setInterval(() => {
       setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
-    }, 3000); // 3 секунды
+    }, 5000); // 3 секунды
 
     return () => clearInterval(interval); // Очистка при unmount
   }, [currentBannerIndex, banners.length]);
