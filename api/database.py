@@ -562,3 +562,37 @@ async def get_promo_banners() -> list[dict]:
         result = [dict(row) for row in rows]
         logger.info(f"Retrieved {len(result)} promo banners with status=NEW")
         return result
+
+
+async def create_promo_banner(image_url: str) -> dict:
+    """Create a new promo banner"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        current_time = datetime.now().isoformat()
+
+        # Get max display_order to calculate next order
+        cursor = await db.execute(
+            "SELECT MAX(display_order) as max_order FROM promo_banner"
+        )
+        row = await cursor.fetchone()
+        next_order = (row['max_order'] or -1) + 1
+
+        # Insert new promo banner
+        cursor = await db.execute(
+            """INSERT INTO promo_banner (createstamp, changestamp, status, display_order, image_url)
+               VALUES (?, ?, 'NEW', ?, ?)""",
+            (current_time, current_time, next_order, image_url)
+        )
+        await db.commit()
+
+        # Get the created promo banner
+        banner_id = cursor.lastrowid
+        cursor = await db.execute(
+            "SELECT * FROM promo_banner WHERE id = ?",
+            (banner_id,)
+        )
+        row = await cursor.fetchone()
+
+        result = dict(row)
+        logger.info(f"Created new promo banner with id={banner_id}, display_order={next_order}")
+        return result

@@ -12,7 +12,7 @@ import StoreAddresses from './components/StoreAddresses';
 import AdminProductCard from './components/AdminProductCard';
 import { useTelegramWebApp } from './hooks/useTelegramWebApp';
 import { useCartPersistence } from './hooks/useCartPersistence';
-import { fetchUserInfo, UserInfo, createGoodCard, fetchGoods, fetchAllGoods, GoodDTO, addGoodImages, updateGoodCard, deleteGood, blockGood, activateGood, fetchPromoBanners, PromoBannerDTO } from './api/client';
+import { fetchUserInfo, UserInfo, createGoodCard, fetchGoods, fetchAllGoods, GoodDTO, addGoodImages, updateGoodCard, deleteGood, blockGood, activateGood, fetchPromoBanners, PromoBannerDTO, createPromoBanner } from './api/client';
 
 export interface CartItemData {
   product: Product;
@@ -212,6 +212,47 @@ function App() {
       console.error('Failed to fetch promo banners:', error);
       setPromoBanners([]);
     }
+  };
+
+  // Функция для добавления нового промо-баннера
+  const handleAddPromoBanner = () => {
+    // Create hidden file input
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+
+    input.onchange = async (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      const file = target.files?.[0];
+
+      if (!file) return;
+
+      // Validate file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Размер файла не должен превышать 5MB');
+        return;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Файл должен быть изображением');
+        return;
+      }
+
+      try {
+        const initData = webApp?.initData || '';
+        const newBanner = await createPromoBanner(file, initData);
+        console.log('Promo banner created:', newBanner);
+
+        // Reload banners to show the new one
+        await loadPromoBanners();
+      } catch (error) {
+        console.error('Failed to create promo banner:', error);
+        alert('Не удалось создать промо-баннер');
+      }
+    };
+
+    input.click();
   };
 
   // Функция для загрузки товаров с бэкенда
@@ -508,7 +549,11 @@ function App() {
           }}
         />
         <SearchBar userId={userInfo?.id} />
-        <PromoBanner banners={promoBanners} />
+        <PromoBanner
+          banners={promoBanners}
+          isAdminMode={userInfo?.mode === 'ADMIN'}
+          onAddNew={handleAddPromoBanner}
+        />
         <CategoryTabs />
         <ProductGrid
           products={products}

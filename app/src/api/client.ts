@@ -355,6 +355,38 @@ export async function fetchPromoBanners(): Promise<PromoBannerDTO[]> {
 }
 
 /**
+ * Create a new promo banner by uploading an image (ADMIN only)
+ *
+ * @param file - Image file to upload
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<PromoBannerDTO> - Created promo banner data
+ * @throws Error if upload fails
+ */
+export async function createPromoBanner(
+  file: File,
+  initData: string
+): Promise<PromoBannerDTO> {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const response = await fetch(`${API_BASE_URL}/promo`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `tma ${initData}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create promo banner: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as PromoBannerDTO;
+}
+
+/**
  * Fetch all shop addresses (public endpoint)
  *
  * @returns Promise<ShopAddress[]> - List of shop addresses

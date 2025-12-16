@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
 import { PromoBannerDTO } from '../api/client';
+import AdminAddPromoBanner from './AdminAddPromoBanner';
 
 interface PromoBannerProps {
   banners: PromoBannerDTO[];
+  isAdminMode?: boolean;
+  onAddNew?: () => void;
 }
 
-const PromoBanner: React.FC<PromoBannerProps> = ({ banners }) => {
+const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNew }) => {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
 
-  if (banners.length === 0) {
+  // If no banners and not admin, don't show anything
+  if (banners.length === 0 && !isAdminMode) {
     return null;
   }
 
@@ -43,6 +47,15 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ banners }) => {
     setTouchStart(0);
     setTouchEnd(0);
   };
+
+  // If no banners but admin mode, show only the add card
+  if (banners.length === 0 && isAdminMode && onAddNew) {
+    return (
+      <div className="space-y-2">
+        <AdminAddPromoBanner onClick={onAddNew} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
@@ -78,6 +91,11 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ banners }) => {
             />
           ))}
         </div>
+      )}
+
+      {/* Admin add new banner card */}
+      {isAdminMode && onAddNew && (
+        <AdminAddPromoBanner onClick={onAddNew} />
       )}
     </div>
   );
