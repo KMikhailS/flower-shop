@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PromoBannerDTO } from '../api/client';
 import AdminAddPromoBanner from './AdminAddPromoBanner';
 
@@ -19,6 +19,26 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNe
   }
 
   const currentBanner = banners[currentBannerIndex];
+
+  // Функции навигации по стрелкам
+  const handlePrevBanner = () => {
+    setCurrentBannerIndex((prev) => (prev - 1 + banners.length) % banners.length);
+  };
+
+  const handleNextBanner = () => {
+    setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
+  };
+
+  // Автоматическая смена баннеров каждые 3 секунды
+  useEffect(() => {
+    if (banners.length <= 1) return; // Не нужен интервал для одного баннера
+
+    const interval = setInterval(() => {
+      setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
+    }, 3000); // 3 секунды
+
+    return () => clearInterval(interval); // Очистка при unmount
+  }, [currentBannerIndex, banners.length]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart(e.targetTouches[0].clientX);
@@ -75,6 +95,24 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNe
             <span className="text-white font-raleway text-xs font-medium">Акция</span>
           </div>
         </div>
+
+        {/* Navigation Arrows - only show if multiple banners */}
+        {banners.length > 1 && (
+          <>
+            <button
+              onClick={handlePrevBanner}
+              className="absolute top-1/2 left-2 -translate-y-1/2 w-[50px] h-[50px] flex items-center justify-center"
+            >
+              <img src="/images/arrow-left.svg" alt="Previous" className="w-5 h-9" />
+            </button>
+            <button
+              onClick={handleNextBanner}
+              className="absolute top-1/2 right-2 -translate-y-1/2 w-[50px] h-[50px] flex items-center justify-center"
+            >
+              <img src="/images/arrow-right.svg" alt="Next" className="w-5 h-9" />
+            </button>
+          </>
+        )}
       </div>
 
       {/* Pagination dots - only show if multiple banners */}
