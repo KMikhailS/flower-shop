@@ -13,8 +13,17 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNe
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
 
-  // If no banners and not admin, don't show anything
-  if (banners.length === 0 && !isAdminMode) {
+  // If no banners, handle early returns
+  if (banners.length === 0) {
+    // Admin mode - show add card
+    if (isAdminMode && onAddNew) {
+      return (
+        <div className="space-y-2">
+          <AdminAddPromoBanner onClick={onAddNew} />
+        </div>
+      );
+    }
+    // No admin mode - show nothing
     return null;
   }
 
@@ -67,15 +76,6 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNe
     setTouchStart(0);
     setTouchEnd(0);
   };
-
-  // If no banners but admin mode, show only the add card
-  if (banners.length === 0 && isAdminMode && onAddNew) {
-    return (
-      <div className="space-y-2">
-        <AdminAddPromoBanner onClick={onAddNew} />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-2">
