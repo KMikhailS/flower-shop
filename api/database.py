@@ -564,6 +564,22 @@ async def get_promo_banners() -> list[dict]:
         return result
 
 
+async def get_all_promo_banners() -> list[dict]:
+    """Get ALL promo banners (including BLOCKED) ordered by display_order (ADMIN only)"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            """SELECT id, status, display_order, image_url
+               FROM promo_banner
+               ORDER BY display_order ASC"""
+        )
+        rows = await cursor.fetchall()
+
+        result = [dict(row) for row in rows]
+        logger.info(f"Retrieved {len(result)} promo banners (all statuses)")
+        return result
+
+
 async def create_promo_banner(image_url: str) -> dict:
     """Create a new promo banner"""
     async with aiosqlite.connect(DB_PATH) as db:

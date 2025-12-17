@@ -355,6 +355,31 @@ export async function fetchPromoBanners(): Promise<PromoBannerDTO[]> {
 }
 
 /**
+ * Fetch ALL promo banners including BLOCKED (ADMIN only)
+ *
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<PromoBannerDTO[]> - All promo banners
+ * @throws Error if request fails
+ */
+export async function fetchAllPromoBanners(initData: string): Promise<PromoBannerDTO[]> {
+  const response = await fetch(`${API_BASE_URL}/promo/all`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch all promo banners: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as PromoBannerDTO[];
+}
+
+/**
  * Create a new promo banner by uploading an image (ADMIN only)
  *
  * @param file - Image file to upload

@@ -13,7 +13,7 @@ import AdminProductCard from './components/AdminProductCard';
 import AdminPromoBannerCard from './components/AdminPromoBannerCard';
 import { useTelegramWebApp } from './hooks/useTelegramWebApp';
 import { useCartPersistence } from './hooks/useCartPersistence';
-import { fetchUserInfo, UserInfo, createGoodCard, fetchGoods, fetchAllGoods, GoodDTO, addGoodImages, updateGoodCard, deleteGood, blockGood, activateGood, fetchPromoBanners, PromoBannerDTO, createPromoBanner, deletePromoBanner, blockPromoBanner, activatePromoBanner } from './api/client';
+import { fetchUserInfo, UserInfo, createGoodCard, fetchGoods, fetchAllGoods, GoodDTO, addGoodImages, updateGoodCard, deleteGood, blockGood, activateGood, fetchPromoBanners, fetchAllPromoBanners, PromoBannerDTO, createPromoBanner, deletePromoBanner, blockPromoBanner, activatePromoBanner } from './api/client';
 
 export interface CartItemData {
   product: Product;
@@ -208,7 +208,17 @@ function App() {
   // Функция для загрузки акционных баннеров
   const loadPromoBanners = async () => {
     try {
-      const banners = await fetchPromoBanners();
+      let banners: PromoBannerDTO[];
+
+      // Если пользователь ADMIN - загружаем все баннеры, иначе только NEW
+      if (userInfo?.mode === 'ADMIN' && webApp?.initData) {
+        banners = await fetchAllPromoBanners(webApp.initData);
+        console.log('Loading all promo banners for ADMIN');
+      } else {
+        banners = await fetchPromoBanners();
+        console.log('Loading NEW promo banners only');
+      }
+
       setPromoBanners(banners);
       console.log('Promo banners loaded:', banners.length);
     } catch (error) {
@@ -473,10 +483,11 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userInfo?.mode]);
 
-  // Загрузка акционных баннеров при инициализации
+  // Загрузка акционных баннеров при инициализации и при изменении режима пользователя
   useEffect(() => {
     loadPromoBanners();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userInfo?.mode]);
 
   // Автосохранение корзины при изменении состояния
   useEffect(() => {

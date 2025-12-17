@@ -99,6 +99,13 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNe
           </div>
         </div>
 
+        {/* Status Badge - показываем только для BLOCKED баннеров */}
+        {currentBanner.status === 'BLOCKED' && (
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-medium bg-opacity-90 text-white text-sm font-semibold px-4 py-2 rounded-full">
+            Не активна
+          </div>
+        )}
+
         {/* Edit Button - only show for ADMIN */}
         {isAdminMode && onEdit && (
           <div className="absolute top-4 right-5">

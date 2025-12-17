@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 
 from dependencies import verify_admin_mode
 from models import PromoBannerDTO
-from database import get_promo_banners, create_promo_banner, delete_promo_banner, update_promo_banner_status
+from database import get_promo_banners, get_all_promo_banners, create_promo_banner, delete_promo_banner, update_promo_banner_status
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +43,34 @@ async def get_promo():
         ]
     except Exception as e:
         logger.error(f"Error fetching promo banners: {e}")
+        raise
+
+
+@router.get("/all", response_model=list[PromoBannerDTO])
+async def get_all_promo(user_id: int = Depends(verify_admin_mode)):
+    """
+    Get ALL promo banners (including BLOCKED) (ADMIN only)
+
+    Requires ADMIN mode authentication
+    """
+    logger.info(f"User {user_id} fetching all promo banners (including BLOCKED)")
+
+    try:
+        # Get all promo banners from database
+        banners = await get_all_promo_banners()
+
+        # Convert to DTOs
+        return [
+            PromoBannerDTO(
+                id=banner["id"],
+                status=banner["status"],
+                display_order=banner["display_order"],
+                image_url=banner["image_url"]
+            )
+            for banner in banners
+        ]
+    except Exception as e:
+        logger.error(f"Error fetching all promo banners: {e}")
         raise
 
 
