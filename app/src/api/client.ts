@@ -423,13 +423,22 @@ export async function deletePromoBanner(
   bannerId: number,
   initData: string
 ): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/promo/${bannerId}`, {
+  const url = `${API_BASE_URL}/promo/${bannerId}`;
+
+  // TEMPORARY: Debug logging via alert
+  alert(`[DEBUG] Отправка DELETE запроса:\nURL: ${url}\nBanner ID: ${bannerId}`);
+
+  const response = await fetch(url, {
     method: 'DELETE',
     headers: {
       'Authorization': `tma ${initData}`,
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache',
     },
   });
+
+  // TEMPORARY: Debug response
+  alert(`[DEBUG] Получен ответ:\nStatus: ${response.status}\nOK: ${response.ok}`);
 
   if (!response.ok) {
     const errorText = await response.text();

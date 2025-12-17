@@ -290,6 +290,9 @@ function App() {
       return;
     }
 
+    // TEMPORARY: Debug banner info
+    alert(`[DEBUG] Удаление баннера:\nID: ${editingBanner.id}\nStatus: ${editingBanner.status}`);
+
     const confirmDelete = window.confirm('Удалить промо-баннер?');
     if (!confirmDelete) return;
 
@@ -301,7 +304,7 @@ function App() {
       await loadPromoBanners();
     } catch (error) {
       console.error('Failed to delete banner:', error);
-      alert('Ошибка при удалении баннера');
+      alert(`Ошибка при удалении баннера:\n${error instanceof Error ? error.message : String(error)}`);
     }
   };
 

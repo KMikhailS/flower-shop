@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -10,6 +10,21 @@ logger = logging.getLogger(__name__)
 
 # Create FastAPI app
 app = FastAPI(title="FanFanTulpan API", version="1.0.0")
+
+# Middleware for logging all requests
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f"[REQUEST] {request.method} {request.url.path} - Client: {request.client.host if request.client else 'unknown'}")
+
+    # Special logging for DELETE requests
+    if request.method == "DELETE":
+        logger.warning(f"[DELETE REQUEST DETECTED] Path: {request.url.path}, Headers: {dict(request.headers)}")
+
+    response = await call_next(request)
+
+    logger.info(f"[RESPONSE] {request.method} {request.url.path} - Status: {response.status_code}")
+
+    return response
 
 # Upload configuration
 # Use /app/data/uploads to leverage the Docker volume mount
