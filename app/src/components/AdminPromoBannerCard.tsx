@@ -17,13 +17,20 @@ const AdminPromoBannerCard: React.FC<AdminPromoBannerCardProps> = ({
   return (
     <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto overflow-y-auto">
       <div className="min-h-full flex flex-col">
-        {/* Banner Image Section */}
-        <div className="relative h-[505px] flex-shrink-0 bg-gray-light flex items-center justify-center rounded-b-[30px]">
-          <img
-            src={banner.image_url}
-            alt="Promo Banner"
-            className="w-full h-full object-cover rounded-b-[30px]"
-          />
+        {/* Banner Image Section - same style as main screen */}
+        <div className="px-4 pt-6">
+          <div className="relative h-[187px] overflow-hidden rounded-[20px]">
+            <img
+              src={banner.image_url}
+              alt="Promo Banner"
+              className="w-full h-full object-cover"
+            />
+            {/*<div className="absolute top-4 left-5">*/}
+            {/*  <div className="bg-green rounded-[30px] px-4 py-2 inline-block">*/}
+            {/*    <span className="text-white font-raleway text-xs font-medium">Акция</span>*/}
+            {/*  </div>*/}
+            {/*</div>*/}
+          </div>
         </div>
 
         {/* Action Buttons Section */}
