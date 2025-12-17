@@ -596,3 +596,57 @@ async def create_promo_banner(image_url: str) -> dict:
         result = dict(row)
         logger.info(f"Created new promo banner with id={banner_id}, display_order={next_order}")
         return result
+
+
+async def delete_promo_banner(banner_id: int) -> None:
+    """Delete promo banner"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Check if banner exists
+        cursor = await db.execute(
+            "SELECT id FROM promo_banner WHERE id = ?",
+            (banner_id,)
+        )
+        row = await cursor.fetchone()
+
+        if not row:
+            logger.error(f"Promo banner with id={banner_id} not found")
+            raise ValueError(f"Promo banner with id={banner_id} not found")
+
+        # Delete banner
+        await db.execute(
+            "DELETE FROM promo_banner WHERE id = ?",
+            (banner_id,)
+        )
+        await db.commit()
+        logger.info(f"Deleted promo banner with id={banner_id}")
+
+
+async def update_promo_banner_status(banner_id: int, new_status: str) -> dict:
+    """Update promo banner status (NEW or BLOCKED)"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        current_time = datetime.now().isoformat()
+
+        # Update the status
+        await db.execute(
+            """UPDATE promo_banner
+               SET status = ?, changestamp = ?
+               WHERE id = ?""",
+            (new_status, current_time, banner_id)
+        )
+        await db.commit()
+
+        # Get the updated banner
+        cursor = await db.execute(
+            "SELECT * FROM promo_banner WHERE id = ?",
+            (banner_id,)
+        )
+        row = await cursor.fetchone()
+
+        if not row:
+            logger.error(f"Promo banner with id={banner_id} not found")
+            raise ValueError(f"Promo banner with id={banner_id} not found")
+
+        result = dict(row)
+        logger.info(f"Updated status for promo banner id={banner_id} to {new_status}")
+        return result

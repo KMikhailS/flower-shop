@@ -387,6 +387,90 @@ export async function createPromoBanner(
 }
 
 /**
+ * Delete promo banner (ADMIN only)
+ *
+ * @param bannerId - ID of the banner to delete
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<void>
+ * @throws Error if request fails
+ */
+export async function deletePromoBanner(
+  bannerId: number,
+  initData: string
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/promo/${bannerId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to delete promo banner: ${response.status} ${errorText}`);
+  }
+}
+
+/**
+ * Block promo banner - set status to BLOCKED (ADMIN only)
+ *
+ * @param bannerId - ID of the banner to block
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<PromoBannerDTO> - Updated promo banner data
+ * @throws Error if request fails
+ */
+export async function blockPromoBanner(
+  bannerId: number,
+  initData: string
+): Promise<PromoBannerDTO> {
+  const response = await fetch(`${API_BASE_URL}/promo/${bannerId}/block`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to block promo banner: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as PromoBannerDTO;
+}
+
+/**
+ * Activate promo banner - set status to NEW (ADMIN only)
+ *
+ * @param bannerId - ID of the banner to activate
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<PromoBannerDTO> - Updated promo banner data
+ * @throws Error if request fails
+ */
+export async function activatePromoBanner(
+  bannerId: number,
+  initData: string
+): Promise<PromoBannerDTO> {
+  const response = await fetch(`${API_BASE_URL}/promo/${bannerId}/activate`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to activate promo banner: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as PromoBannerDTO;
+}
+
+/**
  * Fetch all shop addresses (public endpoint)
  *
  * @returns Promise<ShopAddress[]> - List of shop addresses

@@ -10,9 +10,10 @@ import ProductCard from './components/ProductCard';
 import Cart from './components/Cart';
 import StoreAddresses from './components/StoreAddresses';
 import AdminProductCard from './components/AdminProductCard';
+import AdminPromoBannerCard from './components/AdminPromoBannerCard';
 import { useTelegramWebApp } from './hooks/useTelegramWebApp';
 import { useCartPersistence } from './hooks/useCartPersistence';
-import { fetchUserInfo, UserInfo, createGoodCard, fetchGoods, fetchAllGoods, GoodDTO, addGoodImages, updateGoodCard, deleteGood, blockGood, activateGood, fetchPromoBanners, PromoBannerDTO, createPromoBanner } from './api/client';
+import { fetchUserInfo, UserInfo, createGoodCard, fetchGoods, fetchAllGoods, GoodDTO, addGoodImages, updateGoodCard, deleteGood, blockGood, activateGood, fetchPromoBanners, PromoBannerDTO, createPromoBanner, deletePromoBanner, blockPromoBanner, activatePromoBanner } from './api/client';
 
 export interface CartItemData {
   product: Product;
@@ -37,6 +38,8 @@ function App() {
   const [returnToCart, setReturnToCart] = useState(false);
   const [isAdminCardOpen, setIsAdminCardOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isAdminBannerCardOpen, setIsAdminBannerCardOpen] = useState(false);
+  const [editingBanner, setEditingBanner] = useState<PromoBannerDTO | null>(null);
 
   // Состояние корзины - теперь массив товаров
   const [cartItems, setCartItems] = useState<CartItemData[]>([]);
@@ -263,6 +266,58 @@ function App() {
     };
 
     input.click();
+  };
+
+  // Обработчики для редактирования баннеров
+  const handleEditBanner = (banner: PromoBannerDTO) => {
+    setEditingBanner(banner);
+    setIsAdminBannerCardOpen(true);
+  };
+
+  const handleDeleteBanner = async () => {
+    if (!webApp || !webApp.initData || !editingBanner) {
+      alert('Ошибка: недоступен Telegram WebApp или баннер не выбран');
+      return;
+    }
+
+    const confirmDelete = window.confirm('Удалить промо-баннер?');
+    if (!confirmDelete) return;
+
+    try {
+      await deletePromoBanner(editingBanner.id, webApp.initData);
+      alert('Баннер успешно удалён');
+      setIsAdminBannerCardOpen(false);
+      setEditingBanner(null);
+      await loadPromoBanners();
+    } catch (error) {
+      console.error('Failed to delete banner:', error);
+      alert('Ошибка при удалении баннера');
+    }
+  };
+
+  const handleToggleBlockBanner = async () => {
+    if (!webApp || !webApp.initData || !editingBanner) {
+      alert('Ошибка: недоступен Telegram WebApp или баннер не выбран');
+      return;
+    }
+
+    try {
+      if (editingBanner.status === 'BLOCKED') {
+        // Активируем баннер
+        await activatePromoBanner(editingBanner.id, webApp.initData);
+        alert('Баннер успешно активирован');
+      } else {
+        // Блокируем баннер
+        await blockPromoBanner(editingBanner.id, webApp.initData);
+        alert('Баннер успешно заблокирован');
+      }
+      setIsAdminBannerCardOpen(false);
+      setEditingBanner(null);
+      await loadPromoBanners();
+    } catch (error) {
+      console.error('Failed to toggle block status:', error);
+      alert('Ошибка при изменении статуса баннера');
+    }
   };
 
   // Функция для загрузки товаров с бэкенда
@@ -549,6 +604,17 @@ function App() {
           onBlock={editingProduct ? handleToggleBlockProduct : undefined}
         />
       )}
+      {isAdminBannerCardOpen && editingBanner && (
+        <AdminPromoBannerCard
+          banner={editingBanner}
+          onClose={() => {
+            setIsAdminBannerCardOpen(false);
+            setEditingBanner(null);
+          }}
+          onDelete={handleDeleteBanner}
+          onBlock={handleToggleBlockBanner}
+        />
+      )}
       <div className="flex flex-col gap-4">
         <AppHeader
           title="FanFanTulpan"
@@ -563,6 +629,7 @@ function App() {
           banners={promoBanners}
           isAdminMode={userInfo?.mode === 'ADMIN'}
           onAddNew={handleAddPromoBanner}
+          onEdit={handleEditBanner}
         />
         <CategoryTabs />
         <ProductGrid

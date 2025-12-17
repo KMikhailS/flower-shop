@@ -6,9 +6,10 @@ interface PromoBannerProps {
   banners: PromoBannerDTO[];
   isAdminMode?: boolean;
   onAddNew?: () => void;
+  onEdit?: (banner: PromoBannerDTO) => void;
 }
 
-const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNew }) => {
+const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNew, onEdit }) => {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
@@ -97,6 +98,24 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNe
             <span className="text-white font-raleway text-xs font-medium">Акция</span>
           </div>
         </div>
+
+        {/* Edit Button - only show for ADMIN */}
+        {isAdminMode && onEdit && (
+          <div className="absolute top-4 right-5">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(currentBanner);
+              }}
+              className="w-[50px] h-[50px] rounded-full bg-[#80D1C1] flex items-center justify-center shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)]"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* Navigation Arrows - only show if multiple banners */}
         {banners.length > 1 && (

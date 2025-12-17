@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 
 from dependencies import verify_admin_mode
 from models import PromoBannerDTO
-from database import get_promo_banners, create_promo_banner
+from database import get_promo_banners, create_promo_banner, delete_promo_banner, update_promo_banner_status
 
 logger = logging.getLogger(__name__)
 
@@ -120,4 +120,98 @@ async def create_promo_banner_endpoint(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create promo banner"
+        )
+
+
+@router.delete("/{id}")
+async def delete_promo_banner_endpoint(
+    id: int,
+    user_id: int = Depends(verify_admin_mode)
+):
+    """
+    Delete a promo banner (ADMIN only)
+
+    Returns 204 No Content on success
+    """
+    logger.info(f"User {user_id} deleting promo banner with id={id}")
+
+    try:
+        await delete_promo_banner(id)
+        return {"message": f"Promo banner {id} deleted successfully"}
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Failed to delete promo banner: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete promo banner"
+        )
+
+
+@router.put("/{id}/block", response_model=PromoBannerDTO)
+async def block_promo_banner_endpoint(
+    id: int,
+    user_id: int = Depends(verify_admin_mode)
+):
+    """
+    Block a promo banner (set status to BLOCKED) (ADMIN only)
+
+    Returns updated PromoBannerDTO
+    """
+    logger.info(f"User {user_id} blocking promo banner with id={id}")
+
+    try:
+        banner = await update_promo_banner_status(id, "BLOCKED")
+        return PromoBannerDTO(
+            id=banner["id"],
+            status=banner["status"],
+            display_order=banner["display_order"],
+            image_url=banner["image_url"]
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Failed to block promo banner: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to block promo banner"
+        )
+
+
+@router.put("/{id}/activate", response_model=PromoBannerDTO)
+async def activate_promo_banner_endpoint(
+    id: int,
+    user_id: int = Depends(verify_admin_mode)
+):
+    """
+    Activate a promo banner (set status to NEW) (ADMIN only)
+
+    Returns updated PromoBannerDTO
+    """
+    logger.info(f"User {user_id} activating promo banner with id={id}")
+
+    try:
+        banner = await update_promo_banner_status(id, "NEW")
+        return PromoBannerDTO(
+            id=banner["id"],
+            status=banner["status"],
+            display_order=banner["display_order"],
+            image_url=banner["image_url"]
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Failed to activate promo banner: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to activate promo banner"
         )
