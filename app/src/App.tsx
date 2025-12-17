@@ -286,26 +286,26 @@ function App() {
 
   const handleDeleteBanner = async () => {
     if (!webApp || !webApp.initData || !editingBanner) {
-      alert('Ошибка: недоступен Telegram WebApp или баннер не выбран');
+      webApp?.showAlert?.('Ошибка: недоступен Telegram WebApp или баннер не выбран');
       return;
     }
 
-    // TEMPORARY: Debug banner info
-    alert(`[DEBUG] Удаление баннера:\nID: ${editingBanner.id}\nStatus: ${editingBanner.status}`);
+    // Use Telegram WebApp native confirm dialog
+    webApp.showConfirm('Удалить промо-баннер?', async (confirmed) => {
+      if (!confirmed) return;
 
-    const confirmDelete = window.confirm('Удалить промо-баннер?');
-    if (!confirmDelete) return;
-
-    try {
-      await deletePromoBanner(editingBanner.id, webApp.initData);
-      alert('Баннер успешно удалён');
-      setIsAdminBannerCardOpen(false);
-      setEditingBanner(null);
-      await loadPromoBanners();
-    } catch (error) {
-      console.error('Failed to delete banner:', error);
-      alert(`Ошибка при удалении баннера:\n${error instanceof Error ? error.message : String(error)}`);
-    }
+      try {
+        await deletePromoBanner(editingBanner.id, webApp.initData);
+        webApp.showAlert('Баннер успешно удалён', () => {
+          setIsAdminBannerCardOpen(false);
+          setEditingBanner(null);
+          loadPromoBanners();
+        });
+      } catch (error) {
+        console.error('Failed to delete banner:', error);
+        webApp.showAlert(`Ошибка при удалении баннера:\n${error instanceof Error ? error.message : String(error)}`);
+      }
+    });
   };
 
   const handleToggleBlockBanner = async () => {

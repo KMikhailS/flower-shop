@@ -425,8 +425,7 @@ export async function deletePromoBanner(
 ): Promise<void> {
   const url = `${API_BASE_URL}/promo/${bannerId}`;
 
-  // TEMPORARY: Debug logging via alert
-  alert(`[DEBUG] Отправка DELETE запроса:\nURL: ${url}\nBanner ID: ${bannerId}`);
+  console.log(`[DELETE BANNER] Sending DELETE request to: ${url}, Banner ID: ${bannerId}`);
 
   const response = await fetch(url, {
     method: 'DELETE',
@@ -437,13 +436,15 @@ export async function deletePromoBanner(
     },
   });
 
-  // TEMPORARY: Debug response
-  alert(`[DEBUG] Получен ответ:\nStatus: ${response.status}\nOK: ${response.ok}`);
+  console.log(`[DELETE BANNER] Response received: Status ${response.status}, OK: ${response.ok}`);
 
   if (!response.ok) {
     const errorText = await response.text();
+    console.error(`[DELETE BANNER] Error response: ${errorText}`);
     throw new Error(`Failed to delete promo banner: ${response.status} ${errorText}`);
   }
+
+  console.log(`[DELETE BANNER] Banner ${bannerId} deleted successfully`);
 }
 
 /**
