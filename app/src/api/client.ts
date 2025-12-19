@@ -17,6 +17,7 @@ export interface GoodCardData {
   name: string;
   category: string;
   price: number;
+  non_discount_price?: number;
   description: string;
 }
 
@@ -32,6 +33,7 @@ export interface GoodDTO {
   name: string;
   category: string;
   price: number;
+  non_discount_price?: number;
   description: string;
   images: ImageDTO[];
   status: string;

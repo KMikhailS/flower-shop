@@ -9,6 +9,7 @@ interface Product {
   alt: string;
   title: string;
   price: string;
+  non_discount_price?: string;
   description: string;
 }
 
@@ -183,9 +184,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, onAddToC
             <h2 className="text-base font-semibold leading-[1.174] text-black max-w-[184px]">
               {product.title}
             </h2>
-            <p className="text-xl font-bold leading-[1.174] text-black">
-              {product.price}
-            </p>
+            <div className="flex flex-col items-end gap-1">
+              {product.non_discount_price && (
+                <p className="text-sm font-normal leading-[1.174] text-gray-medium line-through">
+                  {product.non_discount_price}
+                </p>
+              )}
+              <p className="text-xl font-bold leading-[1.174] text-black">
+                {product.price}
+              </p>
+            </div>
           </div>
 
           {/* Description */}

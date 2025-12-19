@@ -15,6 +15,7 @@ class GoodCardRequest(BaseModel):
     name: str
     category: str
     price: int
+    non_discount_price: Optional[int] = None
     description: str
 
 
@@ -30,6 +31,7 @@ class GoodDTO(BaseModel):
     name: str
     category: str
     price: int
+    non_discount_price: Optional[int] = None
     description: str
     images: list[ImageDTO] = []
     status: str

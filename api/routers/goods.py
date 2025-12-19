@@ -47,6 +47,7 @@ async def get_goods():
                 name=good["name"],
                 category=good["category"],
                 price=good["price"],
+                non_discount_price=good.get("non_discount_price"),
                 description=good["description"],
                 images=[ImageDTO(**img) for img in good["images"]],
                 status=good["status"]
@@ -82,6 +83,7 @@ async def get_all_goods_endpoint(user_id: int = Depends(verify_admin_mode)):
                 name=good["name"],
                 category=good["category"],
                 price=good["price"],
+                non_discount_price=good.get("non_discount_price"),
                 description=good["description"],
                 images=[ImageDTO(**img) for img in good["images"]],
                 status=good["status"]
@@ -115,7 +117,8 @@ async def create_good_card_endpoint(
             name=good_card.name,
             category=good_card.category,
             price=good_card.price,
-            description=good_card.description
+            description=good_card.description,
+            non_discount_price=good_card.non_discount_price
         )
 
         # Return response
@@ -124,6 +127,7 @@ async def create_good_card_endpoint(
             name=created_good["name"],
             category=created_good["category"],
             price=created_good["price"],
+            non_discount_price=created_good.get("non_discount_price"),
             description=created_good["description"],
             images=[ImageDTO(**img) for img in created_good["images"]],
             status=created_good["status"]
@@ -157,7 +161,8 @@ async def update_good_card_endpoint(
             name=good_card.name,
             category=good_card.category,
             price=good_card.price,
-            description=good_card.description
+            description=good_card.description,
+            non_discount_price=good_card.non_discount_price
         )
 
         # Return response
@@ -166,6 +171,7 @@ async def update_good_card_endpoint(
             name=updated_good["name"],
             category=updated_good["category"],
             price=updated_good["price"],
+            non_discount_price=updated_good.get("non_discount_price"),
             description=updated_good["description"],
             images=[ImageDTO(**img) for img in updated_good["images"]],
             status=updated_good["status"]
@@ -316,6 +322,7 @@ async def block_good_endpoint(
             name=updated_good["name"],
             category=updated_good["category"],
             price=updated_good["price"],
+            non_discount_price=updated_good.get("non_discount_price"),
             description=updated_good["description"],
             images=[ImageDTO(**img) for img in updated_good["images"]],
             status=updated_good["status"]
@@ -354,6 +361,7 @@ async def activate_good_endpoint(
             name=updated_good["name"],
             category=updated_good["category"],
             price=updated_good["price"],
+            non_discount_price=updated_good.get("non_discount_price"),
             description=updated_good["description"],
             images=[ImageDTO(**img) for img in updated_good["images"]],
             status=updated_good["status"]
@@ -393,6 +401,7 @@ async def reorder_good_images_endpoint(
             name=updated_good["name"],
             category=updated_good["category"],
             price=updated_good["price"],
+            non_discount_price=updated_good.get("non_discount_price"),
             description=updated_good["description"],
             images=[ImageDTO(**img) for img in updated_good["images"]],
             status=updated_good["status"]

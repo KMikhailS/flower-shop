@@ -9,6 +9,7 @@ export interface Product {
   alt: string;
   title: string;
   price: string;
+  non_discount_price?: string;
   description: string;
   category?: string;
   status?: string;

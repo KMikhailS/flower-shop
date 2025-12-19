@@ -9,6 +9,7 @@ interface AdminProductCardProps {
     name: string;
     category: string;
     price: number;
+    non_discount_price?: number;
     description: string;
     imageFiles: File[];
   }) => void;
@@ -21,6 +22,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
   const [name, setName] = useState('');
   const [category, setCategory] = useState('Букеты');
   const [priceRub, setPriceRub] = useState('');
+  const [nonDiscountPriceRub, setNonDiscountPriceRub] = useState('');
   const [description, setDescription] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
@@ -47,6 +49,15 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
       const priceMatch = editingProduct.price.match(/\d+/);
       if (priceMatch) {
         setPriceRub(priceMatch[0]);
+      }
+      // Извлекаем числовое значение для non_discount_price если есть
+      if (editingProduct.non_discount_price) {
+        const nonDiscountMatch = editingProduct.non_discount_price.match(/\d+/);
+        if (nonDiscountMatch) {
+          setNonDiscountPriceRub(nonDiscountMatch[0]);
+        }
+      } else {
+        setNonDiscountPriceRub('');
       }
       setDescription(editingProduct.description);
 
@@ -243,6 +254,11 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
     // Price is stored as integer rubles
     const price = Math.round(Number(priceRub));
 
+    // Non-discount price is optional
+    const nonDiscountPrice = nonDiscountPriceRub.trim() && !isNaN(Number(nonDiscountPriceRub))
+      ? Math.round(Number(nonDiscountPriceRub))
+      : undefined;
+
     onSave({
       id: editingProduct?.id,
       name: name.trim(),
@@ -250,6 +266,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
       price: price,
       description: description.trim(),
       imageFiles: selectedFiles,
+      non_discount_price: nonDiscountPrice,
     });
 
     // Check if image order changed and update if needed
@@ -460,6 +477,22 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
               value={priceRub}
               onChange={(e) => setPriceRub(e.target.value)}
               placeholder="2999"
+              min="0"
+              step="1"
+              className="w-full px-4 py-3 rounded-[20px] bg-gray-light border-none text-base text-black placeholder-gray-medium focus:outline-none focus:ring-2 focus:ring-teal"
+            />
+          </div>
+
+          {/* Non-Discount Price Input */}
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-black mb-2">
+              Цена до скидки (руб.)
+            </label>
+            <input
+              type="number"
+              value={nonDiscountPriceRub}
+              onChange={(e) => setNonDiscountPriceRub(e.target.value)}
+              placeholder="3999"
               min="0"
               step="1"
               className="w-full px-4 py-3 rounded-[20px] bg-gray-light border-none text-base text-black placeholder-gray-medium focus:outline-none focus:ring-2 focus:ring-teal"

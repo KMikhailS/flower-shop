@@ -32,6 +32,7 @@ async def init_db():
                 name TEXT NOT NULL,
                 category TEXT,
                 price INTEGER NOT NULL,
+                non_discount_price INTEGER,
                 description TEXT
             )
         """)
@@ -123,7 +124,8 @@ async def create_good_card(
     name: str,
     category: str,
     price: int,
-    description: str
+    description: str,
+    non_discount_price: Optional[int] = None
 ) -> dict:
     """Create a new good card"""
     async with aiosqlite.connect(DB_PATH) as db:
@@ -131,9 +133,9 @@ async def create_good_card(
         current_time = datetime.now().isoformat()
 
         cursor = await db.execute(
-            """INSERT INTO goods (createstamp, changestamp, status, name, category, price, description)
-               VALUES (?, ?, 'NEW', ?, ?, ?, ?)""",
-            (current_time, current_time, name, category, price, description)
+            """INSERT INTO goods (createstamp, changestamp, status, name, category, price, non_discount_price, description)
+               VALUES (?, ?, 'NEW', ?, ?, ?, ?, ?)""",
+            (current_time, current_time, name, category, price, non_discount_price, description)
         )
         await db.commit()
 
@@ -158,7 +160,8 @@ async def update_good_card(
     name: str,
     category: str,
     price: int,
-    description: str
+    description: str,
+    non_discount_price: Optional[int] = None
 ) -> dict:
     """Update existing good card"""
     async with aiosqlite.connect(DB_PATH) as db:
@@ -168,9 +171,9 @@ async def update_good_card(
         # Update the good
         await db.execute(
             """UPDATE goods
-               SET name = ?, category = ?, price = ?, description = ?, changestamp = ?
+               SET name = ?, category = ?, price = ?, non_discount_price = ?, description = ?, changestamp = ?
                WHERE id = ?""",
-            (name, category, price, description, current_time, good_id)
+            (name, category, price, non_discount_price, description, current_time, good_id)
         )
         await db.commit()
 
@@ -199,6 +202,7 @@ async def update_good_card(
             'name': first_row['name'],
             'category': first_row['category'],
             'price': first_row['price'],
+            'non_discount_price': first_row['non_discount_price'],
             'description': first_row['description'],
             'images': []
         }
@@ -257,6 +261,7 @@ async def get_goods_by_status(status: str = 'NEW') -> list[dict]:
                     'name': row['name'],
                     'category': row['category'],
                     'price': row['price'],
+                    'non_discount_price': row['non_discount_price'],
                     'description': row['description'],
                     'images': []
                 }
@@ -300,6 +305,7 @@ async def get_all_goods() -> list[dict]:
                     'name': row['name'],
                     'category': row['category'],
                     'price': row['price'],
+                    'non_discount_price': row['non_discount_price'],
                     'description': row['description'],
                     'images': []
                 }
@@ -379,6 +385,7 @@ async def update_good_status(good_id: int, new_status: str) -> dict:
             'name': first_row['name'],
             'category': first_row['category'],
             'price': first_row['price'],
+            'non_discount_price': first_row['non_discount_price'],
             'description': first_row['description'],
             'images': []
         }
@@ -531,6 +538,7 @@ async def update_images_order(good_id: int, image_urls: list[str]) -> dict:
             'name': first_row['name'],
             'category': first_row['category'],
             'price': first_row['price'],
+            'non_discount_price': first_row['non_discount_price'],
             'description': first_row['description'],
             'images': []
         }

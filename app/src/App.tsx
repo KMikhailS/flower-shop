@@ -368,6 +368,7 @@ function App() {
           alt: good.name,
           title: good.name,
           price: `${good.price} руб.`,
+          non_discount_price: good.non_discount_price ? `${good.non_discount_price} руб.` : undefined,
           description: good.description,
           category: good.category,
           status: good.status,
@@ -393,6 +394,7 @@ function App() {
     name: string;
     category: string;
     price: number;
+    non_discount_price?: number;
     description: string;
     imageFiles: File[];
   }) => {
@@ -410,6 +412,7 @@ function App() {
             name: data.name,
             category: data.category,
             price: data.price,
+            non_discount_price: data.non_discount_price,
             description: data.description,
           },
           webApp.initData
@@ -430,6 +433,7 @@ function App() {
             name: data.name,
             category: data.category,
             price: data.price,
+            non_discount_price: data.non_discount_price,
             description: data.description,
           },
           webApp.initData
