@@ -61,6 +61,15 @@ async def init_db():
                 image_url TEXT NOT NULL
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                status TEXT DEFAULT 'NEW',
+                createstamp TIMESTAMP,
+                changestamp TIMESTAMP
+            )
+        """)
         await db.commit()
         logger.info("Database initialized successfully")
 
@@ -673,4 +682,168 @@ async def update_promo_banner_status(banner_id: int, new_status: str) -> dict:
 
         result = dict(row)
         logger.info(f"Updated status for promo banner id={banner_id} to {new_status}")
+        return result
+
+
+async def get_categories_by_status(status: str = 'NEW') -> list[dict]:
+    """Get all categories with specified status"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            """SELECT id, title, status
+               FROM categories
+               WHERE status = ?
+               ORDER BY id ASC""",
+            (status,)
+        )
+        rows = await cursor.fetchall()
+
+        result = [dict(row) for row in rows]
+        logger.info(f"Retrieved {len(result)} categories with status={status}")
+        return result
+
+
+async def get_all_categories() -> list[dict]:
+    """Get all categories regardless of status (for ADMIN)"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            """SELECT id, title, status
+               FROM categories
+               ORDER BY id ASC"""
+        )
+        rows = await cursor.fetchall()
+
+        result = [dict(row) for row in rows]
+        logger.info(f"Retrieved {len(result)} categories (all statuses)")
+        return result
+
+
+async def get_category_by_id(category_id: int) -> Optional[dict]:
+    """Get category by id"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            "SELECT id, title, status FROM categories WHERE id = ?",
+            (category_id,)
+        )
+        row = await cursor.fetchone()
+
+        if row:
+            result = dict(row)
+            logger.info(f"Retrieved category with id={category_id}")
+            return result
+
+        logger.warning(f"Category with id={category_id} not found")
+        return None
+
+
+async def create_category(title: str) -> dict:
+    """Create a new category"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        current_time = datetime.now().isoformat()
+
+        cursor = await db.execute(
+            """INSERT INTO categories (title, status, createstamp, changestamp)
+               VALUES (?, 'NEW', ?, ?)""",
+            (title, current_time, current_time)
+        )
+        await db.commit()
+
+        # Get the created category
+        category_id = cursor.lastrowid
+        cursor = await db.execute(
+            "SELECT id, title, status FROM categories WHERE id = ?",
+            (category_id,)
+        )
+        row = await cursor.fetchone()
+
+        result = dict(row)
+        logger.info(f"Created category with id={category_id}, title={title}")
+        return result
+
+
+async def update_category(category_id: int, title: str) -> dict:
+    """Update existing category title"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        current_time = datetime.now().isoformat()
+
+        # Update the category
+        await db.execute(
+            """UPDATE categories
+               SET title = ?, changestamp = ?
+               WHERE id = ?""",
+            (title, current_time, category_id)
+        )
+        await db.commit()
+
+        # Get the updated category
+        cursor = await db.execute(
+            "SELECT id, title, status FROM categories WHERE id = ?",
+            (category_id,)
+        )
+        row = await cursor.fetchone()
+
+        if not row:
+            logger.error(f"Category with id={category_id} not found")
+            raise ValueError(f"Category with id={category_id} not found")
+
+        result = dict(row)
+        logger.info(f"Updated category with id={category_id}")
+        return result
+
+
+async def delete_category(category_id: int) -> None:
+    """Delete category"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Check if category exists
+        cursor = await db.execute(
+            "SELECT id FROM categories WHERE id = ?",
+            (category_id,)
+        )
+        row = await cursor.fetchone()
+
+        if not row:
+            logger.error(f"Category with id={category_id} not found")
+            raise ValueError(f"Category with id={category_id} not found")
+
+        # Delete category
+        await db.execute(
+            "DELETE FROM categories WHERE id = ?",
+            (category_id,)
+        )
+        await db.commit()
+        logger.info(f"Deleted category with id={category_id}")
+
+
+async def update_category_status(category_id: int, new_status: str) -> dict:
+    """Update category status (NEW or BLOCKED)"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        current_time = datetime.now().isoformat()
+
+        # Update the status
+        await db.execute(
+            """UPDATE categories
+               SET status = ?, changestamp = ?
+               WHERE id = ?""",
+            (new_status, current_time, category_id)
+        )
+        await db.commit()
+
+        # Get the updated category
+        cursor = await db.execute(
+            "SELECT id, title, status FROM categories WHERE id = ?",
+            (category_id,)
+        )
+        row = await cursor.fetchone()
+
+        if not row:
+            logger.error(f"Category with id={category_id} not found")
+            raise ValueError(f"Category with id={category_id} not found")
+
+        result = dict(row)
+        logger.info(f"Updated status for category id={category_id} to {new_status}")
         return result

@@ -59,3 +59,15 @@ class PromoBannerDTO(BaseModel):
     status: str
     display_order: int
     image_url: str
+
+
+class CategoryDTO(BaseModel):
+    """Data transfer object for categories"""
+    id: int
+    title: str
+    status: str
+
+
+class CategoryRequest(BaseModel):
+    """Request model for creating or updating a category"""
+    title: str

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Product } from './ProductGrid';
-import { reorderGoodImages } from '../api/client';
+import { reorderGoodImages, fetchCategories, CategoryDTO } from '../api/client';
 
 interface AdminProductCardProps {
   onClose: () => void;
@@ -20,7 +20,7 @@ interface AdminProductCardProps {
 
 const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, editingProduct, onDelete, onBlock }) => {
   const [name, setName] = useState('');
-  const [category, setCategory] = useState('Букеты');
+  const [category, setCategory] = useState('');
   const [priceRub, setPriceRub] = useState('');
   const [nonDiscountPriceRub, setNonDiscountPriceRub] = useState('');
   const [description, setDescription] = useState('');
@@ -28,6 +28,10 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Categories state
+  const [categories, setCategories] = useState<CategoryDTO[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
 
   // Drag-and-drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -76,6 +80,29 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
   useEffect(() => {
     console.log('🔄 orderedImageUrls changed:', orderedImageUrls);
   }, [orderedImageUrls]);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        setCategoriesLoading(true);
+        const fetchedCategories = await fetchCategories();
+        setCategories(fetchedCategories);
+
+        // Set default category to first category if no category is selected and categories exist
+        if (!category && fetchedCategories.length > 0) {
+          setCategory(fetchedCategories[0].title);
+        }
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+        alert('Не удалось загрузить категории');
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    loadCategories();
+  }, []);
 
   // Global mouse listeners for drag functionality
   useEffect(() => {
@@ -458,12 +485,20 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-4 py-3 rounded-[20px] bg-gray-light border-none text-base text-black focus:outline-none focus:ring-2 focus:ring-teal"
+              disabled={categoriesLoading}
+              className="w-full px-4 py-3 rounded-[20px] bg-gray-light border-none text-base text-black focus:outline-none focus:ring-2 focus:ring-teal disabled:opacity-50"
             >
-              <option value="Букеты">Букеты</option>
-              <option value="Розы">Розы</option>
-              <option value="Вазы">Вазы</option>
-              <option value="Экзотика">Экзотика</option>
+              {categoriesLoading ? (
+                <option value="">Загрузка...</option>
+              ) : categories.length === 0 ? (
+                <option value="">Нет доступных категорий</option>
+              ) : (
+                categories.map((cat) => (
+                  <option key={cat.id} value={cat.title}>
+                    {cat.title}
+                  </option>
+                ))
+              )}
             </select>
           </div>
 

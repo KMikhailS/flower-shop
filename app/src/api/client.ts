@@ -47,6 +47,18 @@ export interface PromoBannerDTO {
   image_url: string;
 }
 
+// Category from backend
+export interface CategoryDTO {
+  id: number;
+  title: string;
+  status: string;
+}
+
+// Category request for creating/updating
+export interface CategoryRequest {
+  title: string;
+}
+
 // API base URL - uses relative path to work with nginx proxy
 // In development with Vite proxy or production with nginx, both route /api to backend
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
@@ -648,4 +660,140 @@ export async function reorderGoodImages(
 
   const data = await response.json();
   return data as GoodDTO;
+}
+
+/**
+ * Fetch all categories with status NEW (public endpoint)
+ *
+ * @returns Promise<CategoryDTO[]> - List of categories
+ * @throws Error if request fails
+ */
+export async function fetchCategories(): Promise<CategoryDTO[]> {
+  const response = await fetch(`${API_BASE_URL}/categories`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch categories: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as CategoryDTO[];
+}
+
+/**
+ * Fetch all categories regardless of status (ADMIN only)
+ *
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<CategoryDTO[]> - List of all categories
+ * @throws Error if request fails
+ */
+export async function fetchAllCategories(initData: string): Promise<CategoryDTO[]> {
+  const response = await fetch(`${API_BASE_URL}/categories/all`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch all categories: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as CategoryDTO[];
+}
+
+/**
+ * Create a new category (ADMIN only)
+ *
+ * @param title - The category title
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<CategoryDTO> - Created category
+ * @throws Error if request fails
+ */
+export async function createCategory(
+  title: string,
+  initData: string
+): Promise<CategoryDTO> {
+  const response = await fetch(`${API_BASE_URL}/categories`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ title }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create category: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as CategoryDTO;
+}
+
+/**
+ * Update existing category (ADMIN only)
+ *
+ * @param categoryId - ID of the category to update
+ * @param title - The updated category title
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<CategoryDTO> - Updated category
+ * @throws Error if request fails
+ */
+export async function updateCategory(
+  categoryId: number,
+  title: string,
+  initData: string
+): Promise<CategoryDTO> {
+  const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ title }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to update category: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as CategoryDTO;
+}
+
+/**
+ * Delete category (ADMIN only)
+ *
+ * @param categoryId - ID of the category to delete
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<void>
+ * @throws Error if request fails
+ */
+export async function deleteCategory(
+  categoryId: number,
+  initData: string
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to delete category: ${response.status} ${errorText}`);
+  }
 }
