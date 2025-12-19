@@ -445,7 +445,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Авторская композиция..."
+              placeholder="Название товара"
               className="w-full px-4 py-3 rounded-[20px] bg-gray-light border-none text-base text-black placeholder-gray-medium focus:outline-none focus:ring-2 focus:ring-teal"
             />
           </div>
@@ -467,6 +467,22 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
             </select>
           </div>
 
+          {/* Non-Discount Price Input */}
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-black mb-2">
+              Цена до скидки (руб.)
+            </label>
+            <input
+                type="number"
+                value={nonDiscountPriceRub}
+                onChange={(e) => setNonDiscountPriceRub(e.target.value)}
+                // placeholder="3999"
+                min="0"
+                step="1"
+                className="w-full px-4 py-3 rounded-[20px] bg-gray-light border-none text-base text-black placeholder-gray-medium focus:outline-none focus:ring-2 focus:ring-teal"
+            />
+          </div>
+
           {/* Price Input */}
           <div className="mb-4">
             <label className="block text-sm font-semibold text-black mb-2">
@@ -476,23 +492,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
               type="number"
               value={priceRub}
               onChange={(e) => setPriceRub(e.target.value)}
-              placeholder="2999"
-              min="0"
-              step="1"
-              className="w-full px-4 py-3 rounded-[20px] bg-gray-light border-none text-base text-black placeholder-gray-medium focus:outline-none focus:ring-2 focus:ring-teal"
-            />
-          </div>
-
-          {/* Non-Discount Price Input */}
-          <div className="mb-4">
-            <label className="block text-sm font-semibold text-black mb-2">
-              Цена до скидки (руб.)
-            </label>
-            <input
-              type="number"
-              value={nonDiscountPriceRub}
-              onChange={(e) => setNonDiscountPriceRub(e.target.value)}
-              placeholder="3999"
+              // placeholder="2999"
               min="0"
               step="1"
               className="w-full px-4 py-3 rounded-[20px] bg-gray-light border-none text-base text-black placeholder-gray-medium focus:outline-none focus:ring-2 focus:ring-teal"
@@ -507,7 +507,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Букет 'Название' — это гармоничное сочетание..."
+              placeholder="Описание товара"
               rows={4}
               className="w-full px-4 py-3 rounded-[20px] bg-gray-light border-none text-base text-black placeholder-gray-medium focus:outline-none focus:ring-2 focus:ring-teal resize-none"
             />
