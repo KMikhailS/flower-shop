@@ -48,7 +48,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
   useEffect(() => {
     if (editingProduct) {
       setName(editingProduct.title);
-      setCategory(editingProduct.category || 'Букеты');
+      setCategory(editingProduct.category || '');
       // Извлекаем числовое значение из строки "2999 руб."
       const priceMatch = editingProduct.price.match(/\d+/);
       if (priceMatch) {
@@ -94,7 +94,6 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
           setCategory(fetchedCategories[0].title);
         }
       } catch (error) {
-        console.error('Failed to fetch categories:', error);
         alert('Не удалось загрузить категории');
       } finally {
         setCategoriesLoading(false);
@@ -150,7 +149,6 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
 
   // Touch handlers for mobile devices
   const handleTouchStart = (index: number) => {
-    console.log('👆 Touch Start:', index);
     setTouchStartIndex(index);
     setDraggedIndex(index);
   };
@@ -176,10 +174,8 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
   };
 
   const handleTouchEnd = () => {
-    console.log('👋 Touch End:', { touchStartIndex, dragOverIndex });
 
     if (touchStartIndex === null || dragOverIndex === null || touchStartIndex === dragOverIndex) {
-      console.log('⚠️ Touch Cancelled: same index or null');
       setTouchStartIndex(null);
       setDraggedIndex(null);
       setDragOverIndex(null);
@@ -189,15 +185,12 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
     const newOrder = [...orderedImageUrls];
     const draggedItem = newOrder[touchStartIndex];
 
-    console.log('📦 Touch Before:', newOrder);
-    console.log('🎯 Touch Moving:', draggedItem, 'from', touchStartIndex, 'to', dragOverIndex);
 
     // Remove item from old position
     newOrder.splice(touchStartIndex, 1);
     // Insert at new position
     newOrder.splice(dragOverIndex, 0, draggedItem);
 
-    console.log('✅ Touch After:', newOrder);
 
     setOrderedImageUrls(newOrder);
     setTouchStartIndex(null);
@@ -245,15 +238,10 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
     const newOrder = [...orderedImageUrls];
     const draggedItem = newOrder[mouseStartIndex];
 
-    console.log('📦 Mouse Before:', newOrder);
-    console.log('🎯 Mouse Moving:', draggedItem, 'from', mouseStartIndex, 'to', dragOverIndex);
-
     // Remove item from old position
     newOrder.splice(mouseStartIndex, 1);
     // Insert at new position
     newOrder.splice(dragOverIndex, 0, draggedItem);
-
-    console.log('✅ Mouse After:', newOrder);
 
     setOrderedImageUrls(newOrder);
     setMouseStartIndex(null);
