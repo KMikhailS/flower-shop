@@ -93,7 +93,6 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
         setCategoriesLoading(true);
         const fetchedCategories = await fetchCategories();
         setCategories(fetchedCategories);
-        // Don't set default category - let user choose or use empty option
       } catch (error) {
         alert('Не удалось загрузить категории');
       } finally {
@@ -314,7 +313,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
     }
 
     if (!category.trim()) {
-      alert('Выберите категорию');
+      alert('Выберите категорию товара');
       return;
     }
 
@@ -554,12 +553,12 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
                   <option value="">Загрузка...</option>
                 ) : categories.length === 0 ? (
                   <>
-                    <option value="">Нет доступных категорий</option>
+                    <option value="">-</option>
                     <option value="__create_new__">Новая категория</option>
                   </>
                 ) : (
                   <>
-                    <option value="">Выберите категорию</option>
+                    <option value="">-</option>
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.title}>
                         {cat.title}
