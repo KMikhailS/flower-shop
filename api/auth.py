@@ -1,7 +1,8 @@
 import os
 import logging
-from fastapi import Header, HTTPException, status
+from fastapi import Header, HTTPException, status, Depends
 from aiogram.utils.web_app import safe_parse_webapp_init_data
+from database import get_user
 
 logger = logging.getLogger(__name__)
 
@@ -72,3 +73,38 @@ async def verify_telegram_init_data(authorization: str = Header(...)) -> int:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid initData signature"
         )
+
+
+async def verify_admin_mode(user_id: int = Depends(verify_telegram_init_data)) -> int:
+    """
+    Verify that user has ADMIN mode
+
+    Args:
+        user_id: Telegram user_id from verify_telegram_init_data dependency
+
+    Returns:
+        int: Telegram user_id
+
+    Raises:
+        HTTPException: If user doesn't have ADMIN mode
+    """
+    # Get user from database
+    user = await get_user(user_id)
+
+    if not user:
+        logger.warning(f"User {user_id} not found in database")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # Check if user has ADMIN mode
+    if user.get("mode") != "ADMIN":
+        logger.warning(f"User {user_id} attempted to access ADMIN endpoint with mode={user.get('mode')}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin mode required"
+        )
+
+    logger.info(f"User {user_id} authenticated with ADMIN mode")
+    return user_id
