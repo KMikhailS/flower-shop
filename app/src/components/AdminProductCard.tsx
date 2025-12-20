@@ -148,8 +148,21 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
   const handleNewCategoryConfirm = () => {
     const trimmedInput = newCategoryInput.trim();
     if (trimmedInput) {
+      // Check if category already exists in the list
+      const categoryExists = categories.some(cat => cat.title === trimmedInput);
+
       // Set the new category as selected
       setCategory(trimmedInput);
+
+      // Add to categories list if it doesn't exist (for immediate UI feedback)
+      if (!categoryExists) {
+        const newCategory: CategoryDTO = {
+          id: 0, // Temporary ID, will be created on backend
+          title: trimmedInput,
+          status: 'NEW'
+        };
+        setCategories(prev => [...prev, newCategory]);
+      }
     }
     // Exit creation mode and reset input
     setIsCreatingNewCategory(false);
