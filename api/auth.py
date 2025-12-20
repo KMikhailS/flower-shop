@@ -77,7 +77,7 @@ async def verify_telegram_init_data(authorization: str = Header(...)) -> int:
 
 async def verify_admin_mode(user_id: int = Depends(verify_telegram_init_data)) -> int:
     """
-    Verify that user has ADMIN mode
+    Verify that user has ADMIN role
 
     Args:
         user_id: Telegram user_id from verify_telegram_init_data dependency
@@ -86,7 +86,7 @@ async def verify_admin_mode(user_id: int = Depends(verify_telegram_init_data)) -
         int: Telegram user_id
 
     Raises:
-        HTTPException: If user doesn't have ADMIN mode
+        HTTPException: If user doesn't have ADMIN role
     """
     # Get user from database
     user = await get_user(user_id)
@@ -98,13 +98,13 @@ async def verify_admin_mode(user_id: int = Depends(verify_telegram_init_data)) -
             detail="User not found"
         )
 
-    # Check if user has ADMIN mode
-    if user.get("mode") != "ADMIN":
-        logger.warning(f"User {user_id} attempted to access ADMIN endpoint with mode={user.get('mode')}")
+    # Check if user has ADMIN role (not mode!)
+    if user.get("role") != "ADMIN":
+        logger.warning(f"User {user_id} attempted to access ADMIN endpoint with role={user.get('role')}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin mode required"
+            detail="Admin role required"
         )
 
-    logger.info(f"User {user_id} authenticated with ADMIN mode")
+    logger.info(f"User {user_id} authenticated with ADMIN role")
     return user_id
