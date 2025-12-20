@@ -53,7 +53,29 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
   useEffect(() => {
     if (editingProduct) {
       setName(editingProduct.title);
-      setCategory(editingProduct.category || '');
+
+      // Обработка категории
+      const productCategory = editingProduct.category || '';
+      setCategory(productCategory);
+
+      // Если у товара есть категория и её нет в списке - добавляем
+      if (productCategory) {
+        setCategories(prev => {
+          // Проверяем, есть ли категория в списке
+          const categoryExists = prev.some(cat => cat.title === productCategory);
+          if (!categoryExists) {
+            // Добавляем категорию в список
+            const categoryFromProduct: CategoryDTO = {
+              id: 0, // Temporary ID
+              title: productCategory,
+              status: 'NEW'
+            };
+            return [...prev, categoryFromProduct];
+          }
+          return prev;
+        });
+      }
+
       // Извлекаем числовое значение из строки "2999 руб."
       const priceMatch = editingProduct.price.match(/\d+/);
       if (priceMatch) {
@@ -558,6 +580,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
                   </>
                 ) : (
                   <>
+                    <option value="">Выберите категорию</option>
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.title}>
                         {cat.title}
