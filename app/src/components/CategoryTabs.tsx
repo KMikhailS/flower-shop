@@ -7,7 +7,7 @@ interface Category {
 
 interface CategoryTabsProps {
   categories: string[];
-  activeCategory: string;
+  activeCategory: string[];
   onCategoryChange: (category: string) => void;
 }
 
@@ -27,7 +27,7 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({ categories, activeCategory,
           className={`
             rounded-[30px] px-5 py-2.5 whitespace-nowrap shadow-custom transition-colors
             ${
-              activeCategory === category.id
+              activeCategory.includes(category.id)
                 ? 'bg-teal'
                 : 'bg-[#D9D9D9]'
             }

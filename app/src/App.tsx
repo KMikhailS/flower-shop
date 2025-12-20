@@ -40,7 +40,7 @@ function App() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAdminBannerCardOpen, setIsAdminBannerCardOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState<PromoBannerDTO | null>(null);
-  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [activeCategory, setActiveCategory] = useState<string[]>(['all']);
 
   // Состояние корзины - теперь массив товаров
   const [cartItems, setCartItems] = useState<CartItemData[]>([]);
@@ -55,13 +55,44 @@ function App() {
     return Array.from(new Set(categories));
   }, [products]);
 
-  // Filter products based on active category
+  // Filter products based on active categories
   const filteredProducts = useMemo(() => {
-    if (activeCategory === 'all') {
+    // If "all" is selected, show all products
+    if (activeCategory.includes('all')) {
       return products;
     }
-    return products.filter(p => p.category === activeCategory);
+    // Otherwise, show products from selected categories
+    return products.filter(p => p.category && activeCategory.includes(p.category));
   }, [products, activeCategory]);
+
+  // Handle category toggle
+  const handleCategoryToggle = (category: string) => {
+    if (category === 'all') {
+      // Clicking "Все" - clear all other selections, keep only "all"
+      setActiveCategory(['all']);
+    } else {
+      setActiveCategory(prev => {
+        const isSelected = prev.includes(category);
+
+        if (isSelected) {
+          // Category is already selected - remove it
+          const newSelection = prev.filter(cat => cat !== category);
+
+          // If nothing left, default to "all"
+          if (newSelection.length === 0) {
+            return ['all'];
+          }
+
+          return newSelection;
+        } else {
+          // Category is not selected - add it
+          // Remove "all" if it was there, and add the new category
+          const withoutAll = prev.filter(cat => cat !== 'all');
+          return [...withoutAll, category];
+        }
+      });
+    }
+  };
 
   // Функции управления корзиной
   const handleAddToCart = (product: Product) => {
@@ -515,7 +546,7 @@ function App() {
 
   // Reset category to 'all' when products change
   useEffect(() => {
-    setActiveCategory('all');
+    setActiveCategory(['all']);
   }, [products]);
 
   // Автосохранение корзины при изменении состояния
@@ -674,7 +705,7 @@ function App() {
         <CategoryTabs
           categories={uniqueCategories}
           activeCategory={activeCategory}
-          onCategoryChange={setActiveCategory}
+          onCategoryChange={handleCategoryToggle}
         />
         <ProductGrid
           products={filteredProducts}
