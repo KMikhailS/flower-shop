@@ -1,27 +1,29 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 interface Category {
   id: string;
   label: string;
 }
 
-const categories: Category[] = [
-  { id: 'all', label: 'Все' },
-  // { id: 'bouquets', label: 'Букеты' },
-  // { id: 'roses', label: 'Розы' },
-  // { id: 'vases', label: 'Вазы' },
-  // { id: 'exotic', label: 'Экзотика' },
-];
+interface CategoryTabsProps {
+  categories: string[];
+  activeCategory: string;
+  onCategoryChange: (category: string) => void;
+}
 
-const CategoryTabs: React.FC = () => {
-  const [activeCategory, setActiveCategory] = useState('all');
+const CategoryTabs: React.FC<CategoryTabsProps> = ({ categories, activeCategory, onCategoryChange }) => {
+  // Build categories array: "Все" (all) first, then dynamic categories
+  const allCategories: Category[] = [
+    { id: 'all', label: 'Все' },
+    ...categories.map(cat => ({ id: cat, label: cat }))
+  ];
 
   return (
     <div className="flex gap-[13px] px-8 overflow-x-auto scrollbar-hide pb-2">
-      {categories.map((category) => (
+      {allCategories.map((category) => (
         <button
           key={category.id}
-          onClick={() => setActiveCategory(category.id)}
+          onClick={() => onCategoryChange(category.id)}
           className={`
             rounded-[30px] px-5 py-2.5 whitespace-nowrap shadow-custom transition-colors
             ${

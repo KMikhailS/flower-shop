@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import AppHeader from './components/AppHeader';
 import SearchBar from './components/SearchBar';
 import PromoBanner from './components/PromoBanner';
@@ -40,11 +40,28 @@ function App() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAdminBannerCardOpen, setIsAdminBannerCardOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState<PromoBannerDTO | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string>('all');
 
   // Состояние корзины - теперь массив товаров
   const [cartItems, setCartItems] = useState<CartItemData[]>([]);
   const [cartDeliveryMethod, setCartDeliveryMethod] = useState<'pickup' | 'delivery'>('pickup');
   const [cartPaymentMethod, setCartPaymentMethod] = useState<'cash' | 'card' | 'sbp' | null>(null);
+
+  // Extract unique categories from products
+  const uniqueCategories = useMemo(() => {
+    const categories = products
+      .map(p => p.category)
+      .filter((cat): cat is string => Boolean(cat));
+    return Array.from(new Set(categories));
+  }, [products]);
+
+  // Filter products based on active category
+  const filteredProducts = useMemo(() => {
+    if (activeCategory === 'all') {
+      return products;
+    }
+    return products.filter(p => p.category === activeCategory);
+  }, [products, activeCategory]);
 
   // Функции управления корзиной
   const handleAddToCart = (product: Product) => {
@@ -496,6 +513,11 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userInfo?.mode]);
 
+  // Reset category to 'all' when products change
+  useEffect(() => {
+    setActiveCategory('all');
+  }, [products]);
+
   // Автосохранение корзины при изменении состояния
   useEffect(() => {
     if (cartItems.length === 0) {
@@ -649,9 +671,13 @@ function App() {
           onAddNew={handleAddPromoBanner}
           onEdit={handleEditBanner}
         />
-        <CategoryTabs />
+        <CategoryTabs
+          categories={uniqueCategories}
+          activeCategory={activeCategory}
+          onCategoryChange={setActiveCategory}
+        />
         <ProductGrid
-          products={products}
+          products={filteredProducts}
           onProductClick={setSelectedProduct}
           isAdminMode={userInfo?.mode === 'ADMIN'}
           onAddNewCard={handleOpenAdminCard}
