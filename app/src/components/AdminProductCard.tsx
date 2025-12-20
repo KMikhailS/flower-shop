@@ -33,6 +33,11 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
   const [categories, setCategories] = useState<CategoryDTO[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
 
+  // New category creation state
+  const [isCreatingNewCategory, setIsCreatingNewCategory] = useState(false);
+  const [newCategoryInput, setNewCategoryInput] = useState('');
+  const newCategoryInputRef = useRef<HTMLInputElement>(null);
+
   // Drag-and-drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -116,8 +121,51 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
     }
   }, [mouseStartIndex, dragOverIndex, orderedImageUrls]);
 
+  // Auto-focus on new category input when entering creation mode
+  useEffect(() => {
+    if (isCreatingNewCategory && newCategoryInputRef.current) {
+      newCategoryInputRef.current.focus();
+    }
+  }, [isCreatingNewCategory]);
+
   const handleImageClick = () => {
     fileInputRef.current?.click();
+  };
+
+  // Handle category dropdown change
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === '__create_new__') {
+      // Switch to input mode for creating new category
+      setIsCreatingNewCategory(true);
+      setNewCategoryInput('');
+    } else {
+      setCategory(value);
+    }
+  };
+
+  // Handle new category input confirmation
+  const handleNewCategoryConfirm = () => {
+    const trimmedInput = newCategoryInput.trim();
+    if (trimmedInput) {
+      // Set the new category as selected
+      setCategory(trimmedInput);
+    }
+    // Exit creation mode and reset input
+    setIsCreatingNewCategory(false);
+    setNewCategoryInput('');
+  };
+
+  // Handle Enter key in new category input
+  const handleNewCategoryKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleNewCategoryConfirm();
+    } else if (e.key === 'Escape') {
+      // Cancel creation on Escape
+      setIsCreatingNewCategory(false);
+      setNewCategoryInput('');
+    }
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -470,24 +518,43 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
             <label className="block text-sm font-semibold text-black mb-2">
               Категория *
             </label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              disabled={categoriesLoading}
-              className="w-full px-4 py-3 rounded-[20px] bg-gray-light border-none text-base text-black focus:outline-none focus:ring-2 focus:ring-teal disabled:opacity-50"
-            >
-              {categoriesLoading ? (
-                <option value="">Загрузка...</option>
-              ) : categories.length === 0 ? (
-                <option value="">Нет доступных категорий</option>
-              ) : (
-                categories.map((cat) => (
-                  <option key={cat.id} value={cat.title}>
-                    {cat.title}
-                  </option>
-                ))
-              )}
-            </select>
+            {isCreatingNewCategory ? (
+              <input
+                ref={newCategoryInputRef}
+                type="text"
+                value={newCategoryInput}
+                onChange={(e) => setNewCategoryInput(e.target.value)}
+                onBlur={handleNewCategoryConfirm}
+                onKeyDown={handleNewCategoryKeyDown}
+                placeholder="Введите название категории"
+                className="w-full px-4 py-3 rounded-[20px] bg-gray-light border-none text-base text-black placeholder-gray-medium focus:outline-none focus:ring-2 focus:ring-teal"
+              />
+            ) : (
+              <select
+                value={category}
+                onChange={handleCategoryChange}
+                disabled={categoriesLoading}
+                className="w-full px-4 py-3 rounded-[20px] bg-gray-light border-none text-base text-black focus:outline-none focus:ring-2 focus:ring-teal disabled:opacity-50"
+              >
+                {categoriesLoading ? (
+                  <option value="">Загрузка...</option>
+                ) : categories.length === 0 ? (
+                  <>
+                    <option value="">Нет доступных категорий</option>
+                    <option value="__create_new__">Новая категория</option>
+                  </>
+                ) : (
+                  <>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.title}>
+                        {cat.title}
+                      </option>
+                    ))}
+                    <option value="__create_new__">Новая категория</option>
+                  </>
+                )}
+              </select>
+            )}
           </div>
 
           {/* Non-Discount Price Input */}

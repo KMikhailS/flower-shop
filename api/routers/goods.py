@@ -14,7 +14,9 @@ from database import (
     delete_good,
     update_good_status,
     get_all_goods,
-    update_images_order
+    update_images_order,
+    get_category_by_title,
+    create_category
 )
 
 logger = logging.getLogger(__name__)
@@ -112,6 +114,12 @@ async def create_good_card_endpoint(
     logger.info(f"User {user_id} creating new good card: {good_card.name}")
 
     try:
+        # Check if category exists, create if it doesn't
+        existing_category = await get_category_by_title(good_card.category)
+        if not existing_category:
+            logger.info(f"Category '{good_card.category}' not found, creating new category")
+            await create_category(good_card.category)
+
         # Create good card in database
         created_good = await create_good_card(
             name=good_card.name,
@@ -155,6 +163,12 @@ async def update_good_card_endpoint(
     logger.info(f"User {user_id} updating good card {good_id}: {good_card.name}")
 
     try:
+        # Check if category exists, create if it doesn't
+        existing_category = await get_category_by_title(good_card.category)
+        if not existing_category:
+            logger.info(f"Category '{good_card.category}' not found, creating new category")
+            await create_category(good_card.category)
+
         # Update good card in database
         updated_good = await update_good_card(
             good_id=good_id,

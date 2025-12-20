@@ -738,6 +738,25 @@ async def get_category_by_id(category_id: int) -> Optional[dict]:
         return None
 
 
+async def get_category_by_title(title: str) -> Optional[dict]:
+    """Get category by title (case-sensitive)"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            "SELECT id, title, status FROM categories WHERE title = ?",
+            (title,)
+        )
+        row = await cursor.fetchone()
+
+        if row:
+            result = dict(row)
+            logger.info(f"Retrieved category with title='{title}'")
+            return result
+
+        logger.debug(f"Category with title='{title}' not found")
+        return None
+
+
 async def create_category(title: str) -> dict:
     """Create a new category"""
     async with aiosqlite.connect(DB_PATH) as db:
