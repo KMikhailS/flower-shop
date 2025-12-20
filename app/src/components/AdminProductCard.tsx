@@ -53,29 +53,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
   useEffect(() => {
     if (editingProduct) {
       setName(editingProduct.title);
-
-      // Обработка категории
-      const productCategory = editingProduct.category || '';
-      setCategory(productCategory);
-
-      // Если у товара есть категория и её нет в списке - добавляем
-      if (productCategory) {
-        setCategories(prev => {
-          // Проверяем, есть ли категория в списке
-          const categoryExists = prev.some(cat => cat.title === productCategory);
-          if (!categoryExists) {
-            // Добавляем категорию в список
-            const categoryFromProduct: CategoryDTO = {
-              id: 0, // Temporary ID
-              title: productCategory,
-              status: 'NEW'
-            };
-            return [...prev, categoryFromProduct];
-          }
-          return prev;
-        });
-      }
-
+      setCategory(editingProduct.category || '');
       // Извлекаем числовое значение из строки "2999 руб."
       const priceMatch = editingProduct.price.match(/\d+/);
       if (priceMatch) {
@@ -115,11 +93,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
         setCategoriesLoading(true);
         const fetchedCategories = await fetchCategories();
         setCategories(fetchedCategories);
-
-        // Set default category to first category if no category is selected and categories exist
-        if (!category && fetchedCategories.length > 0) {
-          setCategory(fetchedCategories[0].title);
-        }
+        // Don't set default category - let user choose or use empty option
       } catch (error) {
         alert('Не удалось загрузить категории');
       } finally {
@@ -336,6 +310,11 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
     // Validation
     if (!name.trim()) {
       alert('Введите название товара');
+      return;
+    }
+
+    if (!category.trim()) {
+      alert('Выберите категорию');
       return;
     }
 
