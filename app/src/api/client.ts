@@ -59,6 +59,24 @@ export interface CategoryRequest {
   title: string;
 }
 
+// Setting from backend
+export interface Setting {
+  id: number;
+  type: string;
+  value: string | null;
+  createstamp: string;
+  changestamp: string;
+  createuser: number | null;
+  changeuser: number | null;
+  status: string;
+}
+
+// Setting request for creating/updating
+export interface SettingRequest {
+  type: string;
+  value: string;
+}
+
 // API base URL - uses relative path to work with nginx proxy
 // In development with Vite proxy or production with nginx, both route /api to backend
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
@@ -795,5 +813,118 @@ export async function deleteCategory(
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Failed to delete category: ${response.status} ${errorText}`);
+  }
+}
+
+/**
+ * Update user mode (ADMIN only)
+ *
+ * @param mode - New mode value ('ADMIN' or 'USER')
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<UserInfo> - Updated user information
+ * @throws Error if request fails
+ */
+export async function updateUserMode(
+  mode: string,
+  initData: string
+): Promise<UserInfo> {
+  const response = await fetch(`${API_BASE_URL}/users/me/mode`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ mode }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to update user mode: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as UserInfo;
+}
+
+/**
+ * Fetch all active settings (ADMIN only)
+ *
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<Setting[]> - List of active settings
+ * @throws Error if request fails
+ */
+export async function fetchSettings(initData: string): Promise<Setting[]> {
+  const response = await fetch(`${API_BASE_URL}/users/settings`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch settings: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as Setting[];
+}
+
+/**
+ * Create or update a setting (ADMIN only)
+ *
+ * @param type - Setting type (e.g., 'SUPPORT_CHAT_ID', 'MANAGER_CHAT_ID')
+ * @param value - Setting value
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<Setting> - Created or updated setting
+ * @throws Error if request fails
+ */
+export async function upsertSetting(
+  type: string,
+  value: string,
+  initData: string
+): Promise<Setting> {
+  const response = await fetch(`${API_BASE_URL}/users/settings`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ type, value }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to upsert setting: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as Setting;
+}
+
+/**
+ * Delete a setting by type (ADMIN only)
+ *
+ * @param type - Setting type to delete
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<void>
+ * @throws Error if request fails
+ */
+export async function deleteSetting(
+  type: string,
+  initData: string
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/users/settings/${type}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to delete setting: ${response.status} ${errorText}`);
   }
 }

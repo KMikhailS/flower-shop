@@ -9,6 +9,7 @@ import MobileMenu from './components/MobileMenu';
 import ProductCard from './components/ProductCard';
 import Cart from './components/Cart';
 import StoreAddresses from './components/StoreAddresses';
+import Settings from './components/Settings';
 import AdminProductCard from './components/AdminProductCard';
 import AdminPromoBannerCard from './components/AdminPromoBannerCard';
 import { useTelegramWebApp } from './hooks/useTelegramWebApp';
@@ -31,6 +32,7 @@ function App() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isStoreAddressesOpen, setIsStoreAddressesOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState('г. Тюмень ул. Пермякова, 62');
   const [previousScreen, setPreviousScreen] = useState<'home' | 'cart' | 'storeAddresses' | null>(null);
   const [previousScreenBeforeCart, setPreviousScreenBeforeCart] = useState<'home' | 'productCard' | null>(null);
@@ -184,6 +186,7 @@ function App() {
     setSelectedProduct(null);
     setIsCartOpen(false);
     setIsStoreAddressesOpen(false);
+    setIsSettingsOpen(false);
   };
 
   const handleCloseMenu = () => {
@@ -194,6 +197,28 @@ function App() {
       setIsStoreAddressesOpen(true);
     }
     setPreviousScreen(null);
+  };
+
+  const handleOpenSettings = () => {
+    setIsMenuOpen(false);
+    setIsSettingsOpen(true);
+  };
+
+  const handleCloseSettings = () => {
+    setIsSettingsOpen(false);
+  };
+
+  const handleSettingsModeChange = async () => {
+    // Reload user info after mode change
+    if (!webApp || !webApp.initData) return;
+
+    try {
+      const data = await fetchUserInfo(webApp.initData);
+      setUserInfo(data);
+      console.log('User info reloaded after mode change:', data);
+    } catch (error) {
+      console.error('Failed to reload user info:', error);
+    }
   };
 
   const handleOpenAdminCard = () => {
@@ -569,7 +594,7 @@ function App() {
   useEffect(() => {
     if (!webApp) return;
 
-    const isNotOnHome = isCartOpen || selectedProduct !== null || isStoreAddressesOpen || isMenuOpen || isAdminCardOpen;
+    const isNotOnHome = isCartOpen || selectedProduct !== null || isStoreAddressesOpen || isMenuOpen || isAdminCardOpen || isSettingsOpen;
 
     if (isNotOnHome) {
       webApp.BackButton.show();
@@ -587,6 +612,8 @@ function App() {
           setSelectedProduct(null);
         } else if (isAdminCardOpen) {
           setIsAdminCardOpen(false);
+        } else if (isSettingsOpen) {
+          setIsSettingsOpen(false);
         } else if (isStoreAddressesOpen) {
           setIsStoreAddressesOpen(false);
           if (returnToCart) {
@@ -606,7 +633,7 @@ function App() {
     } else {
       webApp.BackButton.hide();
     }
-  }, [webApp, isCartOpen, selectedProduct, isStoreAddressesOpen, isMenuOpen, isAdminCardOpen, returnToCart, cartItems, previousProduct, previousScreenBeforeCart]);
+  }, [webApp, isCartOpen, selectedProduct, isStoreAddressesOpen, isMenuOpen, isAdminCardOpen, isSettingsOpen, returnToCart, cartItems, previousProduct, previousScreenBeforeCart]);
 
   return (
     <div className="min-h-screen bg-white max-w-[402px] mx-auto">
@@ -614,7 +641,9 @@ function App() {
         isOpen={isMenuOpen}
         onClose={handleCloseMenu}
         onOpenStoreAddresses={() => handleOpenStoreAddresses(false)}
+        onOpenSettings={handleOpenSettings}
         onNavigateHome={handleNavigateHome}
+        userRole={userInfo?.role}
       />
       <StoreAddresses
         isOpen={isStoreAddressesOpen}
@@ -627,6 +656,17 @@ function App() {
         userMode={userInfo?.mode}
         initData={webApp?.initData}
         fromCart={returnToCart}
+      />
+      <Settings
+        isOpen={isSettingsOpen}
+        onClose={handleCloseSettings}
+        onMenuClick={() => {
+          setIsSettingsOpen(false);
+          setIsMenuOpen(true);
+        }}
+        userMode={userInfo?.mode}
+        initData={webApp?.initData}
+        onModeChange={handleSettingsModeChange}
       />
       {isCartOpen && (
         <Cart

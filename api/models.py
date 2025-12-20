@@ -71,3 +71,26 @@ class CategoryDTO(BaseModel):
 class CategoryRequest(BaseModel):
     """Request model for creating or updating a category"""
     title: str
+
+
+class UserModeUpdateRequest(BaseModel):
+    """Request model for updating user mode"""
+    mode: str
+
+
+class SettingDTO(BaseModel):
+    """Data transfer object for a single setting"""
+    id: int
+    type: str
+    value: Optional[str] = None
+    createstamp: str
+    changestamp: str
+    createuser: Optional[int] = None
+    changeuser: Optional[int] = None
+    status: str
+
+
+class SettingRequest(BaseModel):
+    """Request model for creating/updating a setting"""
+    type: str
+    value: str

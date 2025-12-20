@@ -5,19 +5,33 @@ interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenStoreAddresses: () => void;
+  onOpenSettings?: () => void;
   onNavigateHome: () => void;
+  userRole?: string;
 }
 
-const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, onOpenStoreAddresses, onNavigateHome }) => {
+const MobileMenu: React.FC<MobileMenuProps> = ({
+  isOpen,
+  onClose,
+  onOpenStoreAddresses,
+  onOpenSettings,
+  onNavigateHome,
+  userRole
+}) => {
   if (!isOpen) return null;
 
-  const menuItems = [
+  const baseMenuItems = [
     { id: 1, label: 'Сайт' },
     { id: 2, label: 'Оплата' },
     { id: 3, label: 'Доставка' },
     { id: 4, label: 'Обратная связь' },
     { id: 5, label: 'Адреса магазинов' },
   ];
+
+  // Add Settings for ADMIN users only
+  const menuItems = userRole === 'ADMIN'
+    ? [...baseMenuItems, { id: 6, label: 'Настройки' }]
+    : baseMenuItems;
 
   return (
     <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto">
@@ -40,6 +54,10 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, onOpenStoreAdd
                 e.preventDefault();
                 if (item.label === 'Адреса магазинов') {
                   onOpenStoreAddresses();
+                } else if (item.label === 'Настройки') {
+                  if (onOpenSettings) {
+                    onOpenSettings();
+                  }
                 } else if (item.label === 'Сайт') {
                   onNavigateHome();
                 } else {

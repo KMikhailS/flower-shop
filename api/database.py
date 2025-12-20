@@ -70,6 +70,18 @@ async def init_db():
                 changestamp TIMESTAMP
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS settings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                type TEXT NOT NULL UNIQUE,
+                value TEXT,
+                createstamp TIMESTAMP,
+                changestamp TIMESTAMP,
+                createuser INTEGER,
+                changeuser INTEGER,
+                status TEXT DEFAULT 'ACTIVE'
+            )
+        """)
         await db.commit()
         logger.info("Database initialized successfully")
 
@@ -866,3 +878,128 @@ async def update_category_status(category_id: int, new_status: str) -> dict:
         result = dict(row)
         logger.info(f"Updated status for category id={category_id} to {new_status}")
         return result
+
+
+async def get_setting_by_type(setting_type: str) -> Optional[dict]:
+    """Get setting by type"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            "SELECT * FROM settings WHERE type = ? AND status = 'ACTIVE'",
+            (setting_type,)
+        )
+        row = await cursor.fetchone()
+
+        if row:
+            result = dict(row)
+            logger.info(f"Retrieved setting with type={setting_type}")
+            return result
+
+        logger.debug(f"Setting with type={setting_type} not found")
+        return None
+
+
+async def get_all_settings() -> list[dict]:
+    """Get all active settings"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            "SELECT * FROM settings WHERE status = 'ACTIVE' ORDER BY id ASC"
+        )
+        rows = await cursor.fetchall()
+
+        result = [dict(row) for row in rows]
+        logger.info(f"Retrieved {len(result)} active settings")
+        return result
+
+
+async def create_setting(setting_type: str, value: str, user_id: int) -> dict:
+    """Create a new setting"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        current_time = datetime.now().isoformat()
+
+        cursor = await db.execute(
+            """INSERT INTO settings (type, value, createstamp, changestamp, createuser, changeuser, status)
+               VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE')""",
+            (setting_type, value, current_time, current_time, user_id, user_id)
+        )
+        await db.commit()
+
+        # Get the created setting
+        setting_id = cursor.lastrowid
+        cursor = await db.execute(
+            "SELECT * FROM settings WHERE id = ?",
+            (setting_id,)
+        )
+        row = await cursor.fetchone()
+
+        result = dict(row)
+        logger.info(f"Created setting with id={setting_id}, type={setting_type}")
+        return result
+
+
+async def update_setting(setting_type: str, value: str, user_id: int) -> dict:
+    """Update existing setting by type"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        current_time = datetime.now().isoformat()
+
+        # Update the setting
+        await db.execute(
+            """UPDATE settings
+               SET value = ?, changestamp = ?, changeuser = ?
+               WHERE type = ? AND status = 'ACTIVE'""",
+            (value, current_time, user_id, setting_type)
+        )
+        await db.commit()
+
+        # Get the updated setting
+        cursor = await db.execute(
+            "SELECT * FROM settings WHERE type = ? AND status = 'ACTIVE'",
+            (setting_type,)
+        )
+        row = await cursor.fetchone()
+
+        if not row:
+            logger.error(f"Setting with type={setting_type} not found")
+            raise ValueError(f"Setting with type={setting_type} not found")
+
+        result = dict(row)
+        logger.info(f"Updated setting with type={setting_type}")
+        return result
+
+
+async def upsert_setting(setting_type: str, value: str, user_id: int) -> dict:
+    """Create or update setting (upsert operation)"""
+    existing = await get_setting_by_type(setting_type)
+
+    if existing:
+        return await update_setting(setting_type, value, user_id)
+    else:
+        return await create_setting(setting_type, value, user_id)
+
+
+async def delete_setting(setting_type: str) -> None:
+    """Delete setting by type (soft delete - set status to DELETED)"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        current_time = datetime.now().isoformat()
+
+        # Check if setting exists
+        cursor = await db.execute(
+            "SELECT id FROM settings WHERE type = ? AND status = 'ACTIVE'",
+            (setting_type,)
+        )
+        row = await cursor.fetchone()
+
+        if not row:
+            logger.error(f"Setting with type={setting_type} not found")
+            raise ValueError(f"Setting with type={setting_type} not found")
+
+        # Soft delete
+        await db.execute(
+            "UPDATE settings SET status = 'DELETED', changestamp = ? WHERE type = ?",
+            (current_time, setting_type)
+        )
+        await db.commit()
+        logger.info(f"Deleted setting with type={setting_type}")
