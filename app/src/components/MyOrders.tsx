@@ -19,6 +19,18 @@ const MyOrders: React.FC<MyOrdersProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (isOpen) {
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      // Restore body scroll when modal closes
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
     if (!isOpen) return;
 
     if (!initData) {
@@ -90,7 +102,7 @@ const MyOrders: React.FC<MyOrdersProps> = ({
 
   return (
     <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto">
-      <div className="h-full">
+      <div className="h-full overflow-y-auto">
         <AppHeader
           title="Мои заказы"
           actionType="menu-text"
