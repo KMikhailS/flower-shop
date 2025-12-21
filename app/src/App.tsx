@@ -798,7 +798,10 @@ function App() {
           onAddNewCard={handleOpenAdminCard}
         />
         <div className="mt-4">
-          <BottomButton />
+          <BottomButton
+            cartItemCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
+            onClick={handleOpenCart}
+          />
         </div>
       </div>
     </div>
