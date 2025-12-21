@@ -89,8 +89,8 @@ const MyOrders: React.FC<MyOrdersProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto overflow-y-auto">
-      <div className="flex flex-col h-full">
+    <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto">
+      <div className="flex flex-col h-full overflow-y-auto">
         <AppHeader
           title="Мои заказы"
           actionType="menu-text"
