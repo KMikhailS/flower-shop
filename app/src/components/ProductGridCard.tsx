@@ -4,9 +4,10 @@ import { Product } from './ProductGrid';
 interface ProductGridCardProps {
   product: Product;
   onClick: (product: Product) => void;
+  isPriority?: boolean;
 }
 
-const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) => {
+const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick, isPriority = false }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -73,7 +74,11 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
         <img
           src={images[currentImageIndex]}
           alt={product.alt}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover bg-gray-100"
+          loading={isPriority ? 'eager' : 'lazy'}
+          decoding="async"
+          fetchPriority={isPriority ? 'high' : 'auto'}
+          sizes="(max-width: 480px) 50vw, 200px"
         />
 
         {/* Status Badge */}

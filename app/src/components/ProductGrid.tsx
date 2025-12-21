@@ -25,11 +25,12 @@ interface ProductGridProps {
 const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductClick, isAdminMode, onAddNewCard }) => {
   return (
     <div className="grid grid-cols-2 gap-[21px] px-8">
-      {products.map((product) => (
+      {products.map((product, index) => (
         <ProductGridCard
           key={product.id}
           product={product}
           onClick={() => onProductClick?.(product)}
+          isPriority={index < 4}
         />
       ))}
       {isAdminMode && onAddNewCard && (
