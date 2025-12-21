@@ -4,14 +4,12 @@ import { fetchMyOrders, OrderDTO, fetchGoods, GoodDTO } from '../api/client';
 
 interface MyOrdersProps {
   isOpen: boolean;
-  onClose: () => void;
   onMenuClick: () => void;
   initData?: string;
 }
 
 const MyOrders: React.FC<MyOrdersProps> = ({
   isOpen,
-  onClose,
   onMenuClick,
   initData
 }) => {

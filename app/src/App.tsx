@@ -240,10 +240,6 @@ function App() {
     setIsMyOrdersOpen(true);
   };
 
-  const handleCloseMyOrders = () => {
-    setIsMyOrdersOpen(false);
-  };
-
   const handleSettingsModeChange = async () => {
     // Reload user info after mode change
     if (!webApp || !webApp.initData) return;
@@ -759,7 +755,6 @@ function App() {
       />
       <MyOrders
         isOpen={isMyOrdersOpen}
-        onClose={handleCloseMyOrders}
         onMenuClick={() => {
           setIsMyOrdersOpen(false);
           setIsMenuOpen(true);
