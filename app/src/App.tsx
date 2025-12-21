@@ -833,7 +833,7 @@ function App() {
           />
         </div>
         {isBottomButtonVisible && (
-          <div className="sticky bottom-0 z-10 mt-4">
+          <div className="sticky bottom-0 z-10 mt-4 opacity-70">
             <BottomButton
               cartItemCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
               onClick={handleOpenCart}
