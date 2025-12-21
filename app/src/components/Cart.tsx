@@ -1,12 +1,12 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import AppHeader from './AppHeader';
 import CartItem from './CartItem';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { CartItemData } from '../App';
+import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 interface CartProps {
   cartItems: CartItemData[];
-  onClose: () => void;
   onOpenMenu: () => void;
   selectedAddress: string;
   onOpenStoreAddresses: () => void;
@@ -22,7 +22,6 @@ interface CartProps {
 
 const Cart: React.FC<CartProps> = ({
   cartItems,
-  onClose: _onClose,
   onOpenMenu,
   selectedAddress,
   onOpenStoreAddresses,
@@ -37,13 +36,7 @@ const Cart: React.FC<CartProps> = ({
 }) => {
   const { webApp, user } = useTelegramWebApp();
 
-  // Отключаем прокрутку body при открытии модального окна
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, []);
+  useLockBodyScroll(true);
 
   // Рассчитываем общую сумму всех товаров
   const totalPrice = cartItems.reduce((sum, item) => {

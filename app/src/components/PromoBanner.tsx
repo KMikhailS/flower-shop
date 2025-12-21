@@ -23,17 +23,17 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNe
     setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
   };
 
-  // Автоматическая смена баннеров каждые 3 секунды
+  // Автоматическая смена баннеров каждые 5 секунд
   // ВАЖНО: useEffect должен быть ДО любых условных returns (правило React hooks)
   useEffect(() => {
     if (banners.length <= 1) return; // Не нужен интервал для одного баннера
 
     const interval = setInterval(() => {
       setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
-    }, 5000); // 3 секунды
+    }, 5000);
 
     return () => clearInterval(interval); // Очистка при unmount
-  }, [currentBannerIndex, banners.length]);
+  }, [banners.length]);
 
   // If no banners, handle early returns
   // ВАЖНО: Все условные returns должны быть ПОСЛЕ всех hooks

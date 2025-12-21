@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { CartItemData } from '../App';
 import { UserInfo } from '../api/client';
+import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 interface Product {
   id: number;
@@ -26,6 +27,8 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, onAddToCart, cartItems, userInfo, onEdit }) => {
   // Вычисляем общее количество товаров в корзине
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
+  useLockBodyScroll(true);
 
   // Состояние для навигации по изображениям
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -71,13 +74,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, onAddToC
     }
   };
 
-  // Отключаем прокрутку body при открытии модального окна
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, []);
   return (
     <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto overflow-y-auto">
       <div className="min-h-full flex flex-col">

@@ -312,14 +312,11 @@ function App() {
       // Если пользователь ADMIN - загружаем все баннеры, иначе только NEW
       if (userInfo?.mode === 'ADMIN' && webApp?.initData) {
         banners = await fetchAllPromoBanners(webApp.initData);
-        console.log('Loading all promo banners for ADMIN');
       } else {
         banners = await fetchPromoBanners();
-        console.log('Loading NEW promo banners only');
       }
 
       setPromoBanners(banners);
-      console.log('Promo banners loaded:', banners.length);
     } catch (error) {
       console.error('Failed to fetch promo banners:', error);
       setPromoBanners([]);
@@ -440,27 +437,16 @@ function App() {
       // Если пользователь ADMIN - загружаем все товары, иначе только NEW
       if (userInfo?.mode === 'ADMIN' && webApp?.initData) {
         goods = await fetchAllGoods(webApp.initData);
-        console.log('Loading all goods for ADMIN');
       } else {
         goods = await fetchGoods();
-        console.log('Loading NEW goods only');
       }
 
-      // Маппинг GoodDTO → Product
-      console.log('Raw goods data:', JSON.stringify(goods, null, 2));
-
       const mappedProducts: Product[] = goods.map((good: GoodDTO) => {
-        console.log(`Processing good ${good.id}:`, good.name);
-        console.log(`  Images:`, good.images);
-
-        // Сортируем изображения по display_order и извлекаем URL
         const sortedImages = (good.images || [])
           .sort((a, b) => a.display_order - b.display_order)
           .map(img => img.image_url);
 
-        console.log(`  Sorted images:`, sortedImages);
-
-        const product = {
+        return {
           id: good.id,
           image: sortedImages[0] || '/images/placeholder.png',
           images: sortedImages,
@@ -472,14 +458,9 @@ function App() {
           category: good.category,
           status: good.status,
         };
-
-        console.log(`  Mapped product:`, product);
-        return product;
       });
 
       setProducts(mappedProducts);
-      console.log('Products loaded:', mappedProducts.length);
-      console.log('Mapped products:', mappedProducts);
     } catch (error) {
       console.error('Failed to fetch goods:', error);
       console.error('Error details:', error instanceof Error ? error.message : String(error));
@@ -697,7 +678,6 @@ function App() {
       {isCartOpen && (
         <Cart
           cartItems={cartItems}
-          onClose={() => setIsCartOpen(false)}
           onOpenMenu={() => {
             setPreviousScreen('cart');
             setIsCartOpen(false);
