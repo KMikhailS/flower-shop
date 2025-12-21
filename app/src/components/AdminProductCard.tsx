@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Product } from './ProductGrid';
-import { reorderGoodImages, fetchCategories, CategoryDTO } from '../api/client';
+import { reorderGoodImages, fetchCategories, CategoryDTO, deleteGoodImage } from '../api/client';
 
 interface AdminProductCardProps {
   onClose: () => void;
@@ -48,6 +48,17 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
 
   // Mouse state for desktop
   const [mouseStartIndex, setMouseStartIndex] = useState<number | null>(null);
+
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    imageUrl: string | null;
+    imageIndex: number | null;
+  }>({ visible: false, x: 0, y: 0, imageUrl: null, imageIndex: null });
+
+  const longPressTimerRef = useRef<number | null>(null);
 
   // При редактировании заполняем форму данными товара
   useEffect(() => {
@@ -122,6 +133,19 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
       newCategoryInputRef.current.focus();
     }
   }, [isCreatingNewCategory]);
+
+  // Close context menu on click outside
+  useEffect(() => {
+    if (contextMenu.visible) {
+      const handleClickOutside = () => {
+        handleCloseContextMenu();
+      };
+      document.addEventListener('click', handleClickOutside);
+      return () => {
+        document.removeEventListener('click', handleClickOutside);
+      };
+    }
+  }, [contextMenu.visible]);
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
@@ -305,6 +329,75 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
     setDragOverIndex(null);
   };
 
+  // Long press handler for mobile devices
+  const handleLongPressStart = (index: number, url: string, e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    longPressTimerRef.current = window.setTimeout(() => {
+      setContextMenu({
+        visible: true,
+        x: touch.clientX,
+        y: touch.clientY,
+        imageUrl: url,
+        imageIndex: index,
+      });
+    }, 3000); // 3 seconds
+  };
+
+  const handleLongPressEnd = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  // Right-click handler for desktop
+  const handleContextMenu = (index: number, url: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenu({
+      visible: true,
+      x: e.clientX,
+      y: e.clientY,
+      imageUrl: url,
+      imageIndex: index,
+    });
+  };
+
+  // Close context menu
+  const handleCloseContextMenu = () => {
+    setContextMenu({ visible: false, x: 0, y: 0, imageUrl: null, imageIndex: null });
+  };
+
+  // Handle image deletion
+  const handleDeleteImage = async () => {
+    if (!contextMenu.imageUrl || !editingProduct) {
+      return;
+    }
+
+    try {
+      const initData = window.Telegram?.WebApp?.initData || '';
+      if (!initData) {
+        alert('Не удалось получить данные авторизации');
+        return;
+      }
+
+      // Delete from backend
+      await deleteGoodImage(editingProduct.id, contextMenu.imageUrl, initData);
+
+      // Update local state
+      const newOrderedUrls = orderedImageUrls.filter(url => url !== contextMenu.imageUrl);
+      setOrderedImageUrls(newOrderedUrls);
+      setPreviewUrls(newOrderedUrls);
+
+      // Close context menu
+      handleCloseContextMenu();
+
+      alert('Изображение удалено');
+    } catch (error) {
+      console.error('Failed to delete image:', error);
+      alert('Не удалось удалить изображение');
+    }
+  };
+
   const handleSave = async () => {
     // Validation
     if (!name.trim()) {
@@ -484,8 +577,16 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
                   key={`${url}-${index}`}
                   data-preview-index={index}
                   onMouseDown={() => handleMouseDown(index)}
-                  onTouchStart={() => handleTouchStart(index)}
-                  onTouchEnd={handleTouchEnd}
+                  onTouchStart={(e) => {
+                    handleTouchStart(index);
+                    handleLongPressStart(index, url, e);
+                  }}
+                  onTouchEnd={() => {
+                    handleTouchEnd();
+                    handleLongPressEnd();
+                  }}
+                  onTouchMove={handleLongPressEnd}
+                  onContextMenu={(e) => handleContextMenu(index, url, e)}
                   className={`relative w-[60px] h-[60px] flex-shrink-0 cursor-move transition-all ${
                     draggedIndex === index ? 'opacity-50 scale-95' : ''
                   } ${
@@ -658,6 +759,25 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
           )}
         </div>
       </div>
+
+      {/* Context Menu */}
+      {contextMenu.visible && (
+        <div
+          className="fixed bg-white shadow-lg rounded-[10px] border border-gray-300 z-[60] min-w-[120px]"
+          style={{
+            top: `${contextMenu.y}px`,
+            left: `${contextMenu.x}px`,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={handleDeleteImage}
+            className="w-full px-4 py-3 text-left text-red-500 hover:bg-gray-light rounded-[10px] transition-colors"
+          >
+            Удалить
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -586,6 +586,38 @@ async def update_images_order(good_id: int, image_urls: list[str]) -> dict:
         return result
 
 
+async def delete_good_image(good_id: int, image_url: str) -> None:
+    """Delete a specific image from a good"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        current_time = datetime.now().isoformat()
+
+        # Check if image exists for this good
+        cursor = await db.execute(
+            "SELECT id FROM goods_images WHERE good_id = ? AND image_url = ?",
+            (good_id, image_url)
+        )
+        row = await cursor.fetchone()
+
+        if not row:
+            logger.error(f"Image {image_url} not found for good_id={good_id}")
+            raise ValueError(f"Image not found for this good")
+
+        # Delete the image
+        await db.execute(
+            "DELETE FROM goods_images WHERE good_id = ? AND image_url = ?",
+            (good_id, image_url)
+        )
+
+        # Update changestamp for the good
+        await db.execute(
+            "UPDATE goods SET changestamp = ? WHERE id = ?",
+            (current_time, good_id)
+        )
+
+        await db.commit()
+        logger.info(f"Deleted image {image_url} from good_id={good_id}")
+
+
 async def get_promo_banners() -> list[dict]:
     """Get all promo banners with status NEW ordered by display_order"""
     async with aiosqlite.connect(DB_PATH) as db:

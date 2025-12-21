@@ -681,6 +681,34 @@ export async function reorderGoodImages(
 }
 
 /**
+ * Delete a specific image from a good (ADMIN only)
+ *
+ * @param goodId - ID of the good
+ * @param imageUrl - URL of the image to delete
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<void>
+ * @throws Error if request fails
+ */
+export async function deleteGoodImage(
+  goodId: number,
+  imageUrl: string,
+  initData: string
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/goods/${goodId}/images?image_url=${encodeURIComponent(imageUrl)}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to delete image: ${response.status} ${errorText}`);
+  }
+}
+
+/**
  * Fetch all categories with status NEW (public endpoint)
  *
  * @returns Promise<CategoryDTO[]> - List of categories

@@ -15,6 +15,7 @@ from database import (
     update_good_status,
     get_all_goods,
     update_images_order,
+    delete_good_image,
     get_category_by_title,
     create_category
 )
@@ -437,4 +438,35 @@ async def reorder_good_images_endpoint(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to reorder images"
+        )
+
+
+@router.delete("/{good_id}/images")
+async def delete_good_image_endpoint(
+    good_id: int,
+    image_url: str,
+    user_id: int = Depends(verify_admin_mode)
+):
+    """
+    Delete a specific image from a good (ADMIN only)
+
+    Requires valid Telegram WebApp initData in Authorization header
+    User must be in ADMIN mode
+    """
+    logger.info(f"User {user_id} deleting image {image_url} from good {good_id}")
+
+    try:
+        await delete_good_image(good_id, image_url)
+        return {"success": True, "message": f"Image deleted from good {good_id}"}
+    except ValueError as e:
+        logger.error(f"Image not found: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Failed to delete image: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete image"
         )
