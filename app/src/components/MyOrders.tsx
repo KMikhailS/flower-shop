@@ -90,7 +90,7 @@ const MyOrders: React.FC<MyOrdersProps> = ({
 
   return (
     <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto">
-      <div className="h-full overflow-y-auto">
+      <div className="h-full">
         <AppHeader
           title="Мои заказы"
           actionType="menu-text"
