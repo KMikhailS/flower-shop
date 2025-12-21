@@ -958,3 +958,81 @@ export async function deleteSetting(
     throw new Error(`Failed to delete setting: ${response.status} ${errorText}`);
   }
 }
+
+// Order-related interfaces and functions
+
+/**
+ * Cart item for order request
+ */
+export interface CartItemRequest {
+  good_id: number;
+  count: number;
+}
+
+/**
+ * Cart item with good details in order response
+ */
+export interface CartItemDTO {
+  id: number;
+  good_id: number;
+  good_name: string;
+  count: number;
+  price: number;
+}
+
+/**
+ * Order request for creating new order
+ */
+export interface OrderRequest {
+  status: string;
+  user_id: number;
+  delivery_type: string;
+  delivery_address: string;
+  cart_items: CartItemRequest[];
+}
+
+/**
+ * Order data from backend
+ */
+export interface OrderDTO {
+  id: number;
+  status: string;
+  user_id: number;
+  createstamp: string;
+  changestamp: string;
+  createuser: number | null;
+  changeuser: number | null;
+  delivery_type: string;
+  delivery_address: string;
+  cart_items: CartItemDTO[];
+}
+
+/**
+ * Create a new order
+ *
+ * @param orderData - Order data to create
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<OrderDTO> - Created order data
+ * @throws Error if request fails
+ */
+export async function createOrder(
+  orderData: OrderRequest,
+  initData: string
+): Promise<OrderDTO> {
+  const response = await fetch(`${API_BASE_URL}/orders`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(orderData),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create order: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as OrderDTO;
+}

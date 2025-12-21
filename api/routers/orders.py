@@ -1,0 +1,243 @@
+import logging
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+
+from dependencies import verify_admin_mode
+from auth import verify_telegram_init_data
+from models import OrderRequest, OrderDTO, CartItemDTO
+from database import (
+    create_order,
+    update_order,
+    get_order_by_id,
+    get_orders,
+    delete_order
+)
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/orders", tags=["orders"])
+
+
+@router.post("", response_model=OrderDTO)
+async def create_order_endpoint(
+    order: OrderRequest,
+    user_id: int = Depends(verify_telegram_init_data)
+):
+    """
+    Create a new order
+
+    Requires valid Telegram WebApp initData in Authorization header
+    Any authenticated user can create an order
+    """
+    logger.info(f"User {user_id} creating new order for user_id={order.user_id}")
+
+    try:
+        # Convert cart items to dict format for database function
+        cart_items_dict = [
+            {'good_id': item.good_id, 'count': item.count}
+            for item in order.cart_items
+        ]
+
+        # Create order in database
+        created_order = await create_order(
+            status=order.status,
+            user_id=order.user_id,
+            delivery_type=order.delivery_type,
+            delivery_address=order.delivery_address,
+            cart_items=cart_items_dict,
+            createuser=user_id
+        )
+
+        # Return response
+        return OrderDTO(
+            id=created_order["id"],
+            status=created_order["status"],
+            user_id=created_order["user_id"],
+            createstamp=created_order["createstamp"],
+            changestamp=created_order["changestamp"],
+            createuser=created_order.get("createuser"),
+            changeuser=created_order.get("changeuser"),
+            delivery_type=created_order["delivery_type"],
+            delivery_address=created_order["delivery_address"],
+            cart_items=[CartItemDTO(**item) for item in created_order["cart_items"]]
+        )
+    except Exception as e:
+        logger.error(f"Failed to create order: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create order"
+        )
+
+
+@router.put("/{order_id}", response_model=OrderDTO)
+async def update_order_endpoint(
+    order_id: int,
+    order: OrderRequest,
+    user_id: int = Depends(verify_admin_mode)
+):
+    """
+    Update existing order (ADMIN only)
+
+    Requires valid Telegram WebApp initData in Authorization header
+    User must be in ADMIN mode
+    """
+    logger.info(f"User {user_id} updating order {order_id}")
+
+    try:
+        # Convert cart items to dict format for database function
+        cart_items_dict = [
+            {'good_id': item.good_id, 'count': item.count}
+            for item in order.cart_items
+        ]
+
+        # Update order in database
+        updated_order = await update_order(
+            order_id=order_id,
+            status=order.status,
+            delivery_type=order.delivery_type,
+            delivery_address=order.delivery_address,
+            cart_items=cart_items_dict,
+            changeuser=user_id
+        )
+
+        # Return response
+        return OrderDTO(
+            id=updated_order["id"],
+            status=updated_order["status"],
+            user_id=updated_order["user_id"],
+            createstamp=updated_order["createstamp"],
+            changestamp=updated_order["changestamp"],
+            createuser=updated_order.get("createuser"),
+            changeuser=updated_order.get("changeuser"),
+            delivery_type=updated_order["delivery_type"],
+            delivery_address=updated_order["delivery_address"],
+            cart_items=[CartItemDTO(**item) for item in updated_order["cart_items"]]
+        )
+    except ValueError as e:
+        logger.error(f"Order not found: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Order with id {order_id} not found"
+        )
+    except Exception as e:
+        logger.error(f"Failed to update order: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update order"
+        )
+
+
+@router.get("/{order_id}", response_model=OrderDTO)
+async def get_order_endpoint(
+    order_id: int,
+    user_id: int = Depends(verify_admin_mode)
+):
+    """
+    Get order by ID (ADMIN only)
+
+    Requires valid Telegram WebApp initData in Authorization header
+    User must be in ADMIN mode
+    """
+    logger.info(f"User {user_id} fetching order {order_id}")
+
+    try:
+        order = await get_order_by_id(order_id)
+
+        return OrderDTO(
+            id=order["id"],
+            status=order["status"],
+            user_id=order["user_id"],
+            createstamp=order["createstamp"],
+            changestamp=order["changestamp"],
+            createuser=order.get("createuser"),
+            changeuser=order.get("changeuser"),
+            delivery_type=order["delivery_type"],
+            delivery_address=order["delivery_address"],
+            cart_items=[CartItemDTO(**item) for item in order["cart_items"]]
+        )
+    except ValueError as e:
+        logger.error(f"Order not found: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Order with id {order_id} not found"
+        )
+    except Exception as e:
+        logger.error(f"Failed to fetch order: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch order"
+        )
+
+
+@router.get("", response_model=list[OrderDTO])
+async def get_orders_endpoint(
+    order_id: Optional[int] = Query(None, description="Filter by order ID"),
+    status: Optional[str] = Query(None, description="Filter by order status"),
+    user_id: int = Depends(verify_admin_mode)
+):
+    """
+    Get all orders with optional filters (ADMIN only)
+
+    Query parameters:
+    - order_id: Filter by specific order ID
+    - status: Filter by order status
+
+    Requires valid Telegram WebApp initData in Authorization header
+    User must be in ADMIN mode
+    """
+    logger.info(f"User {user_id} fetching orders with filters: order_id={order_id}, status={status}")
+
+    try:
+        orders = await get_orders(order_id_filter=order_id, status_filter=status)
+
+        return [
+            OrderDTO(
+                id=order["id"],
+                status=order["status"],
+                user_id=order["user_id"],
+                createstamp=order["createstamp"],
+                changestamp=order["changestamp"],
+                createuser=order.get("createuser"),
+                changeuser=order.get("changeuser"),
+                delivery_type=order["delivery_type"],
+                delivery_address=order["delivery_address"],
+                cart_items=[CartItemDTO(**item) for item in order["cart_items"]]
+            )
+            for order in orders
+        ]
+    except Exception as e:
+        logger.error(f"Failed to fetch orders: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch orders"
+        )
+
+
+@router.delete("/{order_id}")
+async def delete_order_endpoint(
+    order_id: int,
+    user_id: int = Depends(verify_admin_mode)
+):
+    """
+    Delete order (ADMIN only)
+
+    Requires valid Telegram WebApp initData in Authorization header
+    User must be in ADMIN mode
+    """
+    logger.info(f"User {user_id} deleting order {order_id}")
+
+    try:
+        await delete_order(order_id)
+        return {"success": True, "message": f"Order {order_id} deleted"}
+    except ValueError as e:
+        logger.error(f"Order not found: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Order with id {order_id} not found"
+        )
+    except Exception as e:
+        logger.error(f"Failed to delete order: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete order"
+        )

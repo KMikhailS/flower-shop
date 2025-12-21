@@ -96,3 +96,41 @@ class SettingRequest(BaseModel):
     """Request model for creating/updating a setting"""
     type: str
     value: str
+
+
+class CartItemRequest(BaseModel):
+    """Request model for cart items in order creation/update"""
+    good_id: int
+    count: int
+
+
+class CartItemDTO(BaseModel):
+    """Data transfer object for cart items with good details"""
+    id: int
+    good_id: int
+    good_name: str
+    count: int
+    price: int
+
+
+class OrderRequest(BaseModel):
+    """Request model for creating or updating an order"""
+    status: str
+    user_id: int
+    delivery_type: str
+    delivery_address: str
+    cart_items: list[CartItemRequest]
+
+
+class OrderDTO(BaseModel):
+    """Data transfer object for orders"""
+    id: int
+    status: str
+    user_id: int
+    createstamp: str
+    changestamp: str
+    createuser: Optional[int] = None
+    changeuser: Optional[int] = None
+    delivery_type: str
+    delivery_address: str
+    cart_items: list[CartItemDTO]

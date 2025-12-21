@@ -4,6 +4,7 @@ import CartItem from './CartItem';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { CartItemData } from '../App';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
+import { createOrder, OrderRequest } from '../api/client';
 
 interface CartProps {
   cartItems: CartItemData[];
@@ -32,6 +33,7 @@ const Cart: React.FC<CartProps> = ({
 }) => {
   const { webApp, user } = useTelegramWebApp();
   const [customAddress, setCustomAddress] = React.useState('');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   useLockBodyScroll(true);
 
@@ -56,37 +58,89 @@ const Cart: React.FC<CartProps> = ({
     webApp?.HapticFeedback.notificationOccurred('warning');
   };
 
-  const handleBuy = () => {
+  const handleBuy = async () => {
     if (cartItems.length === 0) return;
+    if (isSubmitting) return;
 
-    webApp?.HapticFeedback.notificationOccurred('success');
-
-    const orderData = {
-      user: user ? {
-        id: user.id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        username: user.username,
-      } : null,
-      items: cartItems.map(item => ({
-        id: item.product.id,
-        title: item.product.title,
-        price: parseFloat(item.product.price.replace(/[^\d]/g, '')),
-        quantity: item.quantity,
-      })),
-      totalPrice,
-      deliveryMethod: deliveryMethod === 'pickup' ? 'Самовывоз' : 'Курьером',
-      address: deliveryMethod === 'pickup' ? selectedAddress : customAddress,
-      timestamp: new Date().toISOString(),
-    };
-
-    // Отправляем данные боту
-    if (webApp) {
-      webApp.sendData(JSON.stringify(orderData));
+    // Валидация адреса доставки
+    if (deliveryMethod === 'delivery' && !customAddress.trim()) {
+      webApp?.HapticFeedback.notificationOccurred('error');
+      webApp?.showAlert('Пожалуйста, введите адрес доставки');
+      return;
     }
 
-    // Очищаем корзину после успешной покупки
-    onClearCart();
+    // Проверяем наличие user
+    if (!user) {
+      webApp?.HapticFeedback.notificationOccurred('error');
+      webApp?.showAlert('Ошибка: не удалось получить данные пользователя');
+      return;
+    }
+
+    setIsSubmitting(true);
+    webApp?.HapticFeedback.notificationOccurred('success');
+
+    try {
+      // Определяем тип доставки и адрес
+      const delivery_type = deliveryMethod === 'pickup' ? 'PICK_UP' : 'COURIER';
+      const delivery_address = deliveryMethod === 'pickup' ? selectedAddress : customAddress.trim();
+
+      // Формируем данные заказа для бэкенда
+      const orderRequest: OrderRequest = {
+        status: 'NEW',
+        user_id: user.id,
+        delivery_type,
+        delivery_address,
+        cart_items: cartItems.map(item => ({
+          good_id: item.product.id,
+          count: item.quantity,
+        })),
+      };
+
+      // Получаем initData для авторизации
+      const initData = webApp?.initData || '';
+
+      // Отправляем заказ на бэкенд
+      const createdOrder = await createOrder(orderRequest, initData);
+
+      console.log('Order created successfully:', createdOrder);
+
+      // Отправляем данные боту для уведомления (опционально, для обратной совместимости)
+      const botData = {
+        order_id: createdOrder.id,
+        user: {
+          id: user.id,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          username: user.username,
+        },
+        items: cartItems.map(item => ({
+          id: item.product.id,
+          title: item.product.title,
+          price: parseFloat(item.product.price.replace(/[^\d]/g, '')),
+          quantity: item.quantity,
+        })),
+        totalPrice,
+        deliveryMethod: deliveryMethod === 'pickup' ? 'Самовывоз' : 'Курьером',
+        address: delivery_address,
+        timestamp: new Date().toISOString(),
+      };
+
+      if (webApp) {
+        webApp.sendData(JSON.stringify(botData));
+      }
+
+      // Показываем сообщение об успехе
+      webApp?.showAlert('Заказ успешно оформлен!');
+
+      // Очищаем корзину после успешной покупки
+      onClearCart();
+    } catch (error) {
+      console.error('Failed to create order:', error);
+      webApp?.HapticFeedback.notificationOccurred('error');
+      webApp?.showAlert(`Ошибка при создании заказа: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -192,13 +246,13 @@ const Cart: React.FC<CartProps> = ({
         {/* Buy Button */}
         <button
           onClick={handleBuy}
-          disabled={cartItems.length === 0}
+          disabled={cartItems.length === 0 || isSubmitting}
           className={`w-full h-[66px] rounded-[30px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] flex items-center justify-center ${
-            cartItems.length > 0 ? 'bg-[#80D1C1]' : 'bg-gray-300'
+            cartItems.length > 0 && !isSubmitting ? 'bg-[#80D1C1]' : 'bg-gray-300'
           }`}
         >
           <span className="text-xl font-medium leading-[1.174] text-black">
-            Заказать
+            {isSubmitting ? 'Оформление...' : 'Заказать'}
           </span>
         </button>
         </div>

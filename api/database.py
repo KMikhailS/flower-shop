@@ -86,6 +86,30 @@ async def init_db():
                 status TEXT DEFAULT 'ACTIVE'
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS orders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                status TEXT DEFAULT 'NEW',
+                user_id INTEGER,
+                createstamp TIMESTAMP,
+                changestamp TIMESTAMP,
+                createuser INTEGER,
+                changeuser INTEGER,
+                delivery_type TEXT,
+                delivery_address TEXT,
+                FOREIGN KEY (user_id) REFERENCES user_info(id)
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS cart (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                order_id INTEGER NOT NULL,
+                good_id INTEGER NOT NULL,
+                count INTEGER NOT NULL,
+                FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+                FOREIGN KEY (good_id) REFERENCES goods(id)
+            )
+        """)
         await db.commit()
         logger.info("Database initialized successfully")
 
@@ -1047,3 +1071,232 @@ async def delete_setting(setting_type: str) -> None:
         )
         await db.commit()
         logger.info(f"Deleted setting with type={setting_type}")
+
+
+async def create_order(
+    status: str,
+    user_id: int,
+    delivery_type: str,
+    delivery_address: str,
+    cart_items: list[dict],
+    createuser: int
+) -> dict:
+    """Create a new order with cart items"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        current_time = datetime.now().isoformat()
+
+        # Create order
+        cursor = await db.execute(
+            """INSERT INTO orders (status, user_id, createstamp, changestamp, createuser, changeuser, delivery_type, delivery_address)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (status, user_id, current_time, current_time, createuser, createuser, delivery_type, delivery_address)
+        )
+        order_id = cursor.lastrowid
+
+        # Create cart items
+        for item in cart_items:
+            await db.execute(
+                """INSERT INTO cart (order_id, good_id, count)
+                   VALUES (?, ?, ?)""",
+                (order_id, item['good_id'], item['count'])
+            )
+
+        await db.commit()
+        logger.info(f"Created order with id={order_id}")
+
+        # Return the created order
+        return await get_order_by_id(order_id)
+
+
+async def update_order(
+    order_id: int,
+    status: str,
+    delivery_type: str,
+    delivery_address: str,
+    cart_items: list[dict],
+    changeuser: int
+) -> dict:
+    """Update existing order and its cart items"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        current_time = datetime.now().isoformat()
+
+        # Check if order exists
+        cursor = await db.execute(
+            "SELECT id FROM orders WHERE id = ?",
+            (order_id,)
+        )
+        row = await cursor.fetchone()
+
+        if not row:
+            logger.error(f"Order with id={order_id} not found")
+            raise ValueError(f"Order with id={order_id} not found")
+
+        # Update order
+        await db.execute(
+            """UPDATE orders
+               SET status = ?, delivery_type = ?, delivery_address = ?, changestamp = ?, changeuser = ?
+               WHERE id = ?""",
+            (status, delivery_type, delivery_address, current_time, changeuser, order_id)
+        )
+
+        # Delete existing cart items
+        await db.execute(
+            "DELETE FROM cart WHERE order_id = ?",
+            (order_id,)
+        )
+
+        # Create new cart items
+        for item in cart_items:
+            await db.execute(
+                """INSERT INTO cart (order_id, good_id, count)
+                   VALUES (?, ?, ?)""",
+                (order_id, item['good_id'], item['count'])
+            )
+
+        await db.commit()
+        logger.info(f"Updated order with id={order_id}")
+
+        # Return the updated order
+        return await get_order_by_id(order_id)
+
+
+async def get_order_by_id(order_id: int) -> dict:
+    """Get order by id with cart items and good details"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+
+        # Get order details
+        cursor = await db.execute(
+            "SELECT * FROM orders WHERE id = ?",
+            (order_id,)
+        )
+        order_row = await cursor.fetchone()
+
+        if not order_row:
+            logger.error(f"Order with id={order_id} not found")
+            raise ValueError(f"Order with id={order_id} not found")
+
+        # Get cart items with good details
+        cursor = await db.execute(
+            """SELECT c.id, c.good_id, c.count, g.name as good_name, g.price
+               FROM cart c
+               JOIN goods g ON c.good_id = g.id
+               WHERE c.order_id = ?""",
+            (order_id,)
+        )
+        cart_rows = await cursor.fetchall()
+
+        # Build result
+        result = {
+            'id': order_row['id'],
+            'status': order_row['status'],
+            'user_id': order_row['user_id'],
+            'createstamp': order_row['createstamp'],
+            'changestamp': order_row['changestamp'],
+            'createuser': order_row['createuser'],
+            'changeuser': order_row['changeuser'],
+            'delivery_type': order_row['delivery_type'],
+            'delivery_address': order_row['delivery_address'],
+            'cart_items': [
+                {
+                    'id': row['id'],
+                    'good_id': row['good_id'],
+                    'good_name': row['good_name'],
+                    'count': row['count'],
+                    'price': row['price']
+                }
+                for row in cart_rows
+            ]
+        }
+
+        logger.info(f"Retrieved order with id={order_id}")
+        return result
+
+
+async def get_orders(order_id_filter: Optional[int] = None, status_filter: Optional[str] = None) -> list[dict]:
+    """Get all orders with optional filters"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+
+        # Build query with filters
+        query = "SELECT * FROM orders WHERE 1=1"
+        params = []
+
+        if order_id_filter is not None:
+            query += " AND id = ?"
+            params.append(order_id_filter)
+
+        if status_filter is not None:
+            query += " AND status = ?"
+            params.append(status_filter)
+
+        query += " ORDER BY id DESC"
+
+        # Get orders
+        cursor = await db.execute(query, params)
+        order_rows = await cursor.fetchall()
+
+        # Build results with cart items
+        results = []
+        for order_row in order_rows:
+            order_id = order_row['id']
+
+            # Get cart items for this order
+            cursor = await db.execute(
+                """SELECT c.id, c.good_id, c.count, g.name as good_name, g.price
+                   FROM cart c
+                   JOIN goods g ON c.good_id = g.id
+                   WHERE c.order_id = ?""",
+                (order_id,)
+            )
+            cart_rows = await cursor.fetchall()
+
+            results.append({
+                'id': order_row['id'],
+                'status': order_row['status'],
+                'user_id': order_row['user_id'],
+                'createstamp': order_row['createstamp'],
+                'changestamp': order_row['changestamp'],
+                'createuser': order_row['createuser'],
+                'changeuser': order_row['changeuser'],
+                'delivery_type': order_row['delivery_type'],
+                'delivery_address': order_row['delivery_address'],
+                'cart_items': [
+                    {
+                        'id': row['id'],
+                        'good_id': row['good_id'],
+                        'good_name': row['good_name'],
+                        'count': row['count'],
+                        'price': row['price']
+                    }
+                    for row in cart_rows
+                ]
+            })
+
+        logger.info(f"Retrieved {len(results)} orders")
+        return results
+
+
+async def delete_order(order_id: int) -> None:
+    """Delete order and its cart items (CASCADE)"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Check if order exists
+        cursor = await db.execute(
+            "SELECT id FROM orders WHERE id = ?",
+            (order_id,)
+        )
+        row = await cursor.fetchone()
+
+        if not row:
+            logger.error(f"Order with id={order_id} not found")
+            raise ValueError(f"Order with id={order_id} not found")
+
+        # Delete order (cart items will be deleted automatically due to CASCADE)
+        await db.execute(
+            "DELETE FROM orders WHERE id = ?",
+            (order_id,)
+        )
+        await db.commit()
+        logger.info(f"Deleted order with id={order_id}")
