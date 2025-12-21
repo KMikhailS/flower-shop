@@ -670,10 +670,6 @@ function App() {
       <DeliveryInfo
         isOpen={isDeliveryInfoOpen}
         onClose={handleCloseDeliveryInfo}
-        onMenuClick={() => {
-          setIsDeliveryInfoOpen(false);
-          setIsMenuOpen(true);
-        }}
       />
       <StoreAddresses
         isOpen={isStoreAddressesOpen}

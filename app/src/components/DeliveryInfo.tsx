@@ -4,13 +4,11 @@ import AppHeader from './AppHeader';
 interface DeliveryInfoProps {
   isOpen: boolean;
   onClose: () => void;
-  onMenuClick: () => void;
 }
 
 const DeliveryInfo: React.FC<DeliveryInfoProps> = ({
   isOpen,
-  onClose,
-  onMenuClick
+  onClose
 }) => {
   if (!isOpen) return null;
 
@@ -18,7 +16,7 @@ const DeliveryInfo: React.FC<DeliveryInfoProps> = ({
     <div className="fixed inset-0 bg-white z-50 flex flex-col">
       <AppHeader
         title="Доставка"
-        actionType="close-button"
+        actionType="close-text"
         onAction={onClose}
       />
 
