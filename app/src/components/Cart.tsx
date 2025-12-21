@@ -12,8 +12,6 @@ interface CartProps {
   onOpenStoreAddresses: () => void;
   deliveryMethod: 'pickup' | 'delivery';
   setDeliveryMethod: (method: 'pickup' | 'delivery') => void;
-  paymentMethod: 'cash' | 'card' | 'sbp' | null;
-  setPaymentMethod: (method: 'cash' | 'card' | 'sbp' | null) => void;
   onIncreaseQuantity: (productId: number) => void;
   onDecreaseQuantity: (productId: number) => void;
   onRemoveItem: (productId: number) => void;
@@ -27,14 +25,13 @@ const Cart: React.FC<CartProps> = ({
   onOpenStoreAddresses,
   deliveryMethod,
   setDeliveryMethod,
-  paymentMethod,
-  setPaymentMethod,
   onIncreaseQuantity,
   onDecreaseQuantity,
   onRemoveItem,
   onClearCart
 }) => {
   const { webApp, user } = useTelegramWebApp();
+  const [customAddress, setCustomAddress] = React.useState('');
 
   useLockBodyScroll(true);
 
@@ -60,7 +57,7 @@ const Cart: React.FC<CartProps> = ({
   };
 
   const handleBuy = () => {
-    if (!paymentMethod || cartItems.length === 0) return;
+    if (cartItems.length === 0) return;
 
     webApp?.HapticFeedback.notificationOccurred('success');
 
@@ -79,8 +76,7 @@ const Cart: React.FC<CartProps> = ({
       })),
       totalPrice,
       deliveryMethod: deliveryMethod === 'pickup' ? 'Самовывоз' : 'Курьером',
-      address: selectedAddress,
-      paymentMethod: paymentMethod === 'cash' ? 'Наличными' : paymentMethod === 'card' ? 'Картой' : 'СБП',
+      address: deliveryMethod === 'pickup' ? customAddress : selectedAddress,
       timestamp: new Date().toISOString(),
     };
 
@@ -159,86 +155,50 @@ const Cart: React.FC<CartProps> = ({
         </div>
 
         {/* Address */}
-        <div className="flex items-center gap-3 mb-8">
-          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-10 h-10">
-            <g clipPath="url(#clip0_location)">
-              <path d="M20 20C20.55 20 21.0208 19.8042 21.4125 19.4125C21.8042 19.0208 22 18.55 22 18C22 17.45 21.8042 16.9792 21.4125 16.5875C21.0208 16.1958 20.55 16 20 16C19.45 16 18.9792 16.1958 18.5875 16.5875C18.1958 16.9792 18 17.45 18 18C18 18.55 18.1958 19.0208 18.5875 19.4125C18.9792 19.8042 19.45 20 20 20ZM20 27.35C22.0333 25.4833 23.5417 23.7875 24.525 22.2625C25.5083 20.7375 26 19.3833 26 18.2C26 16.3833 25.4208 14.8958 24.2625 13.7375C23.1042 12.5792 21.6833 12 20 12C18.3167 12 16.8958 12.5792 15.7375 13.7375C14.5792 14.8958 14 16.3833 14 18.2C14 19.3833 14.4917 20.7375 15.475 22.2625C16.4583 23.7875 17.9667 25.4833 20 27.35ZM20 30C17.3167 27.7167 15.3125 25.5958 13.9875 23.6375C12.6625 21.6792 12 19.8667 12 18.2C12 15.7 12.8042 13.7083 14.4125 12.225C16.0208 10.7417 17.8833 10 20 10C22.1167 10 23.9792 10.7417 25.5875 12.225C27.1958 13.7083 28 15.7 28 18.2C28 19.8667 27.3375 21.6792 26.0125 23.6375C24.6875 25.5958 22.6833 27.7167 20 30Z" fill="#49454F"/>
-            </g>
-            <defs>
-              <clipPath id="clip0_location">
-                <rect width="40" height="40" rx="20" fill="white"/>
-              </clipPath>
-            </defs>
-          </svg>
-          <p className="text-base font-semibold leading-[1.174] text-black flex-1">
-            {selectedAddress}
-          </p>
-          <button
-            onClick={onOpenStoreAddresses}
-            className="text-base font-semibold leading-[1.174] text-black hover:opacity-70 transition-opacity"
-          >
-            Выбрать
-          </button>
-        </div>
-
-        {/* Payment Method */}
-        <div className="mb-8">
-          <h3 className="text-base font-bold leading-[1.174] text-black mb-4">
-            Способ оплаты
-          </h3>
-          <div className="space-y-3">
+        {deliveryMethod === 'delivery' ? (
+          <div className="flex items-center gap-3 mb-8">
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-10 h-10">
+              <g clipPath="url(#clip0_location)">
+                <path d="M20 20C20.55 20 21.0208 19.8042 21.4125 19.4125C21.8042 19.0208 22 18.55 22 18C22 17.45 21.8042 16.9792 21.4125 16.5875C21.0208 16.1958 20.55 16 20 16C19.45 16 18.9792 16.1958 18.5875 16.5875C18.1958 16.9792 18 17.45 18 18C18 18.55 18.1958 19.0208 18.5875 19.4125C18.9792 19.8042 19.45 20 20 20ZM20 27.35C22.0333 25.4833 23.5417 23.7875 24.525 22.2625C25.5083 20.7375 26 19.3833 26 18.2C26 16.3833 25.4208 14.8958 24.2625 13.7375C23.1042 12.5792 21.6833 12 20 12C18.3167 12 16.8958 12.5792 15.7375 13.7375C14.5792 14.8958 14 16.3833 14 18.2C14 19.3833 14.4917 20.7375 15.475 22.2625C16.4583 23.7875 17.9667 25.4833 20 27.35ZM20 30C17.3167 27.7167 15.3125 25.5958 13.9875 23.6375C12.6625 21.6792 12 19.8667 12 18.2C12 15.7 12.8042 13.7083 14.4125 12.225C16.0208 10.7417 17.8833 10 20 10C22.1167 10 23.9792 10.7417 25.5875 12.225C27.1958 13.7083 28 15.7 28 18.2C28 19.8667 27.3375 21.6792 26.0125 23.6375C24.6875 25.5958 22.6833 27.7167 20 30Z" fill="#49454F"/>
+              </g>
+              <defs>
+                <clipPath id="clip0_location">
+                  <rect width="40" height="40" rx="20" fill="white"/>
+                </clipPath>
+              </defs>
+            </svg>
+            <p className="text-base font-semibold leading-[1.174] text-black flex-1">
+              {selectedAddress}
+            </p>
             <button
-              onClick={() => {
-                setPaymentMethod('cash');
-                webApp?.HapticFeedback.selectionChanged();
-              }}
-              className={`w-full h-[53px] rounded-[15px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] flex items-center justify-center ${
-                paymentMethod === 'cash' ? 'bg-[#80D1C1]' : 'bg-white'
-              }`}
+              onClick={onOpenStoreAddresses}
+              className="text-base font-semibold leading-[1.174] text-black hover:opacity-70 transition-opacity"
             >
-              <span className="text-base font-semibold leading-[1.174] text-black">
-                Наличными
-              </span>
-            </button>
-            <button
-              onClick={() => {
-                setPaymentMethod('card');
-                webApp?.HapticFeedback.selectionChanged();
-              }}
-              className={`w-full h-[53px] rounded-[15px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] flex items-center justify-center ${
-                paymentMethod === 'card' ? 'bg-[#80D1C1]' : 'bg-white'
-              }`}
-            >
-              <span className="text-base font-semibold leading-[1.174] text-black">
-                Оплатить картой
-              </span>
-            </button>
-            <button
-              onClick={() => {
-                setPaymentMethod('sbp');
-                webApp?.HapticFeedback.selectionChanged();
-              }}
-              className={`w-full h-[53px] rounded-[15px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] flex items-center justify-center ${
-                paymentMethod === 'sbp' ? 'bg-[#80D1C1]' : 'bg-white'
-              }`}
-            >
-              <span className="text-base font-semibold leading-[1.174] text-black">
-                СБП
-              </span>
+              Выбрать
             </button>
           </div>
-        </div>
+        ) : (
+          <div className="mb-8">
+            <input
+              type="text"
+              value={customAddress}
+              onChange={(e) => setCustomAddress(e.target.value)}
+              placeholder="Введите адрес доставки"
+              className="w-full h-[53px] px-4 rounded-[15px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] text-base font-semibold leading-[1.174] text-black bg-white"
+            />
+          </div>
+        )}
 
         {/* Buy Button */}
         <button
           onClick={handleBuy}
-          disabled={!paymentMethod}
+          disabled={cartItems.length === 0}
           className={`w-full h-[66px] rounded-[30px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] flex items-center justify-center ${
-            paymentMethod ? 'bg-[#80D1C1]' : 'bg-gray-300'
+            cartItems.length > 0 ? 'bg-[#80D1C1]' : 'bg-gray-300'
           }`}
         >
           <span className="text-xl font-medium leading-[1.174] text-black">
-            Купить
+            Заказть
           </span>
         </button>
         </div>

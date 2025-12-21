@@ -51,7 +51,6 @@ function App() {
   // Состояние корзины - теперь массив товаров
   const [cartItems, setCartItems] = useState<CartItemData[]>([]);
   const [cartDeliveryMethod, setCartDeliveryMethod] = useState<'pickup' | 'delivery'>('pickup');
-  const [cartPaymentMethod, setCartPaymentMethod] = useState<'cash' | 'card' | 'sbp' | null>(null);
 
   // Состояние для видимости кнопки корзины
   const [isBottomButtonVisible, setIsBottomButtonVisible] = useState(false);
@@ -571,7 +570,6 @@ function App() {
         setCartItems(savedCart.cartItems);
         setSelectedAddress(savedCart.selectedAddress);
         setCartDeliveryMethod(savedCart.deliveryMethod);
-        setCartPaymentMethod(savedCart.paymentMethod);
       }
     });
   }, [webApp, loadCart]);
@@ -646,11 +644,10 @@ function App() {
     saveCart({
       cartItems,
       deliveryMethod: cartDeliveryMethod,
-      paymentMethod: cartPaymentMethod,
       selectedAddress: selectedAddress,
       timestamp: new Date().toISOString(),
     });
-  }, [cartItems, cartDeliveryMethod, cartPaymentMethod, selectedAddress, saveCart, clearCart]);
+  }, [cartItems, cartDeliveryMethod, selectedAddress, saveCart, clearCart]);
 
   // Управление BackButton Telegram
   useEffect(() => {
@@ -758,8 +755,6 @@ function App() {
           onOpenStoreAddresses={() => handleOpenStoreAddresses(true)}
           deliveryMethod={cartDeliveryMethod}
           setDeliveryMethod={setCartDeliveryMethod}
-          paymentMethod={cartPaymentMethod}
-          setPaymentMethod={setCartPaymentMethod}
           onIncreaseQuantity={handleIncreaseQuantity}
           onDecreaseQuantity={handleDecreaseQuantity}
           onRemoveItem={handleRemoveItem}
