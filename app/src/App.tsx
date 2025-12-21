@@ -797,7 +797,7 @@ function App() {
           isAdminMode={userInfo?.mode === 'ADMIN'}
           onAddNewCard={handleOpenAdminCard}
         />
-        <div className="mt-4">
+        <div className="sticky bottom-0 bg-white z-10 mt-4">
           <BottomButton
             cartItemCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
             onClick={handleOpenCart}
