@@ -19,11 +19,19 @@ const MyOrders: React.FC<MyOrdersProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isOpen || !initData) return;
+    if (!isOpen) return;
+
+    if (!initData) {
+      console.error('MyOrders: initData is not available');
+      setError('Ошибка авторизации. Перезапустите приложение.');
+      return;
+    }
 
     const loadData = async () => {
       setIsLoading(true);
       setError(null);
+
+      console.log('MyOrders: Loading orders with initData length:', initData.length);
 
       try {
         // Load orders and goods in parallel

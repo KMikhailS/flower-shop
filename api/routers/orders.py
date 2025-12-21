@@ -127,6 +127,44 @@ async def update_order_endpoint(
         )
 
 
+@router.get("/my", response_model=list[OrderDTO])
+async def get_my_orders_endpoint(
+    user_id: int = Depends(verify_telegram_init_data)
+):
+    """
+    Get orders for current user
+
+    Requires valid Telegram WebApp initData in Authorization header
+    Returns only orders belonging to the authenticated user
+    """
+    logger.info(f"User {user_id} fetching their orders")
+
+    try:
+        orders = await get_orders(user_id_filter=user_id)
+
+        return [
+            OrderDTO(
+                id=order["id"],
+                status=order["status"],
+                user_id=order["user_id"],
+                createstamp=order["createstamp"],
+                changestamp=order["changestamp"],
+                createuser=order.get("createuser"),
+                changeuser=order.get("changeuser"),
+                delivery_type=order["delivery_type"],
+                delivery_address=order["delivery_address"],
+                cart_items=[CartItemDTO(**item) for item in order["cart_items"]]
+            )
+            for order in orders
+        ]
+    except Exception as e:
+        logger.error(f"Failed to fetch user orders: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch orders"
+        )
+
+
 @router.get("/{order_id}", response_model=OrderDTO)
 async def get_order_endpoint(
     order_id: int,
@@ -166,44 +204,6 @@ async def get_order_endpoint(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch order"
-        )
-
-
-@router.get("/my", response_model=list[OrderDTO])
-async def get_my_orders_endpoint(
-    user_id: int = Depends(verify_telegram_init_data)
-):
-    """
-    Get orders for current user
-
-    Requires valid Telegram WebApp initData in Authorization header
-    Returns only orders belonging to the authenticated user
-    """
-    logger.info(f"User {user_id} fetching their orders")
-
-    try:
-        orders = await get_orders(user_id_filter=user_id)
-
-        return [
-            OrderDTO(
-                id=order["id"],
-                status=order["status"],
-                user_id=order["user_id"],
-                createstamp=order["createstamp"],
-                changestamp=order["changestamp"],
-                createuser=order.get("createuser"),
-                changeuser=order.get("changeuser"),
-                delivery_type=order["delivery_type"],
-                delivery_address=order["delivery_address"],
-                cart_items=[CartItemDTO(**item) for item in order["cart_items"]]
-            )
-            for order in orders
-        ]
-    except Exception as e:
-        logger.error(f"Failed to fetch user orders: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch orders"
         )
 
 
