@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import AppHeader from './components/AppHeader';
 import SearchBar from './components/SearchBar';
 import PromoBanner from './components/PromoBanner';
@@ -52,6 +52,10 @@ function App() {
   const [cartItems, setCartItems] = useState<CartItemData[]>([]);
   const [cartDeliveryMethod, setCartDeliveryMethod] = useState<'pickup' | 'delivery'>('pickup');
   const [cartPaymentMethod, setCartPaymentMethod] = useState<'cash' | 'card' | 'sbp' | null>(null);
+
+  // Состояние для видимости кнопки корзины
+  const [isBottomButtonVisible, setIsBottomButtonVisible] = useState(false);
+  const productGridRef = useRef<HTMLDivElement>(null);
 
   // Extract unique categories from products
   const uniqueCategories = useMemo(() => {
@@ -603,6 +607,35 @@ function App() {
     setActiveCategory(['all']);
   }, [products]);
 
+  // Intersection Observer для отслеживания видимости ProductGrid
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          // Показываем кнопку когда ProductGrid появился на экране на 20%
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.2) {
+            setIsBottomButtonVisible(true);
+          }
+        });
+      },
+      {
+        threshold: 0.2, // Срабатывает когда 20% элемента видно
+      }
+    );
+
+    const currentRef = productGridRef.current;
+
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, []);
+
   // Автосохранение корзины при изменении состояния
   useEffect(() => {
     if (cartItems.length === 0) {
@@ -791,18 +824,22 @@ function App() {
           activeCategory={activeCategory}
           onCategoryChange={handleCategoryToggle}
         />
-        <ProductGrid
-          products={filteredProducts}
-          onProductClick={setSelectedProduct}
-          isAdminMode={userInfo?.mode === 'ADMIN'}
-          onAddNewCard={handleOpenAdminCard}
-        />
-        <div className="sticky bottom-0 bg-white z-10 mt-4">
-          <BottomButton
-            cartItemCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
-            onClick={handleOpenCart}
+        <div ref={productGridRef}>
+          <ProductGrid
+            products={filteredProducts}
+            onProductClick={setSelectedProduct}
+            isAdminMode={userInfo?.mode === 'ADMIN'}
+            onAddNewCard={handleOpenAdminCard}
           />
         </div>
+        {isBottomButtonVisible && (
+          <div className="sticky bottom-0 z-10 mt-4">
+            <BottomButton
+              cartItemCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
+              onClick={handleOpenCart}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
