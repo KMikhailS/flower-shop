@@ -6,6 +6,7 @@ interface MobileMenuProps {
   onClose: () => void;
   onOpenStoreAddresses: () => void;
   onOpenDeliveryInfo: () => void;
+  onOpenPaymentInfo: () => void;
   onOpenSettings?: () => void;
   onNavigateHome: () => void;
   userRole?: string;
@@ -16,6 +17,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
   onClose,
   onOpenStoreAddresses,
   onOpenDeliveryInfo,
+  onOpenPaymentInfo,
   onOpenSettings,
   onNavigateHome,
   userRole
@@ -58,6 +60,8 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                   onOpenStoreAddresses();
                 } else if (item.label === 'Доставка') {
                   onOpenDeliveryInfo();
+                } else if (item.label === 'Оплата') {
+                  onOpenPaymentInfo();
                 } else if (item.label === 'Настройки') {
                   if (onOpenSettings) {
                     onOpenSettings();
