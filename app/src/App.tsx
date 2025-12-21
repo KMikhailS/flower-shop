@@ -238,19 +238,45 @@ function App() {
       return;
     }
 
-    const confirmDelete = window.confirm(`Удалить товар "${editingProduct.title}"?`);
-    if (!confirmDelete) return;
+    const confirmMessage = `Удалить товар "${editingProduct.title}"?`;
 
-    try {
-      await deleteGood(editingProduct.id, webApp.initData);
-      alert('Товар успешно удалён');
-      setIsAdminCardOpen(false);
-      setEditingProduct(null);
-      await loadProducts();
-    } catch (error) {
-      console.error('Failed to delete good:', error);
-      alert('Ошибка при удалении товара');
+    const handleConfirmedDelete = async () => {
+      try {
+        await deleteGood(editingProduct.id, webApp.initData);
+
+        const onSuccess = () => {
+          setIsAdminCardOpen(false);
+          setEditingProduct(null);
+          loadProducts();
+        };
+
+        if (webApp?.showAlert) {
+          webApp.showAlert('Товар успешно удалён', onSuccess);
+        } else {
+          alert('Товар успешно удалён');
+          onSuccess();
+        }
+      } catch (error) {
+        console.error('Failed to delete good:', error);
+        if (webApp?.showAlert) {
+          webApp.showAlert('Ошибка при удалении товара');
+        } else {
+          alert('Ошибка при удалении товара');
+        }
+      }
+    };
+
+    if (webApp?.showConfirm) {
+      webApp.showConfirm(confirmMessage, (confirmed) => {
+        if (!confirmed) return;
+        handleConfirmedDelete();
+      });
+      return;
     }
+
+    const confirmDelete = window.confirm(confirmMessage);
+    if (!confirmDelete) return;
+    await handleConfirmedDelete();
   };
 
   const handleToggleBlockProduct = async () => {
