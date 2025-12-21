@@ -8,6 +8,7 @@ interface MobileMenuProps {
   onOpenDeliveryInfo: () => void;
   onOpenPaymentInfo: () => void;
   onOpenSettings?: () => void;
+  onOpenMyOrders: () => void;
   onNavigateHome: () => void;
   userRole?: string;
 }
@@ -19,6 +20,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
   onOpenDeliveryInfo,
   onOpenPaymentInfo,
   onOpenSettings,
+  onOpenMyOrders,
   onNavigateHome,
   userRole
 }) => {
@@ -29,12 +31,13 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
     { id: 2, label: 'Оплата' },
     { id: 3, label: 'Доставка' },
     { id: 4, label: 'Обратная связь' },
-    { id: 5, label: 'Адреса магазинов' },
+    { id: 5, label: 'Мои заказы' },
+    { id: 6, label: 'Адреса магазинов' },
   ];
 
   // Add Settings for ADMIN users only
   const menuItems = userRole === 'ADMIN'
-    ? [...baseMenuItems, { id: 6, label: 'Настройки' }]
+    ? [...baseMenuItems, { id: 7, label: 'Настройки' }]
     : baseMenuItems;
 
   return (
@@ -62,6 +65,8 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                   onOpenDeliveryInfo();
                 } else if (item.label === 'Оплата') {
                   onOpenPaymentInfo();
+                } else if (item.label === 'Мои заказы') {
+                  onOpenMyOrders();
                 } else if (item.label === 'Настройки') {
                   if (onOpenSettings) {
                     onOpenSettings();

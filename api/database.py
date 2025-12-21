@@ -1215,7 +1215,7 @@ async def get_order_by_id(order_id: int) -> dict:
         return result
 
 
-async def get_orders(order_id_filter: Optional[int] = None, status_filter: Optional[str] = None) -> list[dict]:
+async def get_orders(order_id_filter: Optional[int] = None, status_filter: Optional[str] = None, user_id_filter: Optional[int] = None) -> list[dict]:
     """Get all orders with optional filters"""
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
@@ -1231,6 +1231,10 @@ async def get_orders(order_id_filter: Optional[int] = None, status_filter: Optio
         if status_filter is not None:
             query += " AND status = ?"
             params.append(status_filter)
+
+        if user_id_filter is not None:
+            query += " AND user_id = ?"
+            params.append(user_id_filter)
 
         query += " ORDER BY id DESC"
 

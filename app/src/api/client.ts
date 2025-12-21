@@ -1036,3 +1036,28 @@ export async function createOrder(
   const data = await response.json();
   return data as OrderDTO;
 }
+
+/**
+ * Fetch current user's orders
+ *
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<OrderDTO[]> - List of user's orders
+ * @throws Error if request fails
+ */
+export async function fetchMyOrders(initData: string): Promise<OrderDTO[]> {
+  const response = await fetch(`${API_BASE_URL}/orders/my`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch my orders: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as OrderDTO[];
+}

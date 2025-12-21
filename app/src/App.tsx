@@ -12,6 +12,7 @@ import StoreAddresses from './components/StoreAddresses';
 import DeliveryInfo from './components/DeliveryInfo';
 import PaymentInfo from './components/PaymentInfo';
 import Settings from './components/Settings';
+import MyOrders from './components/MyOrders';
 import AdminProductCard from './components/AdminProductCard';
 import AdminPromoBannerCard from './components/AdminPromoBannerCard';
 import { useTelegramWebApp } from './hooks/useTelegramWebApp';
@@ -37,6 +38,7 @@ function App() {
   const [isDeliveryInfoOpen, setIsDeliveryInfoOpen] = useState(false);
   const [isPaymentInfoOpen, setIsPaymentInfoOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isMyOrdersOpen, setIsMyOrdersOpen] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState('г. Тюмень ул. Пермякова, 62');
   const [previousScreen, setPreviousScreen] = useState<'home' | 'cart' | 'storeAddresses' | null>(null);
   const [previousScreenBeforeCart, setPreviousScreenBeforeCart] = useState<'home' | 'productCard' | null>(null);
@@ -231,6 +233,15 @@ function App() {
 
   const handleClosePaymentInfo = () => {
     setIsPaymentInfoOpen(false);
+  };
+
+  const handleOpenMyOrders = () => {
+    setIsMenuOpen(false);
+    setIsMyOrdersOpen(true);
+  };
+
+  const handleCloseMyOrders = () => {
+    setIsMyOrdersOpen(false);
   };
 
   const handleSettingsModeChange = async () => {
@@ -653,7 +664,7 @@ function App() {
   useEffect(() => {
     if (!webApp) return;
 
-    const isNotOnHome = isCartOpen || selectedProduct !== null || isStoreAddressesOpen || isDeliveryInfoOpen || isPaymentInfoOpen || isMenuOpen || isAdminCardOpen || isSettingsOpen;
+    const isNotOnHome = isCartOpen || selectedProduct !== null || isStoreAddressesOpen || isDeliveryInfoOpen || isPaymentInfoOpen || isMenuOpen || isAdminCardOpen || isSettingsOpen || isMyOrdersOpen;
 
     if (isNotOnHome) {
       webApp.BackButton.show();
@@ -673,6 +684,8 @@ function App() {
           setIsAdminCardOpen(false);
         } else if (isSettingsOpen) {
           setIsSettingsOpen(false);
+        } else if (isMyOrdersOpen) {
+          setIsMyOrdersOpen(false);
         } else if (isDeliveryInfoOpen) {
           setIsDeliveryInfoOpen(false);
           setIsMenuOpen(true);
@@ -698,7 +711,7 @@ function App() {
     } else {
       webApp.BackButton.hide();
     }
-  }, [webApp, isCartOpen, selectedProduct, isStoreAddressesOpen, isDeliveryInfoOpen, isPaymentInfoOpen, isMenuOpen, isAdminCardOpen, isSettingsOpen, returnToCart, cartItems, previousProduct, previousScreenBeforeCart]);
+  }, [webApp, isCartOpen, selectedProduct, isStoreAddressesOpen, isDeliveryInfoOpen, isPaymentInfoOpen, isMenuOpen, isAdminCardOpen, isSettingsOpen, isMyOrdersOpen, returnToCart, cartItems, previousProduct, previousScreenBeforeCart]);
 
   return (
     <div className="min-h-screen bg-white max-w-[402px] mx-auto">
@@ -709,6 +722,7 @@ function App() {
         onOpenDeliveryInfo={handleOpenDeliveryInfo}
         onOpenPaymentInfo={handleOpenPaymentInfo}
         onOpenSettings={handleOpenSettings}
+        onOpenMyOrders={handleOpenMyOrders}
         onNavigateHome={handleNavigateHome}
         userRole={userInfo?.role}
       />
@@ -742,6 +756,15 @@ function App() {
         userMode={userInfo?.mode}
         initData={webApp?.initData}
         onModeChange={handleSettingsModeChange}
+      />
+      <MyOrders
+        isOpen={isMyOrdersOpen}
+        onClose={handleCloseMyOrders}
+        onMenuClick={() => {
+          setIsMyOrdersOpen(false);
+          setIsMenuOpen(true);
+        }}
+        initData={webApp?.initData}
       />
       {isCartOpen && (
         <Cart
