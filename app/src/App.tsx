@@ -9,6 +9,7 @@ import MobileMenu from './components/MobileMenu';
 import ProductCard from './components/ProductCard';
 import Cart from './components/Cart';
 import StoreAddresses from './components/StoreAddresses';
+import DeliveryInfo from './components/DeliveryInfo';
 import Settings from './components/Settings';
 import AdminProductCard from './components/AdminProductCard';
 import AdminPromoBannerCard from './components/AdminPromoBannerCard';
@@ -32,6 +33,7 @@ function App() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isStoreAddressesOpen, setIsStoreAddressesOpen] = useState(false);
+  const [isDeliveryInfoOpen, setIsDeliveryInfoOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState('г. Тюмень ул. Пермякова, 62');
   const [previousScreen, setPreviousScreen] = useState<'home' | 'cart' | 'storeAddresses' | null>(null);
@@ -206,6 +208,15 @@ function App() {
 
   const handleCloseSettings = () => {
     setIsSettingsOpen(false);
+  };
+
+  const handleOpenDeliveryInfo = () => {
+    setIsMenuOpen(false);
+    setIsDeliveryInfoOpen(true);
+  };
+
+  const handleCloseDeliveryInfo = () => {
+    setIsDeliveryInfoOpen(false);
   };
 
   const handleSettingsModeChange = async () => {
@@ -601,7 +612,7 @@ function App() {
   useEffect(() => {
     if (!webApp) return;
 
-    const isNotOnHome = isCartOpen || selectedProduct !== null || isStoreAddressesOpen || isMenuOpen || isAdminCardOpen || isSettingsOpen;
+    const isNotOnHome = isCartOpen || selectedProduct !== null || isStoreAddressesOpen || isDeliveryInfoOpen || isMenuOpen || isAdminCardOpen || isSettingsOpen;
 
     if (isNotOnHome) {
       webApp.BackButton.show();
@@ -621,6 +632,9 @@ function App() {
           setIsAdminCardOpen(false);
         } else if (isSettingsOpen) {
           setIsSettingsOpen(false);
+        } else if (isDeliveryInfoOpen) {
+          setIsDeliveryInfoOpen(false);
+          setIsMenuOpen(true);
         } else if (isStoreAddressesOpen) {
           setIsStoreAddressesOpen(false);
           if (returnToCart) {
@@ -640,7 +654,7 @@ function App() {
     } else {
       webApp.BackButton.hide();
     }
-  }, [webApp, isCartOpen, selectedProduct, isStoreAddressesOpen, isMenuOpen, isAdminCardOpen, isSettingsOpen, returnToCart, cartItems, previousProduct, previousScreenBeforeCart]);
+  }, [webApp, isCartOpen, selectedProduct, isStoreAddressesOpen, isDeliveryInfoOpen, isMenuOpen, isAdminCardOpen, isSettingsOpen, returnToCart, cartItems, previousProduct, previousScreenBeforeCart]);
 
   return (
     <div className="min-h-screen bg-white max-w-[402px] mx-auto">
@@ -648,9 +662,18 @@ function App() {
         isOpen={isMenuOpen}
         onClose={handleCloseMenu}
         onOpenStoreAddresses={() => handleOpenStoreAddresses(false)}
+        onOpenDeliveryInfo={handleOpenDeliveryInfo}
         onOpenSettings={handleOpenSettings}
         onNavigateHome={handleNavigateHome}
         userRole={userInfo?.role}
+      />
+      <DeliveryInfo
+        isOpen={isDeliveryInfoOpen}
+        onClose={handleCloseDeliveryInfo}
+        onMenuClick={() => {
+          setIsDeliveryInfoOpen(false);
+          setIsMenuOpen(true);
+        }}
       />
       <StoreAddresses
         isOpen={isStoreAddressesOpen}
