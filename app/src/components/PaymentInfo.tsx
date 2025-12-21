@@ -22,15 +22,15 @@ const PaymentInfo: React.FC<PaymentInfoProps> = ({
 
       <div className="flex-1 overflow-y-auto px-5 py-6">
         <div className="space-y-4">
-          <p className="text-base leading-relaxed text-gray-800">
+          <p className="text-base leading-relaxed text-black">
             Когда заказ поступит, менеджер свяжется с вами для подтверждения.
           </p>
 
-          <p className="text-base leading-relaxed text-gray-800">
+          <p className="text-base leading-relaxed text-black">
             После подтверждения вы получите ссылку на оплату (карты, электронные деньги, Visa, Яндекс.Деньги).
           </p>
 
-          <p className="text-base leading-relaxed text-gray-800">
+          <p className="text-base leading-relaxed text-black">
             Ссылка действительна 10 минут. Оплатив, вы получите электронный чек.
           </p>
         </div>
