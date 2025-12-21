@@ -8,6 +8,8 @@ class UserInfoDTO(BaseModel):
     role: str
     mode: str
     status: str
+    username: Optional[str] = None
+    phone: Optional[str] = None
 
 
 class GoodCardRequest(BaseModel):

@@ -34,7 +34,9 @@ async def get_current_user(user_id: int = Depends(verify_telegram_init_data)):
         id=user["id"],
         role=user["role"],
         mode=user["mode"],
-        status=user["status"]
+        status=user["status"],
+        username=user.get("username"),
+        phone=user.get("phone")
     )
 
 
@@ -75,7 +77,9 @@ async def update_current_user_mode(
         id=user["id"],
         role=user["role"],
         mode=user["mode"],
-        status=user["status"]
+        status=user["status"],
+        username=user.get("username"),
+        phone=user.get("phone")
     )
 
 

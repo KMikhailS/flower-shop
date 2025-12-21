@@ -4,6 +4,8 @@ export interface UserInfo {
   role: string;
   mode: string;
   status: string;
+  username?: string;
+  phone?: string;
 }
 
 // Shop address from backend

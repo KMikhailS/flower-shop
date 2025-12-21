@@ -21,7 +21,9 @@ async def init_db():
                 createstamp TIMESTAMP,
                 changestamp TIMESTAMP,
                 role TEXT DEFAULT 'USER',
-                mode TEXT DEFAULT 'USER'
+                mode TEXT DEFAULT 'USER',
+                username TEXT,
+                phone TEXT
             )
         """)
         await db.execute("""
@@ -88,8 +90,8 @@ async def init_db():
         logger.info("Database initialized successfully")
 
 
-async def add_or_update_user(user_id: int) -> None:
-    """Add new user or update existing user's changestamp"""
+async def add_or_update_user(user_id: int, username: Optional[str] = None, phone: Optional[str] = None) -> None:
+    """Add new user or update existing user's changestamp, username, and phone"""
     async with aiosqlite.connect(DB_PATH) as db:
         current_time = datetime.now().isoformat()
 
@@ -101,17 +103,17 @@ async def add_or_update_user(user_id: int) -> None:
 
         if user:
             await db.execute(
-                "UPDATE user_info SET changestamp = ? WHERE id = ?",
-                (current_time, user_id)
+                "UPDATE user_info SET changestamp = ?, username = ?, phone = ? WHERE id = ?",
+                (current_time, username, phone, user_id)
             )
-            logger.info(f"Updated user {user_id}")
+            logger.info(f"Updated user {user_id} with username={username}, phone={phone}")
         else:
             await db.execute(
-                """INSERT INTO user_info (id, status, createstamp, changestamp, role, mode)
-                   VALUES (?, 'NEW', ?, ?, 'USER', 'USER')""",
-                (user_id, current_time, current_time)
+                """INSERT INTO user_info (id, status, createstamp, changestamp, role, mode, username, phone)
+                   VALUES (?, 'NEW', ?, ?, 'USER', 'USER', ?, ?)""",
+                (user_id, current_time, current_time, username, phone)
             )
-            logger.info(f"Created new user {user_id}")
+            logger.info(f"Created new user {user_id} with username={username}, phone={phone}")
 
         await db.commit()
 

@@ -30,8 +30,11 @@ dp = Dispatcher()
 async def start_handler(message: types.Message):
     """Handle /start command - show Mini App button"""
 
-    # Save or update user in database
-    await add_or_update_user(message.from_user.id)
+    # Save or update user in database with username
+    await add_or_update_user(
+        user_id=message.from_user.id,
+        username=message.from_user.username
+    )
 
     # Create inline keyboard with Mini App button
     keyboard = InlineKeyboardMarkup(
