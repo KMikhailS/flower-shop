@@ -198,7 +198,7 @@ const Cart: React.FC<CartProps> = ({
           }`}
         >
           <span className="text-xl font-medium leading-[1.174] text-black">
-            Заказть
+            Заказать
           </span>
         </button>
         </div>
