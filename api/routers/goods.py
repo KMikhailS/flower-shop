@@ -118,12 +118,15 @@ async def create_good_card_endpoint(
         existing_category = await get_category_by_title(good_card.category)
         if not existing_category:
             logger.info(f"Category '{good_card.category}' not found, creating new category")
-            await create_category(good_card.category)
+            category = await create_category(good_card.category)
+        else:
+            category = existing_category
+        category_id = category["id"]
 
         # Create good card in database
         created_good = await create_good_card(
             name=good_card.name,
-            category=good_card.category,
+            category_id=category_id,
             price=good_card.price,
             description=good_card.description,
             non_discount_price=good_card.non_discount_price
@@ -167,13 +170,16 @@ async def update_good_card_endpoint(
         existing_category = await get_category_by_title(good_card.category)
         if not existing_category:
             logger.info(f"Category '{good_card.category}' not found, creating new category")
-            await create_category(good_card.category)
+            category = await create_category(good_card.category)
+        else:
+            category = existing_category
+        category_id = category["id"]
 
         # Update good card in database
         updated_good = await update_good_card(
             good_id=good_id,
             name=good_card.name,
-            category=good_card.category,
+            category_id=category_id,
             price=good_card.price,
             description=good_card.description,
             non_discount_price=good_card.non_discount_price
