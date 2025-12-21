@@ -76,7 +76,7 @@ const Cart: React.FC<CartProps> = ({
       })),
       totalPrice,
       deliveryMethod: deliveryMethod === 'pickup' ? 'Самовывоз' : 'Курьером',
-      address: deliveryMethod === 'pickup' ? customAddress : selectedAddress,
+      address: deliveryMethod === 'pickup' ? selectedAddress : customAddress,
       timestamp: new Date().toISOString(),
     };
 
@@ -155,7 +155,7 @@ const Cart: React.FC<CartProps> = ({
         </div>
 
         {/* Address */}
-        {deliveryMethod === 'delivery' ? (
+        {deliveryMethod === 'pickup' ? (
           <div className="flex items-center gap-3 mb-8">
             <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-10 h-10">
               <g clipPath="url(#clip0_location)">
