@@ -6,8 +6,8 @@ interface SearchBarProps {
 
 const SearchBar: React.FC<SearchBarProps> = ({ userId }) => {
   const placeholder = userId
-    ? `Поиск версия 0.58 | ID: ${userId}`
-    : 'Поиск версия 0.58';
+    ? `Поиск версия 0.59 | ID: ${userId}`
+    : 'Поиск версия 0.59';
 
   return (
     <div className="px-4">
