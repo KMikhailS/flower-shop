@@ -80,7 +80,7 @@ async def send_order_notification_to_manager(order_data: dict) -> bool:
         if not bot_token:
             logger.error("BOT_TOKEN not found in environment variables")
             return False
-        
+        logger.info(f"Try sent order notification for order #{order_data['id']} to manager chat {manager_chat_id}")
         # Send notification
         bot = Bot(token=bot_token)
         try:
