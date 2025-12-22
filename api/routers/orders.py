@@ -12,6 +12,7 @@ from database import (
     get_orders,
     delete_order
 )
+from notifications import send_order_notification_to_manager
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,16 @@ async def create_order_endpoint(
             cart_items=cart_items_dict,
             createuser=user_id
         )
+
+        # Send notification to manager (non-blocking - don't fail if notification fails)
+        try:
+            notification_sent = await send_order_notification_to_manager(created_order)
+            if notification_sent:
+                logger.info(f"Order notification sent successfully for order #{created_order['id']}")
+            else:
+                logger.warning(f"Order notification was not sent for order #{created_order['id']}")
+        except Exception as e:
+            logger.error(f"Error sending order notification for order #{created_order['id']}: {str(e)}")
 
         # Return response
         return OrderDTO(
