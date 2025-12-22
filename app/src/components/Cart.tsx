@@ -4,7 +4,7 @@ import CartItem from './CartItem';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { CartItemData } from '../App';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
-import { createOrder, OrderRequest, fetchUserInfo, updateUserPhone } from '../api/client';
+import { createOrder, OrderRequest, fetchUserInfo } from '../api/client';
 
 interface CartProps {
   cartItems: CartItemData[];
