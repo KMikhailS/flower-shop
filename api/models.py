@@ -80,6 +80,11 @@ class UserModeUpdateRequest(BaseModel):
     mode: str
 
 
+class PhoneUpdateRequest(BaseModel):
+    """Request model for updating user phone"""
+    phone: str
+
+
 class SettingDTO(BaseModel):
     """Data transfer object for a single setting"""
     id: int

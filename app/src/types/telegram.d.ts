@@ -93,6 +93,7 @@ interface TelegramWebApp {
   showConfirm(message: string, callback?: (confirmed: boolean) => void): void;
   onEvent(eventType: string, callback: () => void): void;
   offEvent(eventType: string, callback: () => void): void;
+  requestContact(callback?: (result: boolean) => void): void;
 }
 
 interface Window {

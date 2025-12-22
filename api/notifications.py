@@ -41,7 +41,8 @@ async def send_order_notification_to_manager(order_data: dict) -> bool:
         # Get user information
         user = await get_user(order_data['user_id'])
         username = user.get('username', 'не указан') if user else 'не указан'
-        
+        phone = user.get('phone', 'не указан') if user else 'не указан'
+
         # Format delivery type
         delivery_type_text = "Самовывоз" if order_data['delivery_type'] == 'PICK_UP' else "Курьером"
         
@@ -65,8 +66,8 @@ async def send_order_notification_to_manager(order_data: dict) -> bool:
         message = (
             f"🆕 <b>НОВЫЙ ЗАКАЗ #{order_data['id']}</b>\n\n"
             f"👤 <b>Клиент:</b>\n"
-            f"ID: {order_data['user_id']}\n"
             f"Username: @{username}\n\n"
+            f"Номер телефона: @{phone}\n\n"
             f"📦 <b>Товары:</b>\n"
             f"{items_text}\n"
             f"💰 <b>Итого: {total_price}₽</b>\n\n"

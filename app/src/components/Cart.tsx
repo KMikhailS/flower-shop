@@ -4,7 +4,7 @@ import CartItem from './CartItem';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { CartItemData } from '../App';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
-import { createOrder, OrderRequest } from '../api/client';
+import { createOrder, OrderRequest, fetchUserInfo, updateUserPhone } from '../api/client';
 
 interface CartProps {
   cartItems: CartItemData[];
@@ -80,6 +80,75 @@ const Cart: React.FC<CartProps> = ({
     webApp?.HapticFeedback.notificationOccurred('success');
 
     try {
+      // Получаем initData для авторизации
+      const initData = webApp?.initData || '';
+
+      // Проверяем наличие контактных данных пользователя
+      const userInfo = await fetchUserInfo(initData);
+      
+      // Если нет ни username, ни phone - запрашиваем телефон
+      if (!userInfo.username && !userInfo.phone) {
+        setIsSubmitting(false);
+        
+        // Показываем информационное сообщение
+        const shouldRequestContact = await new Promise<boolean>((resolve) => {
+          webApp?.showConfirm(
+            'Для оформления заказа нам нужен ваш номер телефона. Предоставить контакт?',
+            (confirmed) => resolve(confirmed)
+          );
+        });
+
+        if (!shouldRequestContact) {
+          webApp?.showAlert('Без контактных данных мы не сможем связаться с вами для оформления заказа');
+          return;
+        }
+
+        // Запрашиваем контакт пользователя
+        const contactReceived = await new Promise<boolean>((resolve) => {
+          if (webApp?.requestContact) {
+            webApp.requestContact((result) => {
+              resolve(result);
+            });
+          } else {
+            resolve(false);
+          }
+        });
+
+        if (!contactReceived) {
+          webApp?.showAlert('Не удалось получить контактные данные. Попробуйте еще раз.');
+          return;
+        }
+
+        // После получения контакта, телефон должен быть в webApp.initDataUnsafe
+        // Но нам нужно получить его из события или из обновленного initData
+        // Telegram автоматически обновляет initDataUnsafe после предоставления контакта
+        // Поэтому мы можем получить телефон из user.phone_number если он есть
+        
+        // Ждем небольшую задержку для обновления данных
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Проверяем наличие телефона в Telegram user data
+        // @ts-ignore - Telegram может добавить phone_number после requestContact
+        const phoneNumber = user.phone_number;
+        
+        if (!phoneNumber) {
+          webApp?.showAlert('Не удалось получить номер телефона. Попробуйте еще раз.');
+          return;
+        }
+
+        // Сохраняем телефон на backend
+        try {
+          await updateUserPhone(phoneNumber, initData);
+          console.log('Phone number saved successfully:', phoneNumber);
+        } catch (error) {
+          console.error('Failed to save phone number:', error);
+          webApp?.showAlert('Ошибка при сохранении номера телефона. Попробуйте еще раз.');
+          return;
+        }
+
+        // Продолжаем с созданием заказа
+        setIsSubmitting(true);
+      }
       // Определяем тип доставки и адрес
       const delivery_type = deliveryMethod === 'pickup' ? 'PICK_UP' : 'COURIER';
       const delivery_address = deliveryMethod === 'pickup' ? selectedAddress : customAddress.trim();
@@ -95,9 +164,6 @@ const Cart: React.FC<CartProps> = ({
           count: item.quantity,
         })),
       };
-
-      // Получаем initData для авторизации
-      const initData = webApp?.initData || '';
 
       // Отправляем заказ на бэкенд
       const createdOrder = await createOrder(orderRequest, initData);

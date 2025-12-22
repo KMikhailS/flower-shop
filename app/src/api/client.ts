@@ -877,6 +877,36 @@ export async function updateUserMode(
 }
 
 /**
+ * Update current user phone number
+ *
+ * @param phone - Phone number to set
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<UserInfo> - Updated user information
+ * @throws Error if request fails
+ */
+export async function updateUserPhone(
+  phone: string,
+  initData: string
+): Promise<UserInfo> {
+  const response = await fetch(`${API_BASE_URL}/users/me/phone`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ phone }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to update user phone: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as UserInfo;
+}
+
+/**
  * Fetch all active settings (ADMIN only)
  *
  * @param initData - Telegram WebApp initData string

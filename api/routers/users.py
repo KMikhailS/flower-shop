@@ -2,8 +2,8 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from auth import verify_telegram_init_data, verify_admin_mode
-from models import UserInfoDTO, UserModeUpdateRequest, SettingDTO, SettingRequest
-from database import get_user, update_user_mode, get_all_settings, upsert_setting, delete_setting
+from models import UserInfoDTO, UserModeUpdateRequest, PhoneUpdateRequest, SettingDTO, SettingRequest
+from database import get_user, update_user_mode, add_or_update_user, get_all_settings, upsert_setting, delete_setting
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +67,43 @@ async def update_current_user_mode(
 
     if not user:
         logger.error(f"User {user_id} not found after mode update")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # Return updated user info
+    return UserInfoDTO(
+        id=user["id"],
+        role=user["role"],
+        mode=user["mode"],
+        status=user["status"],
+        username=user.get("username"),
+        phone=user.get("phone")
+    )
+
+
+@router.put("/me/phone", response_model=UserInfoDTO)
+async def update_current_user_phone(
+    request: PhoneUpdateRequest,
+    user_id: int = Depends(verify_telegram_init_data)
+):
+    """
+    Update current user phone number
+
+    Requires valid Telegram WebApp initData in Authorization header
+    Any authenticated user can update their own phone
+    """
+    logger.info(f"Updating phone for user_id={user_id}")
+
+    # Update user phone
+    await add_or_update_user(user_id, phone=request.phone)
+
+    # Get updated user info
+    user = await get_user(user_id)
+
+    if not user:
+        logger.error(f"User {user_id} not found after phone update")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
