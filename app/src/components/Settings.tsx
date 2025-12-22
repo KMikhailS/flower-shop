@@ -90,9 +90,9 @@ const Settings: React.FC<SettingsProps> = ({
 
       // Save support chat ID if provided
       if (supportChatId.trim()) {
-        // Validate: only digits allowed
-        if (!/^\d+$/.test(supportChatId.trim())) {
-          setError('ID чата поддержки должен содержать только цифры');
+        // Validate: digits with optional minus sign (for groups/supergroups)
+        if (!/^-?\d+$/.test(supportChatId.trim())) {
+          setError('ID чата поддержки должен быть числом (может быть отрицательным)');
           setIsSaving(false);
           return;
         }
@@ -101,9 +101,9 @@ const Settings: React.FC<SettingsProps> = ({
 
       // Save manager chat ID if provided
       if (managerChatId.trim()) {
-        // Validate: only digits allowed
-        if (!/^\d+$/.test(managerChatId.trim())) {
-          setError('ID чата менеджера должен содержать только цифры');
+        // Validate: digits with optional minus sign (for groups/supergroups)
+        if (!/^-?\d+$/.test(managerChatId.trim())) {
+          setError('ID чата менеджера должен быть числом (может быть отрицательным)');
           setIsSaving(false);
           return;
         }
@@ -192,7 +192,7 @@ const Settings: React.FC<SettingsProps> = ({
                 type="text"
                 value={supportChatId}
                 onChange={(e) => setSupportChatId(e.target.value)}
-                placeholder="Введите ID чата"
+                placeholder="Например: 123456789 или -1003195004506"
                 disabled={isSaving}
                 className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
               />
@@ -207,7 +207,7 @@ const Settings: React.FC<SettingsProps> = ({
                 type="text"
                 value={managerChatId}
                 onChange={(e) => setManagerChatId(e.target.value)}
-                placeholder="Введите ID чата"
+                placeholder="Например: 123456789 или -1003195004506"
                 disabled={isSaving}
                 className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
               />
