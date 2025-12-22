@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AppHeader from './AppHeader';
-import { fetchMyOrders, OrderDTO, fetchGoods, GoodDTO } from '../api/client';
+import { fetchMyOrders, OrderDTO, fetchAllGoods, GoodDTO } from '../api/client';
 
 interface MyOrdersProps {
   isOpen: boolean;
@@ -49,7 +49,7 @@ const MyOrders: React.FC<MyOrdersProps> = ({
         // Load orders and goods in parallel
         const [ordersData, goodsData] = await Promise.all([
           fetchMyOrders(initData),
-          fetchGoods()
+          fetchAllGoods(initData)
         ]);
 
         setOrders(ordersData);

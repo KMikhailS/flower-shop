@@ -5,6 +5,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 
 from dependencies import verify_admin_mode
+from auth import verify_telegram_init_data
 from models import GoodCardRequest, GoodDTO, ImageDTO, ImageReorderRequest
 from database import (
     create_good_card,
@@ -66,12 +67,12 @@ async def get_goods():
 
 
 @router.get("/all", response_model=list[GoodDTO])
-async def get_all_goods_endpoint(user_id: int = Depends(verify_admin_mode)):
+async def get_all_goods_endpoint(user_id: int = Depends(verify_telegram_init_data)):
     """
-    Get all goods regardless of status (ADMIN only)
+    Get all goods regardless of status
 
     Requires valid Telegram WebApp initData in Authorization header
-    User must be in ADMIN mode
+    Any authenticated user can access this endpoint (needed for order history)
     """
     logger.info(f"User {user_id} fetching all goods (all statuses)")
 
