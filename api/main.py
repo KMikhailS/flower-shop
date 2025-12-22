@@ -113,6 +113,34 @@ async def mode_callback_handler(callback_query: CallbackQuery):
     )
 
 
+@dp.message(lambda message: message.contact is not None)
+async def contact_handler(message: types.Message):
+    """Handle contact sharing from Web App"""
+    
+    # Get contact from message
+    contact = message.contact
+    
+    # Check if contact is from the same user (not someone else's contact)
+    if contact.user_id != message.from_user.id:
+        await message.answer("❌ Пожалуйста, поделитесь своим контактом, а не чужим.")
+        return
+    
+    # Save phone number to database
+    phone_number = contact.phone_number
+    await add_or_update_user(
+        user_id=message.from_user.id,
+        username=message.from_user.username,
+        phone=phone_number
+    )
+    
+    logger.info(f"Contact received from user {message.from_user.id}: {phone_number}")
+    
+    # Send confirmation message
+    await message.answer(
+        "✅ Спасибо! Ваш номер телефона сохранен.\n\nТеперь вы можете продолжить оформление заказа в магазине."
+    )
+
+
 async def run_bot():
     """Run Telegram bot with polling"""
     logger.info("Starting Telegram bot...")

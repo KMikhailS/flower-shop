@@ -66,7 +66,7 @@ async def send_order_notification_to_manager(order_data: dict) -> bool:
         message = (
             f"🆕 <b>НОВЫЙ ЗАКАЗ #{order_data['id']}</b>\n\n"
             f"👤 <b>Клиент:</b>\n"
-            f"Username: @{username}\n\n"
+            f"Username: @{username}\n"
             f"Номер телефона: @{phone}\n\n"
             f"📦 <b>Товары:</b>\n"
             f"{items_text}\n"

@@ -84,7 +84,7 @@ const Cart: React.FC<CartProps> = ({
       const initData = webApp?.initData || '';
 
       // Проверяем наличие контактных данных пользователя
-      const userInfo = await fetchUserInfo(initData);
+      let userInfo = await fetchUserInfo(initData);
       
       // Если нет ни username, ни phone - запрашиваем телефон
       if (!userInfo.username && !userInfo.phone) {
@@ -93,7 +93,7 @@ const Cart: React.FC<CartProps> = ({
         // Показываем информационное сообщение
         const shouldRequestContact = await new Promise<boolean>((resolve) => {
           webApp?.showConfirm(
-            'Для оформления заказа нам нужен ваш номер телефона. Предоставить контакт?',
+            'Для оформления заказа нам нужен ваш номер телефона. Поделиться контактом?',
             (confirmed) => resolve(confirmed)
           );
         });
@@ -103,51 +103,52 @@ const Cart: React.FC<CartProps> = ({
           return;
         }
 
-        // Запрашиваем контакт пользователя
-        const contactReceived = await new Promise<boolean>((resolve) => {
-          if (webApp?.requestContact) {
-            webApp.requestContact((result) => {
-              resolve(result);
-            });
-          } else {
-            resolve(false);
-          }
-        });
-
-        if (!contactReceived) {
-          webApp?.showAlert('Не удалось получить контактные данные. Попробуйте еще раз.');
-          return;
+        // Запрашиваем контакт пользователя через Telegram
+        if (webApp?.requestContact) {
+          webApp.requestContact();
+          
+          // Показываем сообщение с инструкцией
+          webApp?.showAlert(
+            'Сейчас откроется чат с ботом. Пожалуйста, поделитесь своим контактом, нажав на кнопку.',
+            async () => {
+              // После закрытия alert начинаем проверять обновление данных
+              let attempts = 0;
+              const maxAttempts = 15; // 15 попыток * 2 секунды = 30 секунд
+              
+              const checkInterval = setInterval(async () => {
+                attempts++;
+                
+                try {
+                  // Проверяем, сохранился ли телефон
+                  const updatedUserInfo = await fetchUserInfo(initData);
+                  
+                  if (updatedUserInfo.phone) {
+                    clearInterval(checkInterval);
+                    webApp?.showAlert(
+                      '✅ Номер телефона получен! Теперь нажмите "Заказать" еще раз для оформления заказа.',
+                      () => {
+                        webApp?.HapticFeedback.notificationOccurred('success');
+                      }
+                    );
+                  } else if (attempts >= maxAttempts) {
+                    clearInterval(checkInterval);
+                    webApp?.showAlert(
+                      'Не удалось получить номер телефона. Пожалуйста, убедитесь, что вы поделились своим контактом в чате с ботом, затем нажмите "Заказать" еще раз.'
+                    );
+                  }
+                } catch (error) {
+                  console.error('Failed to check updated user info:', error);
+                  if (attempts >= maxAttempts) {
+                    clearInterval(checkInterval);
+                  }
+                }
+              }, 2000); // Проверяем каждые 2 секунды
+            }
+          );
+        } else {
+          webApp?.showAlert('Ваш Telegram не поддерживает запрос контакта. Обновите приложение.');
         }
-
-        // После получения контакта, телефон должен быть в webApp.initDataUnsafe
-        // Но нам нужно получить его из события или из обновленного initData
-        // Telegram автоматически обновляет initDataUnsafe после предоставления контакта
-        // Поэтому мы можем получить телефон из user.phone_number если он есть
-        
-        // Ждем небольшую задержку для обновления данных
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Проверяем наличие телефона в Telegram user data
-        // @ts-ignore - Telegram может добавить phone_number после requestContact
-        const phoneNumber = user.phone_number;
-        
-        if (!phoneNumber) {
-          webApp?.showAlert('Не удалось получить номер телефона. Попробуйте еще раз.');
-          return;
-        }
-
-        // Сохраняем телефон на backend
-        try {
-          await updateUserPhone(phoneNumber, initData);
-          console.log('Phone number saved successfully:', phoneNumber);
-        } catch (error) {
-          console.error('Failed to save phone number:', error);
-          webApp?.showAlert('Ошибка при сохранении номера телефона. Попробуйте еще раз.');
-          return;
-        }
-
-        // Продолжаем с созданием заказа
-        setIsSubmitting(true);
+        return;
       }
       // Определяем тип доставки и адрес
       const delivery_type = deliveryMethod === 'pickup' ? 'PICK_UP' : 'COURIER';
