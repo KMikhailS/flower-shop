@@ -142,7 +142,7 @@ const Cart: React.FC<CartProps> = ({
                     clearInterval(checkInterval);
                   }
                 }
-              }, 2000); // Проверяем каждые 2 секунды
+              }, 1000); // Проверяем каждую секунду
             }
           );
         } else {
