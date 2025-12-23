@@ -274,13 +274,23 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
                     <div className="mt-4 flex gap-2">
                       <button
                         onClick={() => handleChangeStatus(order.id, order.status)}
-                        className="flex-1 py-2 px-4 bg-teal text-white rounded-[20px] font-medium hover:opacity-90 transition-opacity"
+                        disabled={order.status === 'CANCELLED' || order.status === 'COMPLETED'}
+                        className={`flex-1 py-2 px-4 rounded-[20px] font-medium transition-opacity ${
+                          order.status === 'CANCELLED' || order.status === 'COMPLETED'
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-teal text-white hover:opacity-90'
+                        }`}
                       >
                         Изменить статус
                       </button>
                       <button
                         onClick={() => handleCancelOrder(order.id, order.status)}
-                        className="flex-1 py-2 px-4 bg-red-500 text-white rounded-[20px] font-medium hover:opacity-90 transition-opacity"
+                        disabled={order.status === 'CANCELLED' || order.status === 'COMPLETED'}
+                        className={`flex-1 py-2 px-4 rounded-[20px] font-medium transition-opacity ${
+                          order.status === 'CANCELLED' || order.status === 'COMPLETED'
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-red-500 text-white hover:opacity-90'
+                        }`}
                       >
                         Отменить
                       </button>
@@ -294,49 +304,57 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
       </div>
 
       {/* Status Change Popup */}
-      {statusPopupOrderId !== null && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] max-w-[402px] mx-auto">
-          <div className="bg-white rounded-[20px] p-6 m-4 max-w-[340px] w-full">
-            <h3 className="text-lg font-semibold mb-4">Изменить статус заказа</h3>
-            
-            <div className="space-y-2 mb-6">
-              {['NEW', 'PROCESSING', 'COMPLETED', 'CANCELLED'].map((status) => (
-                <label
-                  key={status}
-                  className="flex items-center gap-3 p-3 border border-gray-200 rounded-[12px] cursor-pointer hover:bg-gray-50"
-                >
-                  <input
-                    type="radio"
-                    name="status"
-                    value={status}
-                    checked={selectedStatus === status}
-                    onChange={(e) => setSelectedStatus(e.target.value)}
-                    className="w-4 h-4 text-teal"
-                  />
-                  <span className={`text-sm font-medium ${getStatusColor(status)}`}>
-                    {getStatusLabel(status)}
-                  </span>
-                </label>
-              ))}
-            </div>
+      {statusPopupOrderId !== null && (() => {
+        const currentOrder = orders.find(o => o.id === statusPopupOrderId);
+        const isFinalized = currentOrder && (currentOrder.status === 'CANCELLED' || currentOrder.status === 'COMPLETED');
+        const availableStatuses = isFinalized 
+          ? ['NEW', 'PROCESSING', 'COMPLETED']
+          : ['NEW', 'PROCESSING', 'COMPLETED', 'CANCELLED'];
+        
+        return (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] max-w-[402px] mx-auto">
+            <div className="bg-white rounded-[20px] p-6 m-4 max-w-[340px] w-full">
+              <h3 className="text-lg font-semibold mb-4">Изменить статус заказа</h3>
+              
+              <div className="space-y-2 mb-6">
+                {availableStatuses.map((status) => (
+                  <label
+                    key={status}
+                    className="flex items-center gap-3 p-3 border border-gray-200 rounded-[12px] cursor-pointer hover:bg-gray-50"
+                  >
+                    <input
+                      type="radio"
+                      name="status"
+                      value={status}
+                      checked={selectedStatus === status}
+                      onChange={(e) => setSelectedStatus(e.target.value)}
+                      className="w-4 h-4 text-teal"
+                    />
+                    <span className={`text-sm font-medium ${getStatusColor(status)}`}>
+                      {getStatusLabel(status)}
+                    </span>
+                  </label>
+                ))}
+              </div>
 
-            <div className="flex gap-2">
-              <button
-                onClick={() => setStatusPopupOrderId(null)}
-                className="flex-1 py-2 px-4 bg-gray-200 text-gray-700 rounded-[20px] font-medium hover:opacity-90 transition-opacity"
-              >
-                Отмена
-              </button>
-              <button
-                onClick={handleSaveStatus}
-                className="flex-1 py-2 px-4 bg-teal text-white rounded-[20px] font-medium hover:opacity-90 transition-opacity"
-              >
-                Сохранить
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setStatusPopupOrderId(null)}
+                  className="flex-1 py-2 px-4 bg-gray-200 text-gray-700 rounded-[20px] font-medium hover:opacity-90 transition-opacity"
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={handleSaveStatus}
+                  className="flex-1 py-2 px-4 bg-teal text-white rounded-[20px] font-medium hover:opacity-90 transition-opacity"
+                >
+                  Сохранить
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
