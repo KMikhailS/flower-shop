@@ -115,7 +115,8 @@ async def init_db():
 
 
 async def add_or_update_user(user_id: int, username: Optional[str] = None, phone: Optional[str] = None) -> None:
-    """Add new user or update existing user's changestamp, username, and phone"""
+    """Add new user or update existing user's changestamp, username, and phone.
+    Only updates fields that are explicitly provided (not None)."""
     async with aiosqlite.connect(DB_PATH) as db:
         current_time = datetime.now().isoformat()
 
@@ -126,9 +127,23 @@ async def add_or_update_user(user_id: int, username: Optional[str] = None, phone
         user = await cursor.fetchone()
 
         if user:
+            # Build dynamic UPDATE query - only update fields that are provided
+            update_fields = ["changestamp = ?"]
+            params = [current_time]
+
+            if username is not None:
+                update_fields.append("username = ?")
+                params.append(username)
+
+            if phone is not None:
+                update_fields.append("phone = ?")
+                params.append(phone)
+
+            params.append(user_id)
+
             await db.execute(
-                "UPDATE user_info SET changestamp = ?, username = ?, phone = ? WHERE id = ?",
-                (current_time, username, phone, user_id)
+                f"UPDATE user_info SET {', '.join(update_fields)} WHERE id = ?",
+                params
             )
             logger.info(f"Updated user {user_id} with username={username}, phone={phone}")
         else:
