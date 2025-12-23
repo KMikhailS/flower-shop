@@ -29,10 +29,10 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
   const baseMenuItems = [
     { id: 1, label: 'Главная' },
     { id: 2, label: 'Мои заказы' },
-    { id: 3, label: 'Доставка' },
-    { id: 4, label: 'Обратная связь' },
-    { id: 5, label: 'Оплата' },
-    { id: 6, label: 'Адреса магазинов' },
+    { id: 3, label: 'Оплата' },
+    { id: 4, label: 'Доставка' },
+    { id: 5, label: 'Адреса магазинов' },
+    { id: 6, label: 'Обратная связь' },
   ];
 
   // Add Settings for ADMIN users only
@@ -71,7 +71,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                   if (onOpenSettings) {
                     onOpenSettings();
                   }
-                } else if (item.label === 'Сайт') {
+                } else if (item.label === 'Главная') {
                   onNavigateHome();
                 } else {
                   console.log(`Navigate to: ${item.label}`);
