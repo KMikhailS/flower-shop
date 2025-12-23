@@ -86,8 +86,8 @@ const Cart: React.FC<CartProps> = ({
       // Проверяем наличие контактных данных пользователя
       let userInfo = await fetchUserInfo(initData);
       
-      // Если нет ни username, ни phone - запрашиваем телефон
-      if (!userInfo.username && !userInfo.phone) {
+      // Если нет phone - запрашиваем телефон
+      if (!userInfo.phone) {
         setIsSubmitting(false);
         
         // Показываем информационное сообщение
@@ -113,7 +113,7 @@ const Cart: React.FC<CartProps> = ({
             async () => {
               // После закрытия alert начинаем проверять обновление данных
               let attempts = 0;
-              const maxAttempts = 15; // 15 попыток * 2 секунды = 30 секунд
+              const maxAttempts = 15; // 15 попыток * 1 секунду = 15 секунд
               
               const checkInterval = setInterval(async () => {
                 attempts++;
