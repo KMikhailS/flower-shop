@@ -141,7 +141,7 @@ const MyOrders: React.FC<MyOrdersProps> = ({
                       <div className="text-lg font-semibold">
                         Заказ #{order.id}
                       </div>
-                      <div className="text-sm text-gray-500 mt-1">
+                      <div className="text-sm text-black mt-1">
                         {formatDate(order.createstamp)}
                       </div>
                     </div>
@@ -151,11 +151,11 @@ const MyOrders: React.FC<MyOrdersProps> = ({
                   </div>
 
                   {/* Delivery Info */}
-                  <div className="text-sm text-gray-600 mb-3">
+                  <div className="text-sm text-black mb-3">
                     <div>
                       {order.delivery_type === 'PICK_UP' ? 'Самовывоз' : 'Доставка'}
                     </div>
-                    <div className="text-gray-500">
+                    <div className="text-black">
                       {order.delivery_address}
                     </div>
                   </div>
@@ -181,7 +181,7 @@ const MyOrders: React.FC<MyOrdersProps> = ({
                             <div className="text-sm font-medium">
                               {item.good_name}
                             </div>
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm text-black">
                               {item.count} шт. × {item.price} руб.
                             </div>
                           </div>
