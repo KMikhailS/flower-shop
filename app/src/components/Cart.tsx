@@ -17,6 +17,7 @@ interface CartProps {
   onDecreaseQuantity: (productId: number) => void;
   onRemoveItem: (productId: number) => void;
   onClearCart: () => void;
+  onOpenMyOrders: () => void;
 }
 
 const Cart: React.FC<CartProps> = ({
@@ -29,7 +30,8 @@ const Cart: React.FC<CartProps> = ({
   onIncreaseQuantity,
   onDecreaseQuantity,
   onRemoveItem,
-  onClearCart
+  onClearCart,
+  onOpenMyOrders
 }) => {
   const { webApp, user } = useTelegramWebApp();
   const [customAddress, setCustomAddress] = React.useState('');
@@ -195,8 +197,15 @@ const Cart: React.FC<CartProps> = ({
         webApp.sendData(JSON.stringify(botData));
       }
 
-      // Показываем сообщение об успехе
-      webApp?.showAlert('Заказ успешно оформлен!');
+      // Показываем сообщение об успехе с предложением перейти в "Мои заказы"
+      webApp?.showConfirm(
+        'Заказ успешно оформлен!\n\nИнформация о заказе в разделе Мои заказы. Перейти?',
+        (confirmed) => {
+          if (confirmed) {
+            onOpenMyOrders();
+          }
+        }
+      );
 
       // Очищаем корзину после успешной покупки
       onClearCart();

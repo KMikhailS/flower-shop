@@ -780,6 +780,10 @@ function App() {
             setCartItems([]);
             clearCart();
           }}
+          onOpenMyOrders={() => {
+            setIsCartOpen(false);
+            setIsMyOrdersOpen(true);
+          }}
         />
       )}
       {selectedProduct && !isCartOpen && (

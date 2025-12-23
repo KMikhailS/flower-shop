@@ -27,11 +27,11 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
   if (!isOpen) return null;
 
   const baseMenuItems = [
-    { id: 1, label: 'Сайт' },
-    { id: 2, label: 'Оплата' },
+    { id: 1, label: 'Главная' },
+    { id: 2, label: 'Мои заказы' },
     { id: 3, label: 'Доставка' },
     { id: 4, label: 'Обратная связь' },
-    { id: 5, label: 'Мои заказы' },
+    { id: 5, label: 'Оплата' },
     { id: 6, label: 'Адреса магазинов' },
   ];
 
