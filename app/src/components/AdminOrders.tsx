@@ -84,7 +84,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
       case 'PROCESSING':
         return 'text-blue-600 bg-blue-50 px-2 py-1 rounded-full whitespace-nowrap';
       case 'COMPLETED':
-        return 'text-green-600 bg-green-50 px-2 py-1 rounded-full whitespace-nowrap';
+        return 'text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full whitespace-nowrap';
       case 'CANCELLED':
         return 'text-red-600 bg-red-50 px-2 py-1 rounded-full whitespace-nowrap';
       default:
@@ -99,7 +99,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
       case 'PROCESSING':
         return 'text-blue-600';
       case 'COMPLETED':
-        return 'text-green-600';
+        return 'text-emerald-600';
       case 'CANCELLED':
         return 'text-red-600';
       default:
