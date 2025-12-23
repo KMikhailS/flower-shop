@@ -6,10 +6,10 @@ from database import get_user
 
 async def verify_admin_mode(user_id: int = Depends(verify_telegram_init_data)) -> int:
     """
-    Verify that the user is in ADMIN mode
+    Verify that the user has ADMIN role
 
     Requires valid Telegram WebApp initData in Authorization header
-    Returns user_id if user is in ADMIN mode, raises 403 otherwise
+    Returns user_id if user has ADMIN role, raises 403 otherwise
     """
     user = await get_user(user_id)
 
@@ -19,10 +19,10 @@ async def verify_admin_mode(user_id: int = Depends(verify_telegram_init_data)) -
             detail="User not found"
         )
 
-    if user.get("mode") != "ADMIN":
+    if user.get("role") != "ADMIN":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin mode required"
+            detail="Admin role required"
         )
 
     return user_id
