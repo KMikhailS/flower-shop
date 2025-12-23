@@ -225,7 +225,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
                         {formatDate(order.createstamp)}
                       </div>
                       <div className="text-sm text-gray-600 mt-1">
-                        ID пользователя: {order.user_id}
+                        Телефон: {order.user_phone || 'не указан'}
                       </div>
                     </div>
                     <div className={`text-sm font-bold ${getStatusColor(order.status)}`}>

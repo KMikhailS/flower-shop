@@ -132,6 +132,7 @@ class OrderDTO(BaseModel):
     id: int
     status: str
     user_id: int
+    user_phone: Optional[str] = None
     createstamp: str
     changestamp: str
     createuser: Optional[int] = None

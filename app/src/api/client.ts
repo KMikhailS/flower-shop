@@ -1028,6 +1028,7 @@ export interface OrderDTO {
   id: number;
   status: string;
   user_id: number;
+  user_phone?: string;
   createstamp: string;
   changestamp: string;
   createuser: number | null;

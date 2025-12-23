@@ -10,7 +10,8 @@ from database import (
     update_order,
     get_order_by_id,
     get_orders,
-    delete_order
+    delete_order,
+    get_user
 )
 from notifications import send_order_notification_to_manager
 
@@ -59,11 +60,16 @@ async def create_order_endpoint(
         except Exception as e:
             logger.error(f"Error sending order notification for order #{created_order['id']}: {str(e)}")
 
+        # Get user phone
+        user = await get_user(created_order["user_id"])
+        user_phone = user.get("phone") if user else None
+
         # Return response
         return OrderDTO(
             id=created_order["id"],
             status=created_order["status"],
             user_id=created_order["user_id"],
+            user_phone=user_phone,
             createstamp=created_order["createstamp"],
             changestamp=created_order["changestamp"],
             createuser=created_order.get("createuser"),
@@ -111,11 +117,16 @@ async def update_order_endpoint(
             changeuser=user_id
         )
 
+        # Get user phone
+        user = await get_user(updated_order["user_id"])
+        user_phone = user.get("phone") if user else None
+
         # Return response
         return OrderDTO(
             id=updated_order["id"],
             status=updated_order["status"],
             user_id=updated_order["user_id"],
+            user_phone=user_phone,
             createstamp=updated_order["createstamp"],
             changestamp=updated_order["changestamp"],
             createuser=updated_order.get("createuser"),
@@ -153,11 +164,16 @@ async def get_my_orders_endpoint(
     try:
         orders = await get_orders(user_id_filter=user_id)
 
+        # Get user phone
+        user = await get_user(user_id)
+        user_phone = user.get("phone") if user else None
+
         return [
             OrderDTO(
                 id=order["id"],
                 status=order["status"],
                 user_id=order["user_id"],
+                user_phone=user_phone,
                 createstamp=order["createstamp"],
                 changestamp=order["changestamp"],
                 createuser=order.get("createuser"),
@@ -192,10 +208,15 @@ async def get_order_endpoint(
     try:
         order = await get_order_by_id(order_id)
 
+        # Get user phone
+        user = await get_user(order["user_id"])
+        user_phone = user.get("phone") if user else None
+
         return OrderDTO(
             id=order["id"],
             status=order["status"],
             user_id=order["user_id"],
+            user_phone=user_phone,
             createstamp=order["createstamp"],
             changestamp=order["changestamp"],
             createuser=order.get("createuser"),
@@ -239,11 +260,16 @@ async def get_orders_endpoint(
     try:
         orders = await get_orders(order_id_filter=order_id, status_filter=status)
 
-        return [
-            OrderDTO(
+        # Build list with user phones
+        result = []
+        for order in orders:
+            user = await get_user(order["user_id"])
+            user_phone = user.get("phone") if user else None
+            result.append(OrderDTO(
                 id=order["id"],
                 status=order["status"],
                 user_id=order["user_id"],
+                user_phone=user_phone,
                 createstamp=order["createstamp"],
                 changestamp=order["changestamp"],
                 createuser=order.get("createuser"),
@@ -251,9 +277,9 @@ async def get_orders_endpoint(
                 delivery_type=order["delivery_type"],
                 delivery_address=order["delivery_address"],
                 cart_items=[CartItemDTO(**item) for item in order["cart_items"]]
-            )
-            for order in orders
-        ]
+            ))
+
+        return result
     except Exception as e:
         logger.error(f"Failed to fetch orders: {str(e)}")
         raise HTTPException(
