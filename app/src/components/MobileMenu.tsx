@@ -9,6 +9,7 @@ interface MobileMenuProps {
   onOpenPaymentInfo: () => void;
   onOpenSettings?: () => void;
   onOpenMyOrders: () => void;
+  onOpenAdminOrders?: () => void;
   onNavigateHome: () => void;
   userRole?: string;
 }
@@ -21,6 +22,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
   onOpenPaymentInfo,
   onOpenSettings,
   onOpenMyOrders,
+  onOpenAdminOrders,
   onNavigateHome,
   userRole
 }) => {
@@ -35,9 +37,14 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
     { id: 6, label: 'Обратная связь' },
   ];
 
-  // Add Settings for ADMIN users only
+  // Add admin-specific items for ADMIN users only
   const menuItems = userRole === 'ADMIN'
-    ? [...baseMenuItems, { id: 7, label: 'Настройки' }]
+    ? [
+        ...baseMenuItems,
+        { id: 7, label: 'separator' }, // Separator after "Обратная связь"
+        { id: 8, label: 'Заказы' },
+        { id: 9, label: 'Настройки' }
+      ]
     : baseMenuItems;
 
   return (
@@ -52,35 +59,51 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
 
         {/* Menu Items */}
         <nav className="flex flex-col gap-[22px] px-8 mt-10">
-          {menuItems.map((item) => (
-            <a
-              key={item.id}
-              href="#"
-              className="text-2xl font-normal text-black hover:opacity-70 transition-opacity"
-              onClick={(e) => {
-                e.preventDefault();
-                if (item.label === 'Адреса магазинов') {
-                  onOpenStoreAddresses();
-                } else if (item.label === 'Доставка') {
-                  onOpenDeliveryInfo();
-                } else if (item.label === 'Оплата') {
-                  onOpenPaymentInfo();
-                } else if (item.label === 'Мои заказы') {
-                  onOpenMyOrders();
-                } else if (item.label === 'Настройки') {
-                  if (onOpenSettings) {
-                    onOpenSettings();
+          {menuItems.map((item) => {
+            // Render separator
+            if (item.label === 'separator') {
+              return (
+                <div
+                  key={item.id}
+                  className="border-t border-gray-200 -mx-8"
+                />
+              );
+            }
+
+            return (
+              <a
+                key={item.id}
+                href="#"
+                className="text-2xl font-normal text-black hover:opacity-70 transition-opacity"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (item.label === 'Адреса магазинов') {
+                    onOpenStoreAddresses();
+                  } else if (item.label === 'Доставка') {
+                    onOpenDeliveryInfo();
+                  } else if (item.label === 'Оплата') {
+                    onOpenPaymentInfo();
+                  } else if (item.label === 'Мои заказы') {
+                    onOpenMyOrders();
+                  } else if (item.label === 'Заказы') {
+                    if (onOpenAdminOrders) {
+                      onOpenAdminOrders();
+                    }
+                  } else if (item.label === 'Настройки') {
+                    if (onOpenSettings) {
+                      onOpenSettings();
+                    }
+                  } else if (item.label === 'Главная') {
+                    onNavigateHome();
+                  } else {
+                    console.log(`Navigate to: ${item.label}`);
                   }
-                } else if (item.label === 'Главная') {
-                  onNavigateHome();
-                } else {
-                  console.log(`Navigate to: ${item.label}`);
-                }
-              }}
-            >
-              {item.label}
-            </a>
-          ))}
+                }}
+              >
+                {item.label}
+              </a>
+            );
+          })}
         </nav>
       </div>
     </div>

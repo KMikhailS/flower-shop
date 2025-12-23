@@ -1091,3 +1091,85 @@ export async function fetchMyOrders(initData: string): Promise<OrderDTO[]> {
   const data = await response.json();
   return data as OrderDTO[];
 }
+
+/**
+ * Fetch all orders from all users (ADMIN only)
+ *
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<OrderDTO[]> - List of all orders
+ * @throws Error if request fails
+ */
+export async function fetchAllOrders(initData: string): Promise<OrderDTO[]> {
+  const response = await fetch(`${API_BASE_URL}/orders`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch all orders: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as OrderDTO[];
+}
+
+/**
+ * Update order status (ADMIN only)
+ *
+ * @param orderId - ID of the order to update
+ * @param status - New status value
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<OrderDTO> - Updated order data
+ * @throws Error if request fails
+ */
+export async function updateOrderStatus(
+  orderId: number,
+  status: string,
+  initData: string
+): Promise<OrderDTO> {
+  // We need to fetch the order first to preserve other fields
+  const currentOrderResponse = await fetch(`${API_BASE_URL}/orders/${orderId}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!currentOrderResponse.ok) {
+    throw new Error('Failed to fetch current order');
+  }
+
+  const orderData = await currentOrderResponse.json();
+
+  // Update the order with new status
+  const response = await fetch(`${API_BASE_URL}/orders/${orderId}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      status: status,
+      user_id: orderData.user_id,
+      delivery_type: orderData.delivery_type,
+      delivery_address: orderData.delivery_address,
+      cart_items: orderData.cart_items.map((item: CartItemDTO) => ({
+        good_id: item.good_id,
+        count: item.count
+      }))
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to update order status: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as OrderDTO;
+}
