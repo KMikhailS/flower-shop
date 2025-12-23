@@ -107,44 +107,43 @@ const Cart: React.FC<CartProps> = ({
         if (webApp?.requestContact) {
           webApp.requestContact();
           
-          // Показываем сообщение с инструкцией
+          // Показываем сообщение с инструкцией (БЕЗ колбэка)
           webApp?.showAlert(
-            'Сейчас откроется чат с ботом. Пожалуйста, поделитесь своим контактом, нажав на кнопку.',
-            async () => {
-              // После закрытия alert начинаем проверять обновление данных
-              let attempts = 0;
-              const maxAttempts = 15; // 15 попыток * 1 секунду = 15 секунд
-              
-              const checkInterval = setInterval(async () => {
-                attempts++;
-                
-                try {
-                  // Проверяем, сохранился ли телефон
-                  const updatedUserInfo = await fetchUserInfo(initData);
-                  
-                  if (updatedUserInfo.phone) {
-                    clearInterval(checkInterval);
-                    webApp?.showAlert(
-                      '✅ Номер телефона получен! Теперь нажмите "Заказать" еще раз для оформления заказа.',
-                      () => {
-                        webApp?.HapticFeedback.notificationOccurred('success');
-                      }
-                    );
-                  } else if (attempts >= maxAttempts) {
-                    clearInterval(checkInterval);
-                    webApp?.showAlert(
-                      'Не удалось получить номер телефона. Пожалуйста, убедитесь, что вы поделились своим контактом в чате с ботом, затем нажмите "Заказать" еще раз.'
-                    );
-                  }
-                } catch (error) {
-                  console.error('Failed to check updated user info:', error);
-                  if (attempts >= maxAttempts) {
-                    clearInterval(checkInterval);
-                  }
-                }
-              }, 1000); // Проверяем каждую секунду
-            }
+            'Сейчас откроется чат с ботом. Пожалуйста, поделитесь своим контактом, нажав на кнопку.'
           );
+          
+          // Запускаем проверку обновления данных на верхнем уровне
+          let attempts = 0;
+          const maxAttempts = 15; // 15 попыток * 1 секунду = 15 секунд
+          
+          const checkInterval = setInterval(async () => {
+            attempts++;
+            
+            try {
+              // Проверяем, сохранился ли телефон
+              const updatedUserInfo = await fetchUserInfo(initData);
+              
+              if (updatedUserInfo.phone) {
+                clearInterval(checkInterval);
+                // Haptic feedback перед показом сообщения
+                webApp?.HapticFeedback.notificationOccurred('success');
+                // Показываем успешное сообщение на верхнем уровне
+                webApp?.showAlert(
+                  '✅ Номер телефона получен! Теперь нажмите "Заказать" еще раз для оформления заказа.'
+                );
+              } else if (attempts >= maxAttempts) {
+                clearInterval(checkInterval);
+                webApp?.showAlert(
+                  'Не удалось получить номер телефона. Пожалуйста, убедитесь, что вы поделились своим контактом в чате с ботом, затем нажмите "Заказать" еще раз.'
+                );
+              }
+            } catch (error) {
+              console.error('Failed to check updated user info:', error);
+              if (attempts >= maxAttempts) {
+                clearInterval(checkInterval);
+              }
+            }
+          }, 1000); // Проверяем каждую секунду
         } else {
           webApp?.showAlert('Ваш Telegram не поддерживает запрос контакта. Обновите приложение.');
         }
