@@ -92,6 +92,21 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
     }
   };
 
+  const getStatusTextColor = (status: string) => {
+    switch (status) {
+      case 'NEW':
+        return 'text-gray-600';
+      case 'PROCESSING':
+        return 'text-blue-600';
+      case 'COMPLETED':
+        return 'text-green-600';
+      case 'CANCELLED':
+        return 'text-red-600';
+      default:
+        return 'text-gray-600';
+    }
+  };
+
   const getStatusLabel = (status: string) => {
     const statusMap: Record<string, string> = {
       'NEW': 'Новый',
@@ -213,7 +228,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
                         ID пользователя: {order.user_id}
                       </div>
                     </div>
-                    <div className={`text-lg font-bold ${getStatusColor(order.status)}`}>
+                    <div className={`text-base font-bold ${getStatusColor(order.status)}`}>
                       {getStatusLabel(order.status)}
                     </div>
                   </div>
@@ -330,7 +345,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
                       onChange={(e) => setSelectedStatus(e.target.value)}
                       className="w-4 h-4 text-teal"
                     />
-                    <span className={`text-sm font-medium ${getStatusColor(status)}`}>
+                    <span className={`text-sm font-medium ${getStatusTextColor(status)}`}>
                       {getStatusLabel(status)}
                     </span>
                   </label>
