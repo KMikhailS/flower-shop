@@ -80,15 +80,15 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'NEW':
-        return 'text-green-600';
+        return 'text-gray-600 bg-gray-100 px-3 py-1 rounded-full';
       case 'PROCESSING':
-        return 'text-blue-600';
+        return 'text-blue-600 bg-blue-50 px-3 py-1 rounded-full';
       case 'COMPLETED':
-        return 'text-gray-500';
+        return 'text-green-600 bg-green-50 px-3 py-1 rounded-full';
       case 'CANCELLED':
-        return 'text-red-600';
+        return 'text-red-600 bg-red-50 px-3 py-1 rounded-full';
       default:
-        return 'text-gray-500';
+        return 'text-gray-600 bg-gray-100 px-3 py-1 rounded-full';
     }
   };
 
@@ -213,7 +213,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
                         ID пользователя: {order.user_id}
                       </div>
                     </div>
-                    <div className={`text-sm font-medium ${getStatusColor(order.status)}`}>
+                    <div className={`text-lg font-bold ${getStatusColor(order.status)}`}>
                       {getStatusLabel(order.status)}
                     </div>
                   </div>
