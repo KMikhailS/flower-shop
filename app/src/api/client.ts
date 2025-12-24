@@ -47,6 +47,7 @@ export interface PromoBannerDTO {
   status: string;
   display_order: number;
   image_url: string;
+  link?: number | null;
 }
 
 // Category from backend
@@ -533,6 +534,41 @@ export async function activatePromoBanner(
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Failed to activate promo banner: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as PromoBannerDTO;
+}
+
+/**
+ * Update promo banner link (product ID) (ADMIN only)
+ *
+ * @param bannerId - ID of the banner to update
+ * @param link - Product ID to link to (or null to remove link)
+ * @param initData - Telegram WebApp initData string
+ * @returns Promise<PromoBannerDTO> - Updated promo banner data
+ * @throws Error if request fails
+ */
+export async function updatePromoBannerLink(
+  bannerId: number,
+  link: number | null,
+  initData: string
+): Promise<PromoBannerDTO> {
+  const url = link !== null
+    ? `${API_BASE_URL}/promo/${bannerId}/link?link=${link}`
+    : `${API_BASE_URL}/promo/${bannerId}/link`;
+
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `tma ${initData}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to update promo banner link: ${response.status} ${errorText}`);
   }
 
   const data = await response.json();

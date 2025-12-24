@@ -71,7 +71,8 @@ async def init_db():
                 changestamp TIMESTAMP,
                 status TEXT DEFAULT 'NEW',
                 display_order INTEGER DEFAULT 0,
-                image_url TEXT NOT NULL
+                image_url TEXT NOT NULL,
+                link INTEGER
             )
         """)
         await db.execute("""
@@ -664,7 +665,7 @@ async def get_promo_banners() -> list[dict]:
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
-            """SELECT id, status, display_order, image_url
+            """SELECT id, status, display_order, image_url, link
                FROM promo_banner
                WHERE status = 'NEW'
                ORDER BY display_order ASC"""
@@ -681,7 +682,7 @@ async def get_all_promo_banners() -> list[dict]:
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
-            """SELECT id, status, display_order, image_url
+            """SELECT id, status, display_order, image_url, link
                FROM promo_banner
                ORDER BY display_order ASC"""
         )
@@ -716,7 +717,7 @@ async def create_promo_banner(image_url: str) -> dict:
         # Get the created promo banner
         banner_id = cursor.lastrowid
         cursor = await db.execute(
-            "SELECT * FROM promo_banner WHERE id = ?",
+            "SELECT id, status, display_order, image_url, link FROM promo_banner WHERE id = ?",
             (banner_id,)
         )
         row = await cursor.fetchone()
@@ -766,7 +767,7 @@ async def update_promo_banner_status(banner_id: int, new_status: str) -> dict:
 
         # Get the updated banner
         cursor = await db.execute(
-            "SELECT * FROM promo_banner WHERE id = ?",
+            "SELECT id, status, display_order, image_url, link FROM promo_banner WHERE id = ?",
             (banner_id,)
         )
         row = await cursor.fetchone()
@@ -777,6 +778,37 @@ async def update_promo_banner_status(banner_id: int, new_status: str) -> dict:
 
         result = dict(row)
         logger.info(f"Updated status for promo banner id={banner_id} to {new_status}")
+        return result
+
+
+async def update_promo_banner_link(banner_id: int, link: Optional[int]) -> dict:
+    """Update promo banner link (product ID)"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        current_time = datetime.now().isoformat()
+
+        # Update the link
+        await db.execute(
+            """UPDATE promo_banner
+               SET link = ?, changestamp = ?
+               WHERE id = ?""",
+            (link, current_time, banner_id)
+        )
+        await db.commit()
+
+        # Get the updated banner
+        cursor = await db.execute(
+            "SELECT id, status, display_order, image_url, link FROM promo_banner WHERE id = ?",
+            (banner_id,)
+        )
+        row = await cursor.fetchone()
+
+        if not row:
+            logger.error(f"Promo banner with id={banner_id} not found")
+            raise ValueError(f"Promo banner with id={banner_id} not found")
+
+        result = dict(row)
+        logger.info(f"Updated link for promo banner id={banner_id} to {link}")
         return result
 
 

@@ -193,9 +193,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, onAddToC
           </div>
 
           {/* Description */}
-          <p className="text-base font-normal leading-[1.174] text-black mb-8">
+          <p className="text-base font-normal leading-[1.174] text-black mb-4">
             {product.description}
           </p>
+
+          {/* Product ID for ADMIN */}
+          {userInfo?.mode === 'ADMIN' && (
+            <p className="text-sm font-normal leading-[1.174] text-gray-medium mb-4">
+              ID: {product.id}
+            </p>
+          )}
 
           {/* Action Buttons */}
           <div className="flex gap-[10px] pb-8">

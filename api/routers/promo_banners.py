@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 
 from dependencies import verify_admin_mode
 from models import PromoBannerDTO
-from database import get_promo_banners, get_all_promo_banners, create_promo_banner, delete_promo_banner, update_promo_banner_status
+from database import get_promo_banners, get_all_promo_banners, create_promo_banner, delete_promo_banner, update_promo_banner_status, update_promo_banner_link
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,8 @@ async def get_promo():
                 id=banner["id"],
                 status=banner["status"],
                 display_order=banner["display_order"],
-                image_url=banner["image_url"]
+                image_url=banner["image_url"],
+                link=banner["link"]
             )
             for banner in banners
         ]
@@ -65,7 +66,8 @@ async def get_all_promo(user_id: int = Depends(verify_admin_mode)):
                 id=banner["id"],
                 status=banner["status"],
                 display_order=banner["display_order"],
-                image_url=banner["image_url"]
+                image_url=banner["image_url"],
+                link=banner["link"]
             )
             for banner in banners
         ]
@@ -141,7 +143,8 @@ async def create_promo_banner_endpoint(
             id=banner["id"],
             status=banner["status"],
             display_order=banner["display_order"],
-            image_url=banner["image_url"]
+            image_url=banner["image_url"],
+            link=banner["link"]
         )
     except Exception as e:
         logger.error(f"Failed to create promo banner in database: {str(e)}")
@@ -197,7 +200,8 @@ async def block_promo_banner_endpoint(
             id=banner["id"],
             status=banner["status"],
             display_order=banner["display_order"],
-            image_url=banner["image_url"]
+            image_url=banner["image_url"],
+            link=banner["link"]
         )
     except ValueError as e:
         raise HTTPException(
@@ -230,7 +234,8 @@ async def activate_promo_banner_endpoint(
             id=banner["id"],
             status=banner["status"],
             display_order=banner["display_order"],
-            image_url=banner["image_url"]
+            image_url=banner["image_url"],
+            link=banner["link"]
         )
     except ValueError as e:
         raise HTTPException(
@@ -242,4 +247,39 @@ async def activate_promo_banner_endpoint(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to activate promo banner"
+        )
+
+
+@router.put("/{id}/link", response_model=PromoBannerDTO)
+async def update_promo_banner_link_endpoint(
+    id: int,
+    link: int | None = None,
+    user_id: int = Depends(verify_admin_mode)
+):
+    """
+    Update promo banner link (product ID) (ADMIN only)
+
+    Returns updated PromoBannerDTO
+    """
+    logger.info(f"User {user_id} updating link for promo banner with id={id} to {link}")
+
+    try:
+        banner = await update_promo_banner_link(id, link)
+        return PromoBannerDTO(
+            id=banner["id"],
+            status=banner["status"],
+            display_order=banner["display_order"],
+            image_url=banner["image_url"],
+            link=banner["link"]
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Failed to update promo banner link: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update promo banner link"
         )

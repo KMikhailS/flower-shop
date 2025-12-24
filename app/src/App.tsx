@@ -18,7 +18,7 @@ import AdminProductCard from './components/AdminProductCard';
 import AdminPromoBannerCard from './components/AdminPromoBannerCard';
 import { useTelegramWebApp } from './hooks/useTelegramWebApp';
 import { useCartPersistence } from './hooks/useCartPersistence';
-import { fetchUserInfo, UserInfo, createGoodCard, fetchGoods, fetchAllGoods, GoodDTO, addGoodImages, updateGoodCard, deleteGood, blockGood, activateGood, fetchPromoBanners, fetchAllPromoBanners, PromoBannerDTO, createPromoBanner, deletePromoBanner, blockPromoBanner, activatePromoBanner } from './api/client';
+import { fetchUserInfo, UserInfo, createGoodCard, fetchGoods, fetchAllGoods, GoodDTO, addGoodImages, updateGoodCard, deleteGood, blockGood, activateGood, fetchPromoBanners, fetchAllPromoBanners, PromoBannerDTO, createPromoBanner, deletePromoBanner, blockPromoBanner, activatePromoBanner, updatePromoBannerLink } from './api/client';
 
 export interface CartItemData {
   product: Product;
@@ -468,6 +468,24 @@ function App() {
     }
   };
 
+  const handleSaveBanner = async (link: number | null) => {
+    if (!webApp || !webApp.initData || !editingBanner) {
+      alert('Ошибка: недоступен Telegram WebApp или баннер не выбран');
+      return;
+    }
+
+    try {
+      await updatePromoBannerLink(editingBanner.id, link, webApp.initData);
+      setIsAdminBannerCardOpen(false);
+      setEditingBanner(null);
+      await loadPromoBanners();
+      alert('Баннер успешно сохранён');
+    } catch (error) {
+      console.error('Failed to save banner:', error);
+      alert('Ошибка при сохранении баннера');
+    }
+  };
+
   // Функция для загрузки товаров с бэкенда
   const loadProducts = async () => {
     try {
@@ -836,6 +854,7 @@ function App() {
           }}
           onDelete={handleDeleteBanner}
           onBlock={handleToggleBlockBanner}
+          onSave={handleSaveBanner}
         />
       )}
       <div className="flex flex-col gap-4">

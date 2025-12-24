@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PromoBannerDTO } from '../api/client';
 
 interface AdminPromoBannerCardProps {
@@ -6,14 +6,25 @@ interface AdminPromoBannerCardProps {
   onClose: () => void;
   onDelete: () => void;
   onBlock: () => void;
+  onSave: (link: number | null) => void;
 }
 
 const AdminPromoBannerCard: React.FC<AdminPromoBannerCardProps> = ({
   banner,
   onClose,
   onDelete,
-  onBlock
+  onBlock,
+  onSave
 }) => {
+  const [linkValue, setLinkValue] = useState<string>(
+    banner.link != null ? String(banner.link) : ''
+  );
+
+  const handleSave = () => {
+    const link = linkValue.trim() === '' ? null : parseInt(linkValue, 10);
+    onSave(isNaN(link as number) ? null : link);
+  };
+
   return (
     <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto overflow-y-auto">
       <div className="min-h-full flex flex-col">
@@ -25,12 +36,21 @@ const AdminPromoBannerCard: React.FC<AdminPromoBannerCardProps> = ({
               alt="Promo Banner"
               className="w-full h-full object-cover"
             />
-            {/*<div className="absolute top-4 left-5">*/}
-            {/*  <div className="bg-green rounded-[30px] px-4 py-2 inline-block">*/}
-            {/*    <span className="text-white font-raleway text-xs font-medium">Акция</span>*/}
-            {/*  </div>*/}
-            {/*</div>*/}
           </div>
+        </div>
+
+        {/* Link Input Section */}
+        <div className="px-8 pt-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Ссылка на товар (ID товара)
+          </label>
+          <input
+            type="number"
+            value={linkValue}
+            onChange={(e) => setLinkValue(e.target.value)}
+            placeholder="Введите ID товара"
+            className="w-full h-[50px] px-4 bg-gray-light rounded-[15px] text-sm focus:outline-none focus:ring-2 focus:ring-teal"
+          />
         </div>
 
         {/* Action Buttons Section */}
@@ -38,7 +58,7 @@ const AdminPromoBannerCard: React.FC<AdminPromoBannerCardProps> = ({
           {/* Save and Cancel Buttons */}
           <div className="flex gap-[10px] mb-4">
             <button
-              onClick={onClose}
+              onClick={handleSave}
               className="flex-1 h-[66px] bg-teal rounded-[30px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] flex items-center justify-center"
             >
               <span className="text-sm font-semibold leading-[1.174] text-black">Сохранить</span>

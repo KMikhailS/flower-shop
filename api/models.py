@@ -61,6 +61,7 @@ class PromoBannerDTO(BaseModel):
     status: str
     display_order: int
     image_url: str
+    link: Optional[int] = None
 
 
 class CategoryDTO(BaseModel):
