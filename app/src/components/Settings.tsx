@@ -192,7 +192,7 @@ const Settings: React.FC<SettingsProps> = ({
 
         {/* Settings Form */}
         {!isLoading && (
-          <div className="flex flex-col gap-6 px-6 mt-[25px]">
+          <div className="flex flex-col gap-6 px-6 mt-[25px] flex-1 overflow-y-auto pb-6">
             {/* Mode Toggle */}
             <div className="flex flex-col gap-3">
               <label className="text-base font-semibold text-black">
