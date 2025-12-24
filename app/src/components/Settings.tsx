@@ -162,8 +162,8 @@ const Settings: React.FC<SettingsProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto">
-      <div className="flex flex-col h-full">
+    <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto overflow-y-auto">
+      <div className="flex flex-col min-h-full">
         {/* Header */}
         <AppHeader
           title="FanFanTulpan"
@@ -192,7 +192,7 @@ const Settings: React.FC<SettingsProps> = ({
 
         {/* Settings Form */}
         {!isLoading && (
-          <div className="flex flex-col gap-6 px-6 mt-[25px] flex-1 overflow-y-auto pb-6">
+          <div className="flex flex-col gap-6 px-6 mt-[25px] pb-6">
             {/* Mode Toggle */}
             <div className="flex flex-col gap-3">
               <label className="text-base font-semibold text-black">
