@@ -13,7 +13,7 @@ from database import (
     delete_order,
     get_user
 )
-from notifications import send_order_notification_to_manager
+from notifications import send_order_notification_to_manager, send_order_notification_to_email
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +59,16 @@ async def create_order_endpoint(
                 logger.warning(f"Order notification was not sent for order #{created_order['id']}")
         except Exception as e:
             logger.error(f"Error sending order notification for order #{created_order['id']}: {str(e)}")
+
+        # Send email notification (non-blocking - don't fail if notification fails)
+        try:
+            email_sent = await send_order_notification_to_email(created_order)
+            if email_sent:
+                logger.info(f"Email notification sent successfully for order #{created_order['id']}")
+            else:
+                logger.warning(f"Email notification was not sent for order #{created_order['id']}")
+        except Exception as e:
+            logger.error(f"Error sending email notification for order #{created_order['id']}: {str(e)}")
 
         # Get user phone
         user = await get_user(created_order["user_id"])

@@ -22,6 +22,10 @@ const Settings: React.FC<SettingsProps> = ({
   const [currentMode, setCurrentMode] = useState<string>(userMode || 'USER');
   const [supportChatId, setSupportChatId] = useState<string>('');
   const [managerChatId, setManagerChatId] = useState<string>('');
+  const [orderEmail, setOrderEmail] = useState<string>('');
+  const [orderEmailPassword, setOrderEmailPassword] = useState<string>('');
+  const [smtpHost, setSmtpHost] = useState<string>('');
+  const [smtpPort, setSmtpPort] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,9 +56,17 @@ const Settings: React.FC<SettingsProps> = ({
       // Find specific settings by type
       const supportSetting = settings.find((s: Setting) => s.type === 'SUPPORT_CHAT_ID');
       const managerSetting = settings.find((s: Setting) => s.type === 'MANAGER_CHAT_ID');
+      const orderEmailSetting = settings.find((s: Setting) => s.type === 'ORDER_EMAIL');
+      const orderEmailPasswordSetting = settings.find((s: Setting) => s.type === 'ORDER_EMAIL_PASSWORD');
+      const smtpHostSetting = settings.find((s: Setting) => s.type === 'SMTP_HOST');
+      const smtpPortSetting = settings.find((s: Setting) => s.type === 'SMTP_PORT');
 
       setSupportChatId(supportSetting?.value || '');
       setManagerChatId(managerSetting?.value || '');
+      setOrderEmail(orderEmailSetting?.value || '');
+      setOrderEmailPassword(orderEmailPasswordSetting?.value || '');
+      setSmtpHost(smtpHostSetting?.value || '');
+      setSmtpPort(smtpPortSetting?.value || '');
     } catch (err) {
       console.error('Failed to load settings:', err);
       setError('Не удалось загрузить настройки');
@@ -108,6 +120,32 @@ const Settings: React.FC<SettingsProps> = ({
           return;
         }
         await upsertSetting('MANAGER_CHAT_ID', managerChatId.trim(), initData);
+      }
+
+      // Save order email if provided
+      if (orderEmail.trim()) {
+        await upsertSetting('ORDER_EMAIL', orderEmail.trim(), initData);
+      }
+
+      // Save order email password if provided
+      if (orderEmailPassword.trim()) {
+        await upsertSetting('ORDER_EMAIL_PASSWORD', orderEmailPassword.trim(), initData);
+      }
+
+      // Save SMTP host if provided
+      if (smtpHost.trim()) {
+        await upsertSetting('SMTP_HOST', smtpHost.trim(), initData);
+      }
+
+      // Save SMTP port if provided
+      if (smtpPort.trim()) {
+        // Validate: digits only
+        if (!/^\d+$/.test(smtpPort.trim())) {
+          setError('SMTP порт должен быть числом');
+          setIsSaving(false);
+          return;
+        }
+        await upsertSetting('SMTP_PORT', smtpPort.trim(), initData);
       }
 
       // Success - close settings
@@ -192,7 +230,6 @@ const Settings: React.FC<SettingsProps> = ({
                 type="text"
                 value={supportChatId}
                 onChange={(e) => setSupportChatId(e.target.value)}
-                placeholder="Например: 123456789 или -1003195004506"
                 disabled={isSaving}
                 className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
               />
@@ -207,8 +244,67 @@ const Settings: React.FC<SettingsProps> = ({
                 type="text"
                 value={managerChatId}
                 onChange={(e) => setManagerChatId(e.target.value)}
-                placeholder="Например: 123456789 или -1003195004506"
                 disabled={isSaving}
+                className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
+              />
+            </div>
+
+            {/* Order Email */}
+            <div className="flex flex-col gap-3">
+              <label className="text-base font-semibold text-black">
+                Почта для отправки заказов
+              </label>
+              <input
+                type="email"
+                value={orderEmail}
+                onChange={(e) => setOrderEmail(e.target.value)}
+                disabled={isSaving}
+                placeholder="shop@gmail.com"
+                className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
+              />
+            </div>
+
+            {/* Order Email Password */}
+            <div className="flex flex-col gap-3">
+              <label className="text-base font-semibold text-black">
+                Пароль от почты
+              </label>
+              <input
+                type="password"
+                value={orderEmailPassword}
+                onChange={(e) => setOrderEmailPassword(e.target.value)}
+                disabled={isSaving}
+                placeholder="App Password для Gmail"
+                className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
+              />
+            </div>
+
+            {/* SMTP Host */}
+            <div className="flex flex-col gap-3">
+              <label className="text-base font-semibold text-black">
+                SMTP сервер
+              </label>
+              <input
+                type="text"
+                value={smtpHost}
+                onChange={(e) => setSmtpHost(e.target.value)}
+                disabled={isSaving}
+                placeholder="smtp.gmail.com"
+                className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
+              />
+            </div>
+
+            {/* SMTP Port */}
+            <div className="flex flex-col gap-3">
+              <label className="text-base font-semibold text-black">
+                SMTP порт
+              </label>
+              <input
+                type="text"
+                value={smtpPort}
+                onChange={(e) => setSmtpPort(e.target.value)}
+                disabled={isSaving}
+                placeholder="587"
                 className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
               />
             </div>
