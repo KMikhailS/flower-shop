@@ -7,9 +7,10 @@ interface PromoBannerProps {
   isAdminMode?: boolean;
   onAddNew?: () => void;
   onEdit?: (banner: PromoBannerDTO) => void;
+  onBannerClick?: (banner: PromoBannerDTO) => void;
 }
 
-const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNew, onEdit }) => {
+const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNew, onEdit, onBannerClick }) => {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
@@ -80,6 +81,13 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNe
     setTouchEnd(0);
   };
 
+  const handleBannerClick = () => {
+    // Only trigger click if banner has a link and we're not in admin mode
+    if (currentBanner.link && onBannerClick) {
+      onBannerClick(currentBanner);
+    }
+  };
+
   return (
     <div className="space-y-2">
       <div
@@ -91,7 +99,8 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNe
         <img
           src={currentBanner.image_url}
           alt="Promo Banner"
-          className="w-full h-full object-cover"
+          className={`w-full h-full object-cover ${currentBanner.link ? 'cursor-pointer' : ''}`}
+          onClick={handleBannerClick}
         />
         <div className="absolute top-4 left-5">
           <div className="bg-green rounded-[30px] px-4 py-2 inline-block">

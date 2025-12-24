@@ -413,6 +413,16 @@ function App() {
     input.click();
   };
 
+  // Обработчик клика по баннеру - открывает товар по link
+  const handleBannerClick = (banner: PromoBannerDTO) => {
+    if (!banner.link) return;
+
+    const product = products.find(p => p.id === banner.link);
+    if (product) {
+      setSelectedProduct(product);
+    }
+  };
+
   // Обработчики для редактирования баннеров
   const handleEditBanner = (banner: PromoBannerDTO) => {
     setEditingBanner(banner);
@@ -872,6 +882,7 @@ function App() {
           isAdminMode={userInfo?.mode === 'ADMIN'}
           onAddNew={handleAddPromoBanner}
           onEdit={handleEditBanner}
+          onBannerClick={handleBannerClick}
         />
         <CategoryTabs
           categories={uniqueCategories}

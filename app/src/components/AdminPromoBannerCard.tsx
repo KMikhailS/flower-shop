@@ -45,9 +45,16 @@ const AdminPromoBannerCard: React.FC<AdminPromoBannerCardProps> = ({
             Ссылка на товар (ID товара)
           </label>
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={linkValue}
-            onChange={(e) => setLinkValue(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === '' || /^\d+$/.test(val)) {
+                setLinkValue(val);
+              }
+            }}
             placeholder="Введите ID товара"
             className="w-full h-[50px] px-4 bg-gray-light rounded-[15px] text-sm focus:outline-none focus:ring-2 focus:ring-teal"
           />
