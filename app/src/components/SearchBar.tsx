@@ -1,14 +1,10 @@
 import React from 'react';
 
 interface SearchBarProps {
-  userId?: number;
+  onSearchChange: (query: string) => void;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ userId }) => {
-  const placeholder = userId
-    ? `Поиск версия 0.61 | ID: ${userId}`
-    : 'Поиск версия 0.61';
-
+const SearchBar: React.FC<SearchBarProps> = ({ onSearchChange }) => {
   return (
     <div className="px-4">
       <div className="bg-gray-light rounded-[32px] px-4 py-3 flex items-center gap-2">
@@ -17,7 +13,8 @@ const SearchBar: React.FC<SearchBarProps> = ({ userId }) => {
         </svg>
         <input
           type="text"
-          placeholder={placeholder}
+          placeholder="Поиск"
+          onChange={(e) => onSearchChange(e.target.value)}
           className="bg-transparent flex-1 outline-none font-inter text-base text-gray-medium placeholder:text-gray-medium"
         />
       </div>

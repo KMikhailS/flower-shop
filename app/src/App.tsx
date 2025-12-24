@@ -51,6 +51,7 @@ function App() {
   const [isAdminBannerCardOpen, setIsAdminBannerCardOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState<PromoBannerDTO | null>(null);
   const [activeCategory, setActiveCategory] = useState<string[]>(['all']);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Состояние корзины - теперь массив товаров
   const [cartItems, setCartItems] = useState<CartItemData[]>([]);
@@ -68,15 +69,23 @@ function App() {
     return Array.from(new Set(categories));
   }, [products]);
 
-  // Filter products based on active categories
+  // Filter products based on active categories and search query
   const filteredProducts = useMemo(() => {
-    // If "all" is selected, show all products
-    if (activeCategory.includes('all')) {
-      return products;
+    let result = products;
+
+    // Filter by category
+    if (!activeCategory.includes('all')) {
+      result = result.filter(p => p.category && activeCategory.includes(p.category));
     }
-    // Otherwise, show products from selected categories
-    return products.filter(p => p.category && activeCategory.includes(p.category));
-  }, [products, activeCategory]);
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(p => p.title.toLowerCase().includes(query));
+    }
+
+    return result;
+  }, [products, activeCategory, searchQuery]);
 
   // Handle category toggle
   const handleCategoryToggle = (category: string) => {
@@ -876,7 +885,7 @@ function App() {
             setIsMenuOpen(true);
           }}
         />
-        <SearchBar userId={userInfo?.id} />
+        <SearchBar onSearchChange={setSearchQuery} />
         <PromoBanner
           banners={promoBanners}
           isAdminMode={userInfo?.mode === 'ADMIN'}
