@@ -76,8 +76,18 @@ const MyOrders: React.FC<MyOrdersProps> = ({
   };
 
   const getStatusColor = (status: string) => {
-    if (status === 'NEW') return 'text-green-600';
-    return 'text-gray-500';
+    switch (status) {
+      case 'NEW':
+        return 'text-gray-600 bg-gray-100 px-2 py-1 rounded-full whitespace-nowrap';
+      case 'PROCESSING':
+        return 'text-blue-600 bg-blue-50 px-2 py-1 rounded-full whitespace-nowrap';
+      case 'COMPLETED':
+        return 'text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full whitespace-nowrap';
+      case 'CANCELLED':
+        return 'text-red-600 bg-red-50 px-2 py-1 rounded-full whitespace-nowrap';
+      default:
+        return 'text-gray-600 bg-gray-100 px-2 py-1 rounded-full whitespace-nowrap';
+    }
   };
 
   const getStatusLabel = (status: string) => {
@@ -145,7 +155,7 @@ const MyOrders: React.FC<MyOrdersProps> = ({
                         {formatDate(order.createstamp)}
                       </div>
                     </div>
-                    <div className={`text-sm font-medium ${getStatusColor(order.status)}`}>
+                    <div className={`text-sm font-bold ${getStatusColor(order.status)}`}>
                       {getStatusLabel(order.status)}
                     </div>
                   </div>
