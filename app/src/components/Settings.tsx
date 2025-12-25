@@ -23,6 +23,7 @@ const Settings: React.FC<SettingsProps> = ({
   const [supportChatId, setSupportChatId] = useState<string>('');
   const [managerChatId, setManagerChatId] = useState<string>('');
   const [orderEmail, setOrderEmail] = useState<string>('');
+  const [orderEmailTo, setOrderEmailTo] = useState<string>('');
   const [orderEmailPassword, setOrderEmailPassword] = useState<string>('');
   const [smtpHost, setSmtpHost] = useState<string>('');
   const [smtpPort, setSmtpPort] = useState<string>('');
@@ -69,6 +70,7 @@ const Settings: React.FC<SettingsProps> = ({
       const supportSetting = settings.find((s: Setting) => s.type === 'SUPPORT_CHAT_ID');
       const managerSetting = settings.find((s: Setting) => s.type === 'MANAGER_CHAT_ID');
       const orderEmailSetting = settings.find((s: Setting) => s.type === 'ORDER_EMAIL');
+      const orderEmailToSetting = settings.find((s: Setting) => s.type === 'ORDER_EMAIL_TO');
       const orderEmailPasswordSetting = settings.find((s: Setting) => s.type === 'ORDER_EMAIL_PASSWORD');
       const smtpHostSetting = settings.find((s: Setting) => s.type === 'SMTP_HOST');
       const smtpPortSetting = settings.find((s: Setting) => s.type === 'SMTP_PORT');
@@ -76,6 +78,7 @@ const Settings: React.FC<SettingsProps> = ({
       setSupportChatId(supportSetting?.value || '');
       setManagerChatId(managerSetting?.value || '');
       setOrderEmail(orderEmailSetting?.value || '');
+      setOrderEmailTo(orderEmailToSetting?.value || '');
       setOrderEmailPassword(orderEmailPasswordSetting?.value || '');
       setSmtpHost(smtpHostSetting?.value || '');
       setSmtpPort(smtpPortSetting?.value || '');
@@ -137,6 +140,11 @@ const Settings: React.FC<SettingsProps> = ({
       // Save order email if provided
       if (orderEmail.trim()) {
         await upsertSetting('ORDER_EMAIL', orderEmail.trim(), initData);
+      }
+
+      // Save order email to if provided
+      if (orderEmailTo.trim()) {
+        await upsertSetting('ORDER_EMAIL_TO', orderEmailTo.trim(), initData);
       }
 
       // Save order email password if provided
@@ -272,6 +280,21 @@ const Settings: React.FC<SettingsProps> = ({
                 onChange={(e) => setOrderEmail(e.target.value)}
                 disabled={isSaving}
                 placeholder="shop@gmail.com"
+                className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
+              />
+            </div>
+
+            {/* Order Email To */}
+            <div className="flex flex-col gap-3">
+              <label className="text-base font-semibold text-black">
+                Почта получатель
+              </label>
+              <input
+                type="email"
+                value={orderEmailTo}
+                onChange={(e) => setOrderEmailTo(e.target.value)}
+                disabled={isSaving}
+                placeholder="manager@gmail.com"
                 className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
               />
             </div>

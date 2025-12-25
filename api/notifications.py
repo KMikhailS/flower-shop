@@ -123,6 +123,7 @@ async def send_order_notification_to_email(order_data: dict) -> bool:
     try:
         # Get email settings from database
         email_setting = await get_setting_by_type('ORDER_EMAIL')
+        email_to_setting = await get_setting_by_type('ORDER_EMAIL_TO')
         password_setting = await get_setting_by_type('ORDER_EMAIL_PASSWORD')
         smtp_host_setting = await get_setting_by_type('SMTP_HOST')
         smtp_port_setting = await get_setting_by_type('SMTP_PORT')
@@ -130,6 +131,10 @@ async def send_order_notification_to_email(order_data: dict) -> bool:
         # Check if all required settings exist
         if not email_setting or not email_setting.get('value'):
             logger.warning("ORDER_EMAIL setting not found or empty. Skipping email notification.")
+            return False
+
+        if not email_to_setting or not email_to_setting.get('value'):
+            logger.warning("ORDER_EMAIL_TO setting not found or empty. Skipping email notification.")
             return False
 
         if not password_setting or not password_setting.get('value'):
@@ -145,6 +150,7 @@ async def send_order_notification_to_email(order_data: dict) -> bool:
             return False
 
         order_email = email_setting['value']
+        order_email_to = email_to_setting['value']
         order_password = password_setting['value']
         smtp_host = smtp_host_setting['value']
         smtp_port = int(smtp_port_setting['value'])
@@ -196,7 +202,7 @@ Username: {'@' + username if username != 'не указан' else 'не указ
         # Create email message
         msg = MIMEMultipart()
         msg['From'] = order_email
-        msg['To'] = order_email  # Send to the same email
+        msg['To'] = order_email_to
         msg['Subject'] = subject
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
 
