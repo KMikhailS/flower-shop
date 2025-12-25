@@ -30,6 +30,18 @@ const Settings: React.FC<SettingsProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (isOpen) {
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      // Restore body scroll when modal closes
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   // Load settings when component opens
   useEffect(() => {
     if (isOpen && initData) {
@@ -162,8 +174,8 @@ const Settings: React.FC<SettingsProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto overflow-y-auto">
-      <div className="flex flex-col min-h-full">
+    <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto">
+      <div className="h-full overflow-y-auto">
         {/* Header */}
         <AppHeader
           title="FanFanTulpan"
@@ -274,7 +286,6 @@ const Settings: React.FC<SettingsProps> = ({
                 value={orderEmailPassword}
                 onChange={(e) => setOrderEmailPassword(e.target.value)}
                 disabled={isSaving}
-                placeholder="App Password для Gmail"
                 className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
               />
             </div>
@@ -289,7 +300,6 @@ const Settings: React.FC<SettingsProps> = ({
                 value={smtpHost}
                 onChange={(e) => setSmtpHost(e.target.value)}
                 disabled={isSaving}
-                placeholder="smtp.gmail.com"
                 className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
               />
             </div>
