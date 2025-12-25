@@ -141,3 +141,9 @@ class OrderDTO(BaseModel):
     delivery_type: str
     delivery_address: str
     cart_items: list[CartItemDTO]
+
+
+class OrdersPageDTO(BaseModel):
+    """Paginated response for orders list"""
+    items: list[OrderDTO]
+    total: int

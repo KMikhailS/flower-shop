@@ -1,6 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import AppHeader from './AppHeader';
-import { fetchAllOrders, OrderDTO, fetchAllGoods, GoodDTO, updateOrderStatus } from '../api/client';
+import { fetchAllOrders, OrderDTO, fetchAllGoods, GoodDTO, updateOrderStatus, OrdersFilterParams } from '../api/client';
+
+type DatePeriod = 'all' | 'today' | '3days' | 'week' | 'month' | 'custom';
+const ORDERS_PER_PAGE = 20;
+const ALL_STATUSES = ['NEW', 'PROCESSING', 'SENT', 'COMPLETED', 'CANCELLED'] as const;
 
 interface AdminOrdersProps {
   isOpen: boolean;
@@ -20,6 +24,17 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
   const [statusPopupOrderId, setStatusPopupOrderId] = useState<number | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>('');
 
+  // Filter states
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [datePeriod, setDatePeriod] = useState<DatePeriod>('all');
+  const [customDateFrom, setCustomDateFrom] = useState<string>('');
+  const [customDateTo, setCustomDateTo] = useState<string>('');
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalOrders, setTotalOrders] = useState(0);
+
   useEffect(() => {
     if (isOpen) {
       // Prevent body scroll when modal is open
@@ -32,6 +47,96 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
     };
   }, [isOpen]);
 
+  // Calculate date range based on period
+  const getDateRange = useCallback((): { dateFrom?: string; dateTo?: string } => {
+    const now = new Date();
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+    switch (datePeriod) {
+      case 'today': {
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        return { dateFrom: startOfDay.toISOString(), dateTo: endOfDay.toISOString() };
+      }
+      case '3days': {
+        const start = new Date(now);
+        start.setDate(start.getDate() - 2);
+        start.setHours(0, 0, 0, 0);
+        return { dateFrom: start.toISOString(), dateTo: endOfDay.toISOString() };
+      }
+      case 'week': {
+        const start = new Date(now);
+        start.setDate(start.getDate() - 6);
+        start.setHours(0, 0, 0, 0);
+        return { dateFrom: start.toISOString(), dateTo: endOfDay.toISOString() };
+      }
+      case 'month': {
+        const start = new Date(now);
+        start.setDate(start.getDate() - 29);
+        start.setHours(0, 0, 0, 0);
+        return { dateFrom: start.toISOString(), dateTo: endOfDay.toISOString() };
+      }
+      case 'custom': {
+        const result: { dateFrom?: string; dateTo?: string } = {};
+        if (customDateFrom) {
+          result.dateFrom = new Date(customDateFrom).toISOString();
+        }
+        if (customDateTo) {
+          const to = new Date(customDateTo);
+          to.setHours(23, 59, 59, 999);
+          result.dateTo = to.toISOString();
+        }
+        return result;
+      }
+      default:
+        return {};
+    }
+  }, [datePeriod, customDateFrom, customDateTo]);
+
+  // Load orders with current filters
+  const loadOrders = useCallback(async () => {
+    if (!initData) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const dateRange = getDateRange();
+      const filters: OrdersFilterParams = {
+        statuses: selectedStatuses.length > 0 ? selectedStatuses : undefined,
+        dateFrom: dateRange.dateFrom,
+        dateTo: dateRange.dateTo,
+        limit: ORDERS_PER_PAGE,
+        offset: (currentPage - 1) * ORDERS_PER_PAGE,
+      };
+
+      const result = await fetchAllOrders(initData, filters);
+      setOrders(result.items);
+      setTotalOrders(result.total);
+    } catch (err) {
+      console.error('Failed to load orders:', err);
+      setError('Не удалось загрузить заказы');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [initData, selectedStatuses, getDateRange, currentPage]);
+
+  // Load goods once on mount
+  useEffect(() => {
+    if (!isOpen || !initData) return;
+
+    const loadGoods = async () => {
+      try {
+        const goodsData = await fetchAllGoods(initData);
+        setGoods(goodsData);
+      } catch (err) {
+        console.error('Failed to load goods:', err);
+      }
+    };
+
+    loadGoods();
+  }, [isOpen, initData]);
+
+  // Load orders when filters or page changes
   useEffect(() => {
     if (!isOpen) return;
 
@@ -41,31 +146,13 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
       return;
     }
 
-    const loadData = async () => {
-      setIsLoading(true);
-      setError(null);
+    loadOrders();
+  }, [isOpen, initData, loadOrders]);
 
-      console.log('AdminOrders: Loading all orders with initData length:', initData.length);
-
-      try {
-        // Load orders and goods in parallel
-        const [ordersData, goodsData] = await Promise.all([
-          fetchAllOrders(initData),
-          fetchAllGoods(initData)
-        ]);
-
-        setOrders(ordersData);
-        setGoods(goodsData);
-      } catch (err) {
-        console.error('Failed to load orders:', err);
-        setError('Не удалось загрузить заказы');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, [isOpen, initData]);
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedStatuses, datePeriod, customDateFrom, customDateTo]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -130,6 +217,28 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
     return '/images/placeholder.png';
   };
 
+  const toggleStatus = (status: string) => {
+    setSelectedStatuses(prev =>
+      prev.includes(status)
+        ? prev.filter(s => s !== status)
+        : [...prev, status]
+    );
+  };
+
+  const getDatePeriodLabel = (period: DatePeriod): string => {
+    switch (period) {
+      case 'all': return 'Все';
+      case 'today': return 'Сегодня';
+      case '3days': return '3 дня';
+      case 'week': return 'Неделя';
+      case 'month': return 'Месяц';
+      case 'custom': return 'Свой';
+      default: return '';
+    }
+  };
+
+  const totalPages = Math.ceil(totalOrders / ORDERS_PER_PAGE);
+
   const handleChangeStatus = (orderId: number, currentStatus: string) => {
     setStatusPopupOrderId(orderId);
     setSelectedStatus(currentStatus);
@@ -148,9 +257,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
 
     try {
       await updateOrderStatus(orderId, 'CANCELLED', initData);
-      // Reload orders
-      const ordersData = await fetchAllOrders(initData);
-      setOrders(ordersData);
+      await loadOrders();
       alert('Заказ отменён');
     } catch (err) {
       console.error('Failed to cancel order:', err);
@@ -172,9 +279,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
 
     try {
       await updateOrderStatus(statusPopupOrderId, selectedStatus, initData);
-      // Reload orders
-      const ordersData = await fetchAllOrders(initData);
-      setOrders(ordersData);
+      await loadOrders();
       setStatusPopupOrderId(null);
       alert('Статус заказа изменён');
     } catch (err) {
@@ -194,7 +299,114 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
           onAction={onMenuClick}
         />
 
-        <div className="px-6 py-6">
+        {/* Filter Toggle Button */}
+        <div className="px-6 pt-4">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2 text-sm text-teal font-medium"
+          >
+            <svg className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+            Фильтры
+            {(selectedStatuses.length > 0 || datePeriod !== 'all') && (
+              <span className="bg-teal text-white text-xs px-2 py-0.5 rounded-full">
+                {selectedStatuses.length + (datePeriod !== 'all' ? 1 : 0)}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className="px-6 py-4 border-b border-gray-200 space-y-4">
+            {/* Status Filters */}
+            <div>
+              <div className="text-sm font-medium text-gray-700 mb-2">Статус заказа:</div>
+              <div className="flex flex-wrap gap-2">
+                {ALL_STATUSES.map(status => (
+                  <button
+                    key={status}
+                    onClick={() => toggleStatus(status)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+                      selectedStatuses.includes(status)
+                        ? 'bg-teal text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {getStatusLabel(status)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Date Period Filters */}
+            <div>
+              <div className="text-sm font-medium text-gray-700 mb-2">Период:</div>
+              <div className="flex flex-wrap gap-2">
+                {(['all', 'today', '3days', 'week', 'month', 'custom'] as DatePeriod[]).map(period => (
+                  <button
+                    key={period}
+                    onClick={() => setDatePeriod(period)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+                      datePeriod === period
+                        ? 'bg-teal text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {getDatePeriodLabel(period)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom Date Range */}
+            {datePeriod === 'custom' && (
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 block mb-1">От:</label>
+                  <input
+                    type="date"
+                    value={customDateFrom}
+                    onChange={(e) => setCustomDateFrom(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 block mb-1">До:</label>
+                  <input
+                    type="date"
+                    value={customDateTo}
+                    onChange={(e) => setCustomDateTo(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Clear Filters */}
+            {(selectedStatuses.length > 0 || datePeriod !== 'all') && (
+              <button
+                onClick={() => {
+                  setSelectedStatuses([]);
+                  setDatePeriod('all');
+                  setCustomDateFrom('');
+                  setCustomDateTo('');
+                }}
+                className="text-sm text-red-500 hover:text-red-600"
+              >
+                Сбросить фильтры
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Results count */}
+        <div className="px-6 py-2 text-sm text-gray-500">
+          Найдено: {totalOrders} {totalOrders === 1 ? 'заказ' : totalOrders < 5 ? 'заказа' : 'заказов'}
+        </div>
+
+        <div className="px-6 py-4">
           {isLoading && (
             <div className="text-center py-8 text-gray-500">
               Загрузка заказов...
@@ -318,6 +530,37 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
                   </div>
                 </div>
               ))}
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-4 mt-6 pb-4">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className={`px-4 py-2 rounded-[20px] font-medium transition-opacity ${
+                      currentPage === 1
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        : 'bg-teal text-white hover:opacity-90'
+                    }`}
+                  >
+                    Назад
+                  </button>
+                  <span className="text-sm text-gray-600">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className={`px-4 py-2 rounded-[20px] font-medium transition-opacity ${
+                      currentPage === totalPages
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        : 'bg-teal text-white hover:opacity-90'
+                    }`}
+                  >
+                    Вперёд
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

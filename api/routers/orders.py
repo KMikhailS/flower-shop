@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 
 from dependencies import verify_admin_mode
 from auth import verify_telegram_init_data
-from models import OrderRequest, OrderDTO, CartItemDTO
+from models import OrderRequest, OrderDTO, CartItemDTO, OrdersPageDTO
 from database import (
     create_order,
     update_order,
@@ -161,6 +161,7 @@ async def update_order_endpoint(
 
 @router.get("/my", response_model=list[OrderDTO])
 async def get_my_orders_endpoint(
+    statuses: Optional[str] = Query(None, description="Filter by statuses (comma-separated)"),
     user_id: int = Depends(verify_telegram_init_data)
 ):
     """
@@ -172,7 +173,13 @@ async def get_my_orders_endpoint(
     logger.info(f"User {user_id} fetching their orders")
 
     try:
-        orders = await get_orders(user_id_filter=user_id)
+        # Parse statuses if provided
+        statuses_list = None
+        if statuses:
+            statuses_list = [s.strip() for s in statuses.split(",") if s.strip()]
+
+        result = await get_orders(user_id_filter=user_id, statuses_filter=statuses_list)
+        orders = result['items']
 
         # Get user phone
         user = await get_user(user_id)
@@ -249,33 +256,53 @@ async def get_order_endpoint(
         )
 
 
-@router.get("", response_model=list[OrderDTO])
+@router.get("", response_model=OrdersPageDTO)
 async def get_orders_endpoint(
     order_id: Optional[int] = Query(None, description="Filter by order ID"),
-    status: Optional[str] = Query(None, description="Filter by order status"),
+    statuses: Optional[str] = Query(None, description="Filter by statuses (comma-separated, e.g. 'NEW,PROCESSING')"),
+    date_from: Optional[str] = Query(None, description="Filter by date from (ISO format)"),
+    date_to: Optional[str] = Query(None, description="Filter by date to (ISO format)"),
+    limit: Optional[int] = Query(None, description="Limit number of results"),
+    offset: Optional[int] = Query(None, description="Offset for pagination"),
     user_id: int = Depends(verify_admin_mode)
 ):
     """
-    Get all orders with optional filters (ADMIN only)
+    Get all orders with optional filters and pagination (ADMIN only)
 
     Query parameters:
     - order_id: Filter by specific order ID
-    - status: Filter by order status
+    - statuses: Filter by statuses (comma-separated, e.g. 'NEW,PROCESSING')
+    - date_from: Filter by creation date from (ISO format)
+    - date_to: Filter by creation date to (ISO format)
+    - limit: Limit number of results
+    - offset: Offset for pagination
 
     Requires valid Telegram WebApp initData in Authorization header
     User must be in ADMIN mode
     """
-    logger.info(f"User {user_id} fetching orders with filters: order_id={order_id}, status={status}")
+    logger.info(f"User {user_id} fetching orders with filters: order_id={order_id}, statuses={statuses}, date_from={date_from}, date_to={date_to}, limit={limit}, offset={offset}")
 
     try:
-        orders = await get_orders(order_id_filter=order_id, status_filter=status)
+        # Parse statuses if provided
+        statuses_list = None
+        if statuses:
+            statuses_list = [s.strip() for s in statuses.split(",") if s.strip()]
+
+        result = await get_orders(
+            order_id_filter=order_id,
+            statuses_filter=statuses_list,
+            date_from=date_from,
+            date_to=date_to,
+            limit=limit,
+            offset=offset
+        )
 
         # Build list with user phones
-        result = []
-        for order in orders:
+        items = []
+        for order in result['items']:
             user = await get_user(order["user_id"])
             user_phone = user.get("phone") if user else None
-            result.append(OrderDTO(
+            items.append(OrderDTO(
                 id=order["id"],
                 status=order["status"],
                 user_id=order["user_id"],
@@ -289,7 +316,7 @@ async def get_orders_endpoint(
                 cart_items=[CartItemDTO(**item) for item in order["cart_items"]]
             ))
 
-        return result
+        return OrdersPageDTO(items=items, total=result['total'])
     except Exception as e:
         logger.error(f"Failed to fetch orders: {str(e)}")
         raise HTTPException(

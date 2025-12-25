@@ -1075,6 +1075,25 @@ export interface OrderDTO {
 }
 
 /**
+ * Paginated orders response
+ */
+export interface OrdersPageDTO {
+  items: OrderDTO[];
+  total: number;
+}
+
+/**
+ * Filter parameters for fetching orders
+ */
+export interface OrdersFilterParams {
+  statuses?: string[];
+  dateFrom?: string;
+  dateTo?: string;
+  limit?: number;
+  offset?: number;
+}
+
+/**
  * Create a new order
  *
  * @param orderData - Order data to create
@@ -1130,14 +1149,41 @@ export async function fetchMyOrders(initData: string): Promise<OrderDTO[]> {
 }
 
 /**
- * Fetch all orders from all users (ADMIN only)
+ * Fetch all orders from all users with optional filters (ADMIN only)
  *
  * @param initData - Telegram WebApp initData string
- * @returns Promise<OrderDTO[]> - List of all orders
+ * @param filters - Optional filter parameters (statuses, dateFrom, dateTo, limit, offset)
+ * @returns Promise<OrdersPageDTO> - Paginated orders response with items and total count
  * @throws Error if request fails
  */
-export async function fetchAllOrders(initData: string): Promise<OrderDTO[]> {
-  const response = await fetch(`${API_BASE_URL}/orders`, {
+export async function fetchAllOrders(
+  initData: string,
+  filters?: OrdersFilterParams
+): Promise<OrdersPageDTO> {
+  const params = new URLSearchParams();
+
+  if (filters) {
+    if (filters.statuses && filters.statuses.length > 0) {
+      params.append('statuses', filters.statuses.join(','));
+    }
+    if (filters.dateFrom) {
+      params.append('date_from', filters.dateFrom);
+    }
+    if (filters.dateTo) {
+      params.append('date_to', filters.dateTo);
+    }
+    if (filters.limit !== undefined) {
+      params.append('limit', filters.limit.toString());
+    }
+    if (filters.offset !== undefined) {
+      params.append('offset', filters.offset.toString());
+    }
+  }
+
+  const queryString = params.toString();
+  const url = queryString ? `${API_BASE_URL}/orders?${queryString}` : `${API_BASE_URL}/orders`;
+
+  const response = await fetch(url, {
     method: 'GET',
     headers: {
       'Authorization': `tma ${initData}`,
@@ -1151,7 +1197,7 @@ export async function fetchAllOrders(initData: string): Promise<OrderDTO[]> {
   }
 
   const data = await response.json();
-  return data as OrderDTO[];
+  return data as OrdersPageDTO;
 }
 
 /**

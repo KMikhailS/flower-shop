@@ -1262,28 +1262,80 @@ async def get_order_by_id(order_id: int) -> dict:
         return result
 
 
-async def get_orders(order_id_filter: Optional[int] = None, status_filter: Optional[str] = None, user_id_filter: Optional[int] = None) -> list[dict]:
-    """Get all orders with optional filters"""
+async def get_orders(
+    order_id_filter: Optional[int] = None,
+    status_filter: Optional[str] = None,
+    statuses_filter: Optional[list[str]] = None,
+    user_id_filter: Optional[int] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None
+) -> dict:
+    """Get orders with optional filters and pagination.
+
+    Returns dict with 'items' (list of orders) and 'total' (total count for pagination).
+    """
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
 
         # Build query with filters
         query = "SELECT * FROM orders WHERE 1=1"
+        count_query = "SELECT COUNT(*) as total FROM orders WHERE 1=1"
         params = []
+        count_params = []
 
         if order_id_filter is not None:
             query += " AND id = ?"
+            count_query += " AND id = ?"
             params.append(order_id_filter)
+            count_params.append(order_id_filter)
 
-        if status_filter is not None:
+        # Support both single status and multiple statuses
+        if statuses_filter is not None and len(statuses_filter) > 0:
+            placeholders = ",".join("?" * len(statuses_filter))
+            query += f" AND status IN ({placeholders})"
+            count_query += f" AND status IN ({placeholders})"
+            params.extend(statuses_filter)
+            count_params.extend(statuses_filter)
+        elif status_filter is not None:
             query += " AND status = ?"
+            count_query += " AND status = ?"
             params.append(status_filter)
+            count_params.append(status_filter)
 
         if user_id_filter is not None:
             query += " AND user_id = ?"
+            count_query += " AND user_id = ?"
             params.append(user_id_filter)
+            count_params.append(user_id_filter)
+
+        if date_from is not None:
+            query += " AND createstamp >= ?"
+            count_query += " AND createstamp >= ?"
+            params.append(date_from)
+            count_params.append(date_from)
+
+        if date_to is not None:
+            query += " AND createstamp <= ?"
+            count_query += " AND createstamp <= ?"
+            params.append(date_to)
+            count_params.append(date_to)
+
+        # Get total count
+        cursor = await db.execute(count_query, count_params)
+        count_row = await cursor.fetchone()
+        total = count_row['total']
 
         query += " ORDER BY id DESC"
+
+        # Add pagination
+        if limit is not None:
+            query += " LIMIT ?"
+            params.append(limit)
+        if offset is not None:
+            query += " OFFSET ?"
+            params.append(offset)
 
         # Get orders
         cursor = await db.execute(query, params)
@@ -1326,8 +1378,8 @@ async def get_orders(order_id_filter: Optional[int] = None, status_filter: Optio
                 ]
             })
 
-        logger.info(f"Retrieved {len(results)} orders")
-        return results
+        logger.info(f"Retrieved {len(results)} orders (total: {total})")
+        return {'items': results, 'total': total}
 
 
 async def delete_order(order_id: int) -> None:
