@@ -17,6 +17,7 @@ const MyOrders: React.FC<MyOrdersProps> = ({
   const [goods, setGoods] = useState<GoodDTO[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
 
   useEffect(() => {
     if (isOpen) {
@@ -81,6 +82,8 @@ const MyOrders: React.FC<MyOrdersProps> = ({
         return 'text-gray-600 bg-gray-100 px-2 py-1 rounded-full whitespace-nowrap';
       case 'PROCESSING':
         return 'text-blue-600 bg-blue-50 px-2 py-1 rounded-full whitespace-nowrap';
+      case 'SENT':
+        return 'text-purple-600 bg-purple-50 px-2 py-1 rounded-full whitespace-nowrap';
       case 'COMPLETED':
         return 'text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full whitespace-nowrap';
       case 'CANCELLED':
@@ -92,9 +95,10 @@ const MyOrders: React.FC<MyOrdersProps> = ({
 
   const getStatusLabel = (status: string) => {
     const statusMap: Record<string, string> = {
-      'NEW': 'Новый',
-      'PROCESSING': 'В обработке',
-      'COMPLETED': 'Выполнен',
+      'NEW': 'Создан',
+      'PROCESSING': 'Собирается',
+      'SENT': 'Отправлен',
+      'COMPLETED': 'Завершён',
       'CANCELLED': 'Отменён'
     };
     return statusMap[status] || status;
@@ -108,6 +112,14 @@ const MyOrders: React.FC<MyOrdersProps> = ({
     return '/images/placeholder.png';
   };
 
+  const filteredOrders = orders.filter(order => {
+    if (activeTab === 'active') {
+      return ['NEW', 'PROCESSING', 'SENT'].includes(order.status);
+    } else {
+      return ['COMPLETED', 'CANCELLED'].includes(order.status);
+    }
+  });
+
   if (!isOpen) return null;
 
   return (
@@ -118,6 +130,31 @@ const MyOrders: React.FC<MyOrdersProps> = ({
           actionType="menu-text"
           onAction={onMenuClick}
         />
+
+        {/* Order Filter Toggle */}
+        <div className="px-6 pt-4">
+          <div className="relative h-10 bg-[#D9D9D9] rounded-[10px] overflow-hidden">
+            <div
+              className={`absolute top-0 h-full w-1/2 bg-[#80D1C1] rounded-[10px] transition-transform duration-300 ${
+                activeTab === 'completed' ? 'translate-x-full' : 'translate-x-0'
+              }`}
+            />
+            <div className="relative h-full flex">
+              <button
+                onClick={() => setActiveTab('active')}
+                className="flex-1 text-base font-medium leading-[1.174] text-black"
+              >
+                Активные
+              </button>
+              <button
+                onClick={() => setActiveTab('completed')}
+                className="flex-1 text-base font-medium leading-[1.174] text-black"
+              >
+                Завершенные
+              </button>
+            </div>
+          </div>
+        </div>
 
         <div className="px-6 py-6">
           {isLoading && (
@@ -132,15 +169,15 @@ const MyOrders: React.FC<MyOrdersProps> = ({
             </div>
           )}
 
-          {!isLoading && !error && orders.length === 0 && (
+          {!isLoading && !error && filteredOrders.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              У вас пока нет заказов
+              {activeTab === 'active' ? 'Нет активных заказов' : 'Нет завершенных заказов'}
             </div>
           )}
 
-          {!isLoading && !error && orders.length > 0 && (
+          {!isLoading && !error && filteredOrders.length > 0 && (
             <div className="space-y-4">
-              {orders.map((order) => (
+              {filteredOrders.map((order) => (
                 <div
                   key={order.id}
                   className="bg-white rounded-[20px] shadow-custom p-4"
