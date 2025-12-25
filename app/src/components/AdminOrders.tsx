@@ -83,6 +83,8 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
         return 'text-gray-600 bg-gray-100 px-2 py-1 rounded-full whitespace-nowrap';
       case 'PROCESSING':
         return 'text-blue-600 bg-blue-50 px-2 py-1 rounded-full whitespace-nowrap';
+      case 'SENT':
+        return 'text-purple-600 bg-purple-50 px-2 py-1 rounded-full whitespace-nowrap';
       case 'COMPLETED':
         return 'text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full whitespace-nowrap';
       case 'CANCELLED':
@@ -98,6 +100,8 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
         return 'text-gray-600';
       case 'PROCESSING':
         return 'text-blue-600';
+      case 'SENT':
+        return 'text-purple-600';
       case 'COMPLETED':
         return 'text-emerald-600';
       case 'CANCELLED':
@@ -109,9 +113,10 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
 
   const getStatusLabel = (status: string) => {
     const statusMap: Record<string, string> = {
-      'NEW': 'Новый',
-      'PROCESSING': 'В обработке',
-      'COMPLETED': 'Выполнен',
+      'NEW': 'Создан',
+      'PROCESSING': 'Собирается',
+      'SENT': 'Отправлен',
+      'COMPLETED': 'Завершён',
       'CANCELLED': 'Отменён'
     };
     return statusMap[status] || status;
@@ -322,9 +327,9 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
       {statusPopupOrderId !== null && (() => {
         const currentOrder = orders.find(o => o.id === statusPopupOrderId);
         const isFinalized = currentOrder && (currentOrder.status === 'CANCELLED' || currentOrder.status === 'COMPLETED');
-        const availableStatuses = isFinalized 
-          ? ['NEW', 'PROCESSING', 'COMPLETED']
-          : ['NEW', 'PROCESSING', 'COMPLETED', 'CANCELLED'];
+        const availableStatuses = isFinalized
+          ? ['NEW', 'PROCESSING', 'SENT', 'COMPLETED']
+          : ['NEW', 'PROCESSING', 'SENT', 'COMPLETED', 'CANCELLED'];
         
         return (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] max-w-[402px] mx-auto">
