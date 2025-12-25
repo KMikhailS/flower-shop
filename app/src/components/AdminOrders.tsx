@@ -401,9 +401,36 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
           </div>
         )}
 
-        {/* Results count */}
-        <div className="px-6 py-2 text-sm text-gray-500">
-          Найдено: {totalOrders} {totalOrders === 1 ? 'заказ' : totalOrders < 5 ? 'заказа' : 'заказов'}
+        {/* Results count and pagination */}
+        <div className="px-6 py-2 flex items-center justify-between">
+          <span className="text-sm text-gray-500">
+            Найдено: {totalOrders} {totalOrders === 1 ? 'заказ' : totalOrders < 5 ? 'заказа' : 'заказов'}
+          </span>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className={`p-1 ${currentPage === 1 ? 'text-gray-300' : 'text-gray-600 hover:text-teal'}`}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+              <span className="text-sm text-gray-600 min-w-[40px] text-center">
+                {currentPage}/{totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className={`p-1 ${currentPage === totalPages ? 'text-gray-300' : 'text-gray-600 hover:text-teal'}`}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="px-6 py-4">
