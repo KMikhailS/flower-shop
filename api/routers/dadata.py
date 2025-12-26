@@ -46,7 +46,7 @@ async def suggest_address(
     Results are cached for 5 minutes to save API limits.
     """
     if not DADATA_API_KEY:
-        logger.error("DADATA_API_KEY is not configured")
+        logger.error("DADATA_API_KEY is not configured " + DADATA_API_KEY)
         raise HTTPException(
             status_code=500,
             detail="DaData API key is not configured"
