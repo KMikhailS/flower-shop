@@ -12,7 +12,7 @@ router = APIRouter(prefix="/dadata", tags=["dadata"])
 
 # DaData API configuration
 DADATA_API_URL = "https://suggestions.dadata.ru/suggestions/api/4_1/rs/suggest/address"
-DADATA_API_KEY = os.getenv("DADATA_API_KEY", "")
+DADATA_API_KEY = os.getenv("DADATA_API_KEY")
 
 # Simple TTL cache: {query: (result, timestamp)}
 _cache: dict[str, tuple[list[AddressSuggestionDTO], float]] = {}
