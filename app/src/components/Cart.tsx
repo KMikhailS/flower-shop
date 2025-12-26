@@ -35,7 +35,7 @@ const Cart: React.FC<CartProps> = ({
   onOpenMyOrders
 }) => {
   const { webApp, user } = useTelegramWebApp();
-  const [customAddress, setCustomAddress] = React.useState('');
+  const [customAddress, setCustomAddress] = React.useState('г Тюмень, ');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [suggestions, setSuggestions] = React.useState<AddressSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = React.useState(false);
