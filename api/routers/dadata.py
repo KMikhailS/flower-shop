@@ -12,7 +12,6 @@ router = APIRouter(prefix="/dadata", tags=["dadata"])
 
 # DaData API configuration
 DADATA_API_URL = "https://suggestions.dadata.ru/suggestions/api/4_1/rs/suggest/address"
-DADATA_API_KEY = os.getenv("DADATA_API_KEY")
 
 
 # Simple TTL cache: {query: (result, timestamp)}
@@ -45,8 +44,9 @@ async def suggest_address(
     Returns list of address suggestions with coordinates.
     Results are cached for 5 minutes to save API limits.
     """
-    if not DADATA_API_KEY:
-        logger.info("DADATA_API_KEY value is " + DADATA_API_KEY)
+    # Read API key inside function (after dotenv is loaded)
+    api_key = os.getenv("DADATA_API_KEY")
+    if not api_key:
         logger.error("DADATA_API_KEY is not configured")
         raise HTTPException(
             status_code=500,
@@ -70,7 +70,7 @@ async def suggest_address(
             response = await client.post(
                 DADATA_API_URL,
                 headers={
-                    "Authorization": f"Token {DADATA_API_KEY}",
+                    "Authorization": f"Token {api_key}",
                     "Content-Type": "application/json",
                 },
                 json={
