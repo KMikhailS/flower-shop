@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 # Bot token from environment
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+DADATA_API_KEY = os.getenv("DADATA_API_KEY")
 
 # Create bot and dispatcher
 bot = Bot(token=BOT_TOKEN)
@@ -47,6 +48,7 @@ async def start_handler(message: types.Message):
             ]
         ]
     )
+    logger.info("DADATA_API_KEY VALUE " + DADATA_API_KEY)
 
     await message.answer(
         text="Добро пожаловать в FanFanTulpan! 🌷\n\nНажмите кнопку ниже, чтобы открыть наш магазин цветов.",
