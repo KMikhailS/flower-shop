@@ -4,7 +4,8 @@ import CartItem from './CartItem';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { CartItemData } from '../App';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
-import { createOrder, OrderRequest, fetchUserInfo } from '../api/client';
+import { useDebounce } from '../hooks/useDebounce';
+import { createOrder, OrderRequest, fetchUserInfo, suggestAddress, AddressSuggestion } from '../api/client';
 
 interface CartProps {
   cartItems: CartItemData[];
@@ -36,8 +37,36 @@ const Cart: React.FC<CartProps> = ({
   const { webApp, user } = useTelegramWebApp();
   const [customAddress, setCustomAddress] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [suggestions, setSuggestions] = React.useState<AddressSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = React.useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = React.useState(false);
+
+  const debouncedAddress = useDebounce(customAddress, 300);
 
   useLockBodyScroll(true);
+
+  // Fetch address suggestions when debounced address changes
+  React.useEffect(() => {
+    if (deliveryMethod !== 'delivery' || debouncedAddress.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+
+    const fetchSuggestions = async () => {
+      setIsLoadingSuggestions(true);
+      try {
+        const result = await suggestAddress(debouncedAddress);
+        setSuggestions(result);
+      } catch (error) {
+        console.error('Failed to fetch address suggestions:', error);
+        setSuggestions([]);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    };
+
+    fetchSuggestions();
+  }, [debouncedAddress, deliveryMethod]);
 
   // Рассчитываем общую сумму всех товаров
   const totalPrice = cartItems.reduce((sum, item) => {
@@ -307,14 +336,45 @@ const Cart: React.FC<CartProps> = ({
             </button>
           </div>
         ) : (
-          <div className="mb-8">
+          <div className="mb-8 relative">
             <input
               type="text"
               value={customAddress}
               onChange={(e) => setCustomAddress(e.target.value)}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => {
+                // Delay to allow click on suggestion
+                setTimeout(() => setShowSuggestions(false), 200);
+              }}
               placeholder="Введите адрес доставки"
               className="w-full h-[53px] px-4 rounded-[15px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] text-base font-semibold leading-[1.174] text-black bg-white"
             />
+            {/* Address suggestions dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-[15px] shadow-[0px_2px_8px_0px_rgba(0,0,0,0.15)] z-10 max-h-[200px] overflow-y-auto">
+                {suggestions.map((suggestion, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => {
+                      setCustomAddress(suggestion.value);
+                      setSuggestions([]);
+                      setShowSuggestions(false);
+                      webApp?.HapticFeedback.selectionChanged();
+                    }}
+                    className="w-full px-4 py-3 text-left text-sm text-black hover:bg-gray-100 first:rounded-t-[15px] last:rounded-b-[15px] border-b border-gray-100 last:border-b-0"
+                  >
+                    {suggestion.value}
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* Loading indicator */}
+            {showSuggestions && isLoadingSuggestions && customAddress.length >= 3 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-[15px] shadow-[0px_2px_8px_0px_rgba(0,0,0,0.15)] z-10 px-4 py-3 text-sm text-gray-500">
+                Загрузка...
+              </div>
+            )}
           </div>
         )}
 

@@ -147,3 +147,10 @@ class OrdersPageDTO(BaseModel):
     """Paginated response for orders list"""
     items: list[OrderDTO]
     total: int
+
+
+class AddressSuggestionDTO(BaseModel):
+    """Data transfer object for address suggestion from DaData"""
+    value: str  # Full formatted address
+    geo_lat: Optional[str] = None  # Latitude
+    geo_lon: Optional[str] = None  # Longitude

@@ -1025,6 +1025,44 @@ export async function deleteSetting(
   }
 }
 
+// Address suggestion from DaData
+export interface AddressSuggestion {
+  value: string;      // Full formatted address
+  geo_lat: string | null;  // Latitude
+  geo_lon: string | null;  // Longitude
+}
+
+/**
+ * Get address suggestions from DaData API (proxied through backend)
+ *
+ * @param query - Address query string (min 3 characters)
+ * @returns Promise<AddressSuggestion[]> - List of address suggestions
+ * @throws Error if request fails
+ */
+export async function suggestAddress(query: string): Promise<AddressSuggestion[]> {
+  if (query.length < 3) {
+    return [];
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/dadata/suggest?query=${encodeURIComponent(query)}`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch address suggestions: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data as AddressSuggestion[];
+}
+
 // Order-related interfaces and functions
 
 /**
