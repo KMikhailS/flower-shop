@@ -164,9 +164,9 @@ function App() {
     setCartItems(prevItems => {
       const item = prevItems.find(i => i.product.id === productId);
 
-      if (item && item.quantity === 1) {
-        // Если quantity = 1, удаляем товар
-        return prevItems.filter(i => i.product.id !== productId);
+      // Если quantity = 1, ничего не делаем
+      if (item && item.quantity <= 1) {
+        return prevItems;
       }
 
       // Иначе уменьшаем quantity

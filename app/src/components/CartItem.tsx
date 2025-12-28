@@ -68,10 +68,10 @@ const CartItem: React.FC<CartItemProps> = ({
         {/* Delete Button */}
         <button
           onClick={onRemove}
-          className="w-5 h-5 flex items-center justify-center hover:opacity-70 transition-opacity"
+          className="w-4 h-4 flex items-center justify-center hover:opacity-70 transition-opacity"
           aria-label="Удалить товар"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 304 384"><path fill="#000000" d="M21 341V85h256v256q0 18-12.5 30.5T235 384H64q-18 0-30.5-12.5T21 341zM299 21v43H0V21h75L96 0h107l21 21h75z"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 304 384"><path fill="#000000" d="M21 341V85h256v256q0 18-12.5 30.5T235 384H64q-18 0-30.5-12.5T21 341zM299 21v43H0V21h75L96 0h107l21 21h75z"/></svg>
         </button>
       </div>
     </div>
