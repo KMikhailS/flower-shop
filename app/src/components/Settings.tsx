@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import AppHeader from './AppHeader';
-import { fetchSettings, updateUserMode, upsertSetting, Setting } from '../api/client';
+import {
+  fetchSettings,
+  updateUserMode,
+  upsertSetting,
+  Setting,
+  fetchAllCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  CategoryDTO
+} from '../api/client';
 
 interface SettingsProps {
   isOpen: boolean;
@@ -20,6 +30,9 @@ const Settings: React.FC<SettingsProps> = ({
   onModeChange
 }) => {
   const [currentMode, setCurrentMode] = useState<string>(userMode || 'USER');
+  const [activeTab, setActiveTab] = useState<'notifications' | 'categories'>('notifications');
+
+  // Notification settings state
   const [supportChatId, setSupportChatId] = useState<string>('');
   const [managerChatId, setManagerChatId] = useState<string>('');
   const [orderEmail, setOrderEmail] = useState<string>('');
@@ -27,6 +40,15 @@ const Settings: React.FC<SettingsProps> = ({
   const [orderEmailPassword, setOrderEmailPassword] = useState<string>('');
   const [smtpHost, setSmtpHost] = useState<string>('');
   const [smtpPort, setSmtpPort] = useState<string>('');
+
+  // Categories state
+  const [categories, setCategories] = useState<CategoryDTO[]>([]);
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+  const [editingCategoryTitle, setEditingCategoryTitle] = useState<string>('');
+  const [newCategoryTitle, setNewCategoryTitle] = useState<string>('');
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+
+  // Common state
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +69,7 @@ const Settings: React.FC<SettingsProps> = ({
   useEffect(() => {
     if (isOpen && initData) {
       loadSettings();
+      loadCategories();
     }
   }, [isOpen, initData]);
 
@@ -87,6 +110,73 @@ const Settings: React.FC<SettingsProps> = ({
       setError('Не удалось загрузить настройки');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadCategories = async () => {
+    if (!initData) return;
+
+    try {
+      const cats = await fetchAllCategories(initData);
+      setCategories(cats);
+    } catch (err) {
+      console.error('Failed to load categories:', err);
+    }
+  };
+
+  // Category handlers
+  const handleEditCategory = (category: CategoryDTO) => {
+    setEditingCategoryId(category.id);
+    setEditingCategoryTitle(category.title);
+  };
+
+  const handleSaveCategory = async () => {
+    if (!initData || editingCategoryId === null || !editingCategoryTitle.trim()) return;
+
+    setIsSaving(true);
+    try {
+      await updateCategory(editingCategoryId, editingCategoryTitle.trim(), initData);
+      await loadCategories();
+      setEditingCategoryId(null);
+      setEditingCategoryTitle('');
+    } catch (err) {
+      console.error('Failed to update category:', err);
+      setError('Ошибка при обновлении категории');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteCategory = async (categoryId: number) => {
+    if (!initData) return;
+    if (!confirm('Удалить категорию?')) return;
+
+    setIsSaving(true);
+    try {
+      await deleteCategory(categoryId, initData);
+      await loadCategories();
+    } catch (err) {
+      console.error('Failed to delete category:', err);
+      setError('Ошибка при удалении категории');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleAddCategory = async () => {
+    if (!initData || !newCategoryTitle.trim()) return;
+
+    setIsSaving(true);
+    try {
+      await createCategory(newCategoryTitle.trim(), initData);
+      await loadCategories();
+      setNewCategoryTitle('');
+      setIsAddingCategory(false);
+    } catch (err) {
+      console.error('Failed to create category:', err);
+      setError('Ошибка при создании категории');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -241,115 +331,256 @@ const Settings: React.FC<SettingsProps> = ({
               </div>
             </div>
 
-            {/* Support Chat ID */}
-            <div className="flex flex-col gap-3">
-              <label className="text-base font-semibold text-black">
-                ID чата службы поддержки
-              </label>
-              <input
-                type="text"
-                value={supportChatId}
-                onChange={(e) => setSupportChatId(e.target.value)}
-                disabled={isSaving}
-                className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
-              />
+            {/* Tabs */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setActiveTab('notifications')}
+                className={`flex-1 py-2 px-4 rounded-[20px] text-sm font-medium transition-colors ${
+                  activeTab === 'notifications'
+                    ? 'bg-teal text-white'
+                    : 'bg-gray-200 text-gray-600'
+                }`}
+              >
+                Уведомления
+              </button>
+              <button
+                onClick={() => setActiveTab('categories')}
+                className={`flex-1 py-2 px-4 rounded-[20px] text-sm font-medium transition-colors ${
+                  activeTab === 'categories'
+                    ? 'bg-teal text-white'
+                    : 'bg-gray-200 text-gray-600'
+                }`}
+              >
+                Категории
+              </button>
             </div>
 
-            {/* Manager Chat ID */}
-            <div className="flex flex-col gap-3">
-              <label className="text-base font-semibold text-black">
-                ID чата менеджера
-              </label>
-              <input
-                type="text"
-                value={managerChatId}
-                onChange={(e) => setManagerChatId(e.target.value)}
-                disabled={isSaving}
-                className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
-              />
-            </div>
+            {/* Notifications Tab */}
+            {activeTab === 'notifications' && (
+              <>
+                {/* Support Chat ID */}
+                <div className="flex flex-col gap-3">
+                  <label className="text-base font-semibold text-black">
+                    ID чата службы поддержки
+                  </label>
+                  <input
+                    type="text"
+                    value={supportChatId}
+                    onChange={(e) => setSupportChatId(e.target.value)}
+                    disabled={isSaving}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
+                  />
+                </div>
 
-            {/* Order Email */}
-            <div className="flex flex-col gap-3">
-              <label className="text-base font-semibold text-black">
-                Почта для отправки заказов
-              </label>
-              <input
-                type="email"
-                value={orderEmail}
-                onChange={(e) => setOrderEmail(e.target.value)}
-                disabled={isSaving}
-                placeholder="shop@gmail.com"
-                className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
-              />
-            </div>
+                {/* Manager Chat ID */}
+                <div className="flex flex-col gap-3">
+                  <label className="text-base font-semibold text-black">
+                    ID чата менеджера
+                  </label>
+                  <input
+                    type="text"
+                    value={managerChatId}
+                    onChange={(e) => setManagerChatId(e.target.value)}
+                    disabled={isSaving}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
+                  />
+                </div>
 
-            {/* Order Email To */}
-            <div className="flex flex-col gap-3">
-              <label className="text-base font-semibold text-black">
-                Почта получатель
-              </label>
-              <input
-                type="email"
-                value={orderEmailTo}
-                onChange={(e) => setOrderEmailTo(e.target.value)}
-                disabled={isSaving}
-                placeholder="manager@gmail.com"
-                className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
-              />
-            </div>
+                {/* Order Email */}
+                <div className="flex flex-col gap-3">
+                  <label className="text-base font-semibold text-black">
+                    Почта для отправки заказов
+                  </label>
+                  <input
+                    type="email"
+                    value={orderEmail}
+                    onChange={(e) => setOrderEmail(e.target.value)}
+                    disabled={isSaving}
+                    placeholder="shop@gmail.com"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
+                  />
+                </div>
 
-            {/* Order Email Password */}
-            <div className="flex flex-col gap-3">
-              <label className="text-base font-semibold text-black">
-                Пароль от почты
-              </label>
-              <input
-                type="password"
-                value={orderEmailPassword}
-                onChange={(e) => setOrderEmailPassword(e.target.value)}
-                disabled={isSaving}
-                className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
-              />
-            </div>
+                {/* Order Email To */}
+                <div className="flex flex-col gap-3">
+                  <label className="text-base font-semibold text-black">
+                    Почта получатель
+                  </label>
+                  <input
+                    type="email"
+                    value={orderEmailTo}
+                    onChange={(e) => setOrderEmailTo(e.target.value)}
+                    disabled={isSaving}
+                    placeholder="manager@gmail.com"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
+                  />
+                </div>
 
-            {/* SMTP Host */}
-            <div className="flex flex-col gap-3">
-              <label className="text-base font-semibold text-black">
-                SMTP сервер
-              </label>
-              <input
-                type="text"
-                value={smtpHost}
-                onChange={(e) => setSmtpHost(e.target.value)}
-                disabled={isSaving}
-                className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
-              />
-            </div>
+                {/* Order Email Password */}
+                <div className="flex flex-col gap-3">
+                  <label className="text-base font-semibold text-black">
+                    Пароль от почты
+                  </label>
+                  <input
+                    type="password"
+                    value={orderEmailPassword}
+                    onChange={(e) => setOrderEmailPassword(e.target.value)}
+                    disabled={isSaving}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
+                  />
+                </div>
 
-            {/* SMTP Port */}
-            <div className="flex flex-col gap-3">
-              <label className="text-base font-semibold text-black">
-                SMTP порт
-              </label>
-              <input
-                type="text"
-                value={smtpPort}
-                onChange={(e) => setSmtpPort(e.target.value)}
-                disabled={isSaving}
-                placeholder="587"
-                className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
-              />
-            </div>
+                {/* SMTP Host */}
+                <div className="flex flex-col gap-3">
+                  <label className="text-base font-semibold text-black">
+                    SMTP сервер
+                  </label>
+                  <input
+                    type="text"
+                    value={smtpHost}
+                    onChange={(e) => setSmtpHost(e.target.value)}
+                    disabled={isSaving}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
+                  />
+                </div>
 
-            {/* Save Button */}
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="w-full bg-teal text-white py-3 rounded-[30px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 mt-4"
-            >
-              {isSaving ? 'Сохранение...' : 'Сохранить'}
-            </button>
+                {/* SMTP Port */}
+                <div className="flex flex-col gap-3">
+                  <label className="text-base font-semibold text-black">
+                    SMTP порт
+                  </label>
+                  <input
+                    type="text"
+                    value={smtpPort}
+                    onChange={(e) => setSmtpPort(e.target.value)}
+                    disabled={isSaving}
+                    placeholder="587"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
+                  />
+                </div>
+
+                {/* Save Button */}
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="w-full bg-teal text-white py-3 rounded-[30px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 mt-4"
+                >
+                  {isSaving ? 'Сохранение...' : 'Сохранить'}
+                </button>
+              </>
+            )}
+
+            {/* Categories Tab */}
+            {activeTab === 'categories' && (
+              <div className="flex flex-col gap-4">
+                {/* Add Category Button */}
+                {!isAddingCategory ? (
+                  <button
+                    onClick={() => setIsAddingCategory(true)}
+                    disabled={isSaving}
+                    className="w-full border-2 border-dashed border-gray-300 text-gray-500 py-3 rounded-[20px] hover:border-teal hover:text-teal transition-colors disabled:opacity-50"
+                  >
+                    + Добавить категорию
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newCategoryTitle}
+                      onChange={(e) => setNewCategoryTitle(e.target.value)}
+                      placeholder="Название категории"
+                      disabled={isSaving}
+                      className="flex-1 px-4 py-3 border border-gray-300 rounded-[20px] focus:outline-none focus:border-teal disabled:opacity-50"
+                      autoFocus
+                    />
+                    <button
+                      onClick={handleAddCategory}
+                      disabled={isSaving || !newCategoryTitle.trim()}
+                      className="px-4 py-2 bg-teal text-white rounded-[20px] disabled:opacity-50"
+                    >
+                      OK
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsAddingCategory(false);
+                        setNewCategoryTitle('');
+                      }}
+                      disabled={isSaving}
+                      className="px-4 py-2 bg-gray-200 text-gray-600 rounded-[20px] disabled:opacity-50"
+                    >
+                      X
+                    </button>
+                  </div>
+                )}
+
+                {/* Categories List */}
+                {categories.length === 0 ? (
+                  <p className="text-gray-medium text-center py-4">Нет категорий</p>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {categories.map((category) => (
+                      <div
+                        key={category.id}
+                        className="flex items-center gap-2 p-3 bg-gray-50 rounded-[20px]"
+                      >
+                        {editingCategoryId === category.id ? (
+                          <>
+                            <input
+                              type="text"
+                              value={editingCategoryTitle}
+                              onChange={(e) => setEditingCategoryTitle(e.target.value)}
+                              disabled={isSaving}
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-[15px] focus:outline-none focus:border-teal disabled:opacity-50"
+                              autoFocus
+                            />
+                            <button
+                              onClick={handleSaveCategory}
+                              disabled={isSaving || !editingCategoryTitle.trim()}
+                              className="px-3 py-2 bg-teal text-white text-sm rounded-[15px] disabled:opacity-50"
+                            >
+                              OK
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingCategoryId(null);
+                                setEditingCategoryTitle('');
+                              }}
+                              disabled={isSaving}
+                              className="px-3 py-2 bg-gray-200 text-gray-600 text-sm rounded-[15px] disabled:opacity-50"
+                            >
+                              X
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <span className="flex-1 text-black">{category.title}</span>
+                            <button
+                              onClick={() => handleEditCategory(category)}
+                              disabled={isSaving}
+                              className="p-2 text-gray-500 hover:text-teal disabled:opacity-50"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCategory(category.id)}
+                              disabled={isSaving}
+                              className="p-2 text-gray-500 hover:text-red-500 disabled:opacity-50"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z" />
+                              </svg>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
