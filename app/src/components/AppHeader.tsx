@@ -9,7 +9,7 @@ interface AppHeaderProps {
 const AppHeader: React.FC<AppHeaderProps> = ({ title, actionType, onAction }) => {
   return (
     <div className="flex items-center justify-between px-8 py-5">
-      <div className="contents">
+      <div className="flex items-center gap-4">
         {/* Логотип в круге - одинаково на всех экранах */}
         <div className="w-15 h-15 bg-white rounded-full shadow-sm flex items-center justify-center">
           <svg width="35" height="32" viewBox="0 0 35 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-9 h-8">
@@ -26,7 +26,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({ title, actionType, onAction }) =>
         {title && (
           <div className="text-2xl font-normal font-raleway">{title}</div>
         )}
-        {actionType === 'menu-text' && (
+      </div>
+      {actionType === 'menu-text' && (
           <button
             onClick={onAction}
             className="text-base font-normal text-black hover:opacity-70 transition-opacity"
@@ -54,7 +55,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({ title, actionType, onAction }) =>
             />
           </button>
         )}
-      </div>
     </div>
   );
 };
