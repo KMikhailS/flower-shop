@@ -262,20 +262,27 @@ const Cart: React.FC<CartProps> = ({
             <p className="text-lg font-medium text-[#A09CAB]">Ваша корзина пока пуста</p>
           </div>
         ) : (
-          cartItems.map((item) => {
-            const itemTotalPrice = parseFloat(item.product.price.replace(/[^\d]/g, '')) * item.quantity;
-            return (
-              <CartItem
-                key={item.product.id}
-                product={item.product}
-                quantity={item.quantity}
-                totalPrice={itemTotalPrice}
-                onDecrease={() => handleDecrease(item.product.id)}
-                onIncrease={() => handleIncrease(item.product.id)}
-                onRemove={() => handleRemove(item.product.id)}
-              />
-            );
-          })
+          <>
+            {cartItems.map((item) => {
+              const itemTotalPrice = parseFloat(item.product.price.replace(/[^\d]/g, '')) * item.quantity;
+              return (
+                <CartItem
+                  key={item.product.id}
+                  product={item.product}
+                  quantity={item.quantity}
+                  totalPrice={itemTotalPrice}
+                  onDecrease={() => handleDecrease(item.product.id)}
+                  onIncrease={() => handleIncrease(item.product.id)}
+                  onRemove={() => handleRemove(item.product.id)}
+                />
+              );
+            })}
+            {/* Total Price */}
+            <div className="flex justify-between items-center mb-6">
+              <span className="text-base font-bold text-black">Итого:</span>
+              <span className="text-base font-bold text-black">{totalPrice} руб.</span>
+            </div>
+          </>
         )}
 
         {/* Delivery Method */}
