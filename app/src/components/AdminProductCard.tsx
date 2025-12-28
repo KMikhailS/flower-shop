@@ -58,6 +58,9 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
     imageIndex: number | null;
   }>({ visible: false, x: 0, y: 0, imageUrl: null, imageIndex: null });
 
+  // Image swipe state
+  const [imageSwipeStartX, setImageSwipeStartX] = useState<number | null>(null);
+
   const longPressTimerRef = useRef<number | null>(null);
 
   // При редактировании заполняем форму данными товара
@@ -367,6 +370,29 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
     setContextMenu({ visible: false, x: 0, y: 0, imageUrl: null, imageIndex: null });
   };
 
+  // Image swipe handlers for main preview
+  const handleImageSwipeStart = (e: React.TouchEvent) => {
+    setImageSwipeStartX(e.touches[0].clientX);
+  };
+
+  const handleImageSwipeEnd = (e: React.TouchEvent) => {
+    if (imageSwipeStartX === null || previewUrls.length <= 1) return;
+
+    const endX = e.changedTouches[0].clientX;
+    const distance = endX - imageSwipeStartX;
+    const threshold = 50;
+
+    if (distance > threshold) {
+      // Swipe right - previous image
+      setCurrentPreviewIndex(prev => prev === 0 ? previewUrls.length - 1 : prev - 1);
+    } else if (distance < -threshold) {
+      // Swipe left - next image
+      setCurrentPreviewIndex(prev => prev === previewUrls.length - 1 ? 0 : prev + 1);
+    }
+
+    setImageSwipeStartX(null);
+  };
+
   // Handle image deletion
   const handleDeleteImage = async () => {
     if (!contextMenu.imageUrl || !editingProduct) {
@@ -479,7 +505,11 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
           />
 
           {previewUrls.length > 0 ? (
-            <>
+            <div
+              className="w-full h-full"
+              onTouchStart={handleImageSwipeStart}
+              onTouchEnd={handleImageSwipeEnd}
+            >
               <img
                 src={previewUrls[currentPreviewIndex]}
                 alt={`Preview ${currentPreviewIndex + 1}`}
@@ -535,7 +565,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
                   </div>
                 </>
               )}
-            </>
+            </div>
           ) : (
             <div className="text-center">
               <svg
