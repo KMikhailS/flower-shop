@@ -69,15 +69,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, userInfo
   };
 
   return (
-    <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto overflow-y-auto">
-      <div className="min-h-full flex flex-col">
-        {/* Product Image Section */}
-        <div
-          className="relative h-[505px] flex-shrink-0"
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
-        >
+    <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto">
+      <div className="h-full flex flex-col">
+        <div className="flex-1 overflow-y-auto">
+          <div className="min-h-full flex flex-col">
+            {/* Product Image Section */}
+            <div
+              className="relative h-[505px] flex-shrink-0"
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+            >
           <img
             src={images[currentImageIndex]}
             alt={product.alt}
@@ -199,16 +201,24 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, userInfo
           )}
         </div>
 
+          </div>
+        </div>
         {/* Action Buttons - wider than text area */}
         <div className="flex gap-[10px] px-4 pb-8">
           <button
             onClick={() => {
+              if (productQuantity > 0) {
+                onOpenCart();
+                return;
+              }
               addItem(product);
               onOpenCart();
             }}
             className="w-[180px] h-[66px] bg-[#80D1C1] rounded-[30px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] flex items-center justify-center"
           >
-            <span className="text-sm font-semibold leading-[1.174] text-black">Купить сейчас</span>
+            <span className="text-sm font-semibold leading-[1.174] text-black">
+              {productQuantity > 0 ? 'В корзину' : 'Купить сейчас'}
+            </span>
           </button>
           {productQuantity > 0 ? (
             <div className="w-[180px] h-[66px] bg-[#80D1C1] rounded-[30px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] flex items-center justify-between px-4">
