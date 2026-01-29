@@ -1,14 +1,9 @@
 import React from 'react';
-
-interface Product {
-  id: number;
-  image: string;
-  title: string;
-  price: string;
-}
+import type { Product } from '../types/product';
+import { formatRuble } from '../utils/formatCurrency';
 
 interface CartItemProps {
-  product: Product;
+  product: Pick<Product, 'id' | 'image' | 'title'>;
   quantity: number;
   totalPrice: number;
   onDecrease: () => void;
@@ -28,9 +23,14 @@ const CartItem: React.FC<CartItemProps> = ({
     <div className="relative bg-white rounded-[15px] shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)] p-6 pb-8 mb-6">
       <div className="flex gap-4 mb-3">
         {/* Product Image */}
-        <div
-          className="w-[86px] h-[82px] rounded-[10px] bg-cover bg-center flex-shrink-0"
-          style={{ backgroundImage: `url(${product.image})` }}
+        <img
+          src={product.image}
+          alt={product.title}
+          className="w-[86px] h-[82px] rounded-[10px] object-cover bg-gray-100 flex-shrink-0"
+          loading="lazy"
+          decoding="async"
+          width={86}
+          height={82}
         />
 
         {/* Product Info */}
@@ -39,7 +39,7 @@ const CartItem: React.FC<CartItemProps> = ({
             {product.title}
           </h3>
           <p className="text-base font-semibold leading-[1.174] text-black">
-            {totalPrice} руб.
+            {formatRuble(totalPrice)}
           </p>
         </div>
       </div>

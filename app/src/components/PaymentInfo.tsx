@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AppHeader from './AppHeader';
 import { fetchPaymentInfoText, upsertSetting } from '../api/client';
 
@@ -16,11 +17,24 @@ const PaymentInfo: React.FC<PaymentInfoProps> = ({
   userMode
 }) => {
   const [paymentText, setPaymentText] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [draftText, setDraftText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const {
+    data: paymentInfoText = '',
+    isLoading,
+    error,
+  } = useQuery<string>({
+    queryKey: ['payment-info-text', initData],
+    queryFn: () => fetchPaymentInfoText(initData as string),
+    enabled: isOpen && Boolean(initData),
+    refetchOnWindowFocus: false,
+  });
+
+  const errorMessage = actionError || (error ? 'Не удалось загрузить информацию об оплате' : null);
 
   const paragraphs = useMemo(() => {
     return paymentText
@@ -33,31 +47,19 @@ const PaymentInfo: React.FC<PaymentInfoProps> = ({
     if (!isOpen) return;
     setIsEditing(false);
     setIsSaving(false);
-    setError(null);
-
+    setActionError(null);
     if (!initData) {
-      console.error('PaymentInfo: initData is not available');
-      setError('Ошибка авторизации. Перезапустите приложение.');
-      return;
+      setActionError('Ошибка авторизации. Перезапустите приложение.');
     }
-
-    const loadText = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const value = await fetchPaymentInfoText(initData);
-        setPaymentText(value || '');
-        setDraftText(value || '');
-      } catch (err) {
-        console.error('Failed to load payment info text:', err);
-        setError('Не удалось загрузить информацию об оплате');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadText();
   }, [isOpen, initData]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setPaymentText(paymentInfoText || '');
+    if (!isEditing) {
+      setDraftText(paymentInfoText || '');
+    }
+  }, [paymentInfoText, isOpen, isEditing]);
 
   const isAdmin = userMode === 'ADMIN';
 
@@ -75,14 +77,15 @@ const PaymentInfo: React.FC<PaymentInfoProps> = ({
     if (!initData) return;
 
     setIsSaving(true);
-    setError(null);
+    setActionError(null);
     try {
       await upsertSetting('PAYMENT_INFO_TEXT', draftText, initData);
       setPaymentText(draftText);
+      queryClient.setQueryData(['payment-info-text', initData], draftText);
       setIsEditing(false);
     } catch (err) {
       console.error('Failed to save payment info text:', err);
-      setError('Не удалось сохранить информацию об оплате');
+      setActionError('Не удалось сохранить информацию об оплате');
     } finally {
       setIsSaving(false);
     }
@@ -129,9 +132,9 @@ const PaymentInfo: React.FC<PaymentInfoProps> = ({
           </div>
         )}
 
-        {error && (
+        {errorMessage && (
           <div className="mb-4 text-sm text-red-600">
-            {error}
+            {errorMessage}
           </div>
         )}
 

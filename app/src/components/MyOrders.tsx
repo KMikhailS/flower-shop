@@ -1,6 +1,9 @@
 import React, { useMemo, useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import AppHeader from './AppHeader';
-import { fetchMyOrders, OrderDTO, fetchAllGoods, GoodDTO, fetchDeliveryAmount, fetchPostcardAmount } from '../api/client';
+import { fetchMyOrders, OrderDTO, fetchAllGoods, GoodDTO } from '../api/client';
+import { useServiceAmounts } from '../hooks/useServiceSettings';
+import { formatRuble } from '../utils/formatCurrency';
 
 interface MyOrdersProps {
   isOpen: boolean;
@@ -13,12 +16,6 @@ const MyOrders: React.FC<MyOrdersProps> = ({
   onMenuClick,
   initData
 }) => {
-  const [orders, setOrders] = useState<OrderDTO[]>([]);
-  const [goods, setGoods] = useState<GoodDTO[]>([]);
-  const [deliveryAmount, setDeliveryAmount] = useState<number>(0);
-  const [postcardAmount, setPostcardAmount] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
 
   useEffect(() => {
@@ -33,49 +30,36 @@ const MyOrders: React.FC<MyOrdersProps> = ({
     };
   }, [isOpen]);
 
+  const {
+    data: orders = [],
+    isLoading,
+    error,
+  } = useQuery<OrderDTO[]>({
+    queryKey: ['orders', 'my', initData],
+    queryFn: () => fetchMyOrders(initData as string),
+    enabled: isOpen && Boolean(initData),
+  });
+
+  const { data: goods = [] } = useQuery<GoodDTO[]>({
+    queryKey: ['goods', 'admin', initData],
+    queryFn: () => fetchAllGoods(initData as string),
+    enabled: isOpen && Boolean(initData),
+  });
+
+  const { data: serviceAmounts } = useServiceAmounts(initData, isOpen);
+  const deliveryAmount = serviceAmounts?.deliveryAmount ?? 0;
+  const postcardAmount = serviceAmounts?.postcardAmount ?? 0;
+
+  const errorMessage = !initData && isOpen
+    ? 'Ошибка авторизации. Перезапустите приложение.'
+    : error
+      ? 'Не удалось загрузить заказы'
+      : null;
+
   useEffect(() => {
-    if (!isOpen) return;
-
-    if (!initData) {
-      console.error('MyOrders: initData is not available');
-      setError('Ошибка авторизации. Перезапустите приложение.');
-      return;
-    }
-
-    const loadData = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      if (import.meta.env.DEV) {
-        console.log('MyOrders: Loading orders with initData length:', initData.length);
-      }
-
-      try {
-        // Load orders and goods in parallel
-        const [ordersData, goodsData, deliveryAmountValue, postcardAmountValue] = await Promise.all([
-          fetchMyOrders(initData),
-          fetchAllGoods(initData),
-          fetchDeliveryAmount(initData),
-          fetchPostcardAmount(initData)
-        ]);
-
-        setOrders(ordersData);
-        setGoods(goodsData);
-
-        const parsedDelivery = parseFloat(String(deliveryAmountValue).replace(/[^\d]/g, '')) || 0;
-        const parsedPostcard = parseFloat(String(postcardAmountValue).replace(/[^\d]/g, '')) || 0;
-        setDeliveryAmount(parsedDelivery);
-        setPostcardAmount(parsedPostcard);
-      } catch (err) {
-        console.error('Failed to load orders:', err);
-        setError('Не удалось загрузить заказы');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, [isOpen, initData]);
+    if (!error) return;
+    console.error('Failed to load orders:', error);
+  }, [error]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -180,19 +164,19 @@ const MyOrders: React.FC<MyOrdersProps> = ({
             </div>
           )}
 
-          {error && (
+          {errorMessage && (
             <div className="text-center py-8 text-red-500">
-              {error}
+              {errorMessage}
             </div>
           )}
 
-          {!isLoading && !error && filteredOrders.length === 0 && (
+          {!isLoading && !errorMessage && filteredOrders.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               {activeTab === 'active' ? 'Нет активных заказов' : 'Нет завершенных заказов'}
             </div>
           )}
 
-          {!isLoading && !error && filteredOrders.length > 0 && (
+          {!isLoading && !errorMessage && filteredOrders.length > 0 && (
             <div className="space-y-4">
               {filteredOrders.map((order) => (
                 <div
@@ -251,13 +235,13 @@ const MyOrders: React.FC<MyOrdersProps> = ({
                               {item.good_name}
                             </div>
                             <div className="text-sm text-black">
-                              {item.count} шт. × {item.price} руб.
+                              {item.count} шт. × {formatRuble(item.price)}
                             </div>
                           </div>
 
                           {/* Total Price */}
                           <div className="text-sm font-semibold">
-                            {item.count * item.price} руб.
+                            {formatRuble(item.count * item.price)}
                           </div>
                         </div>
                       ))}
@@ -282,7 +266,7 @@ const MyOrders: React.FC<MyOrdersProps> = ({
                                 className="flex justify-between items-center text-sm text-black"
                               >
                                 <span>{service.label}</span>
-                                <span className="font-semibold">{service.amount} руб.</span>
+                                <span className="font-semibold">{formatRuble(service.amount)}</span>
                               </div>
                             ))}
                           </div>
@@ -298,8 +282,8 @@ const MyOrders: React.FC<MyOrdersProps> = ({
                           const goodsTotal = order.cart_items.reduce((sum, item) => sum + (item.count * item.price), 0);
                           const deliveryCost = order.delivery_type === 'COURIER' ? deliveryAmount : 0;
                           const postcardCost = order.postcard_text && order.postcard_text.trim() ? postcardAmount : 0;
-                          return goodsTotal + deliveryCost + postcardCost;
-                        })()} руб.
+                          return formatRuble(goodsTotal + deliveryCost + postcardCost);
+                        })()}
                       </div>
                     </div>
                   </div>

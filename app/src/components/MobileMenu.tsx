@@ -99,8 +99,6 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                     }
                   } else if (item.label === 'Главная') {
                     onNavigateHome();
-                  } else if (import.meta.env.DEV) {
-                    console.log(`Navigate to: ${item.label}`);
                   }
                 }}
               >

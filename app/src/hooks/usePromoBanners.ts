@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createPromoBanner, fetchAllPromoBanners, fetchPromoBanners, PromoBannerDTO } from '../api/client';
 
 interface UsePromoBannersOptions {
@@ -8,28 +9,23 @@ interface UsePromoBannersOptions {
 }
 
 export const usePromoBanners = ({ userMode, initData, webApp }: UsePromoBannersOptions) => {
-  const [promoBanners, setPromoBanners] = useState<PromoBannerDTO[]>([]);
+  const queryClient = useQueryClient();
+  const isAdminMode = userMode === 'ADMIN' && Boolean(initData);
 
-  const loadPromoBanners = useCallback(async () => {
-    try {
-      let banners: PromoBannerDTO[];
-
-      if (userMode === 'ADMIN' && initData) {
-        banners = await fetchAllPromoBanners(initData);
-      } else {
-        banners = await fetchPromoBanners();
-      }
-
-      setPromoBanners(banners);
-    } catch (error) {
-      console.error('Failed to fetch promo banners:', error);
-      setPromoBanners([]);
-    }
-  }, [userMode, initData]);
+  const { data: promoBanners = [], error } = useQuery<PromoBannerDTO[]>({
+    queryKey: ['promo-banners', isAdminMode ? 'admin' : 'public', initData],
+    queryFn: () => (isAdminMode ? fetchAllPromoBanners(initData as string) : fetchPromoBanners()),
+    enabled: isAdminMode ? Boolean(initData) : true,
+  });
 
   useEffect(() => {
-    loadPromoBanners();
-  }, [loadPromoBanners]);
+    if (!error) return;
+    console.error('Failed to fetch promo banners:', error);
+  }, [error]);
+
+  const reloadPromoBanners = useCallback(() => {
+    return queryClient.invalidateQueries({ queryKey: ['promo-banners'] });
+  }, [queryClient]);
 
   const handleAddPromoBanner = useCallback(() => {
     const input = document.createElement('input');
@@ -70,7 +66,7 @@ export const usePromoBanners = ({ userMode, initData, webApp }: UsePromoBannersO
           console.log('Promo banner created:', newBanner);
         }
 
-        await loadPromoBanners();
+        await reloadPromoBanners();
         alert('Промо-баннер успешно создан!');
       } catch (error) {
         console.error('Failed to create promo banner:', error);
@@ -80,11 +76,11 @@ export const usePromoBanners = ({ userMode, initData, webApp }: UsePromoBannersO
     };
 
     input.click();
-  }, [initData, webApp, loadPromoBanners]);
+  }, [initData, webApp, reloadPromoBanners]);
 
   return {
     promoBanners,
-    reloadPromoBanners: loadPromoBanners,
+    reloadPromoBanners,
     addPromoBanner: handleAddPromoBanner,
   };
 };

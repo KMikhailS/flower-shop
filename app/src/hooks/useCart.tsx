@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer } from 'react';
 import type { CartState, PersistedCartState } from '../types/cart';
-import type { Product } from '../components/ProductGrid';
+import type { Product } from '../types/product';
 import { useCartPersistence } from './useCartPersistence';
 
 const DEFAULT_ADDRESS = 'г. Тюмень ул. Пермякова, 62';

@@ -1117,10 +1117,21 @@ export async function fetchDeliveryInfoText(initData: string): Promise<string> {
  * Fetch delivery amount for cart calculations
  *
  * @param initData - Telegram WebApp initData string
- * @returns Promise<string> - Delivery amount (string number)
+ * @returns Promise<number> - Delivery amount in rubles
  * @throws Error if request fails
  */
-export async function fetchDeliveryAmount(initData: string): Promise<string> {
+const parseAmountValue = (value: unknown): number => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const parsed = parseFloat(value.replace(/[^\d.]/g, ''));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+};
+
+export async function fetchDeliveryAmount(initData: string): Promise<number> {
   const response = await fetch(`${API_BASE_URL}/users/delivery-amount`, {
     method: 'GET',
     headers: {
@@ -1135,17 +1146,17 @@ export async function fetchDeliveryAmount(initData: string): Promise<string> {
   }
 
   const data = await response.json();
-  return (data?.value || '0') as string;
+  return parseAmountValue(data?.value);
 }
 
 /**
  * Fetch postcard amount for cart calculations
  *
  * @param initData - Telegram WebApp initData string
- * @returns Promise<string> - Postcard amount (string number)
+ * @returns Promise<number> - Postcard amount in rubles
  * @throws Error if request fails
  */
-export async function fetchPostcardAmount(initData: string): Promise<string> {
+export async function fetchPostcardAmount(initData: string): Promise<number> {
   const response = await fetch(`${API_BASE_URL}/users/postcard-amount`, {
     method: 'GET',
     headers: {
@@ -1160,7 +1171,7 @@ export async function fetchPostcardAmount(initData: string): Promise<string> {
   }
 
   const data = await response.json();
-  return (data?.value || '0') as string;
+  return parseAmountValue(data?.value);
 }
 
 /**
@@ -1265,7 +1276,7 @@ export interface AddressSuggestion {
  * @returns Promise<AddressSuggestion[]> - List of address suggestions
  * @throws Error if request fails
  */
-export async function suggestAddress(query: string): Promise<AddressSuggestion[]> {
+export async function suggestAddress(query: string, signal?: AbortSignal): Promise<AddressSuggestion[]> {
   if (query.length < 3) {
     return [];
   }
@@ -1277,6 +1288,7 @@ export async function suggestAddress(query: string): Promise<AddressSuggestion[]
       headers: {
         'Content-Type': 'application/json',
       },
+      signal,
     }
   );
 

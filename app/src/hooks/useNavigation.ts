@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import type { PromoBannerDTO } from '../api/client';
-import type { Product } from '../components/ProductGrid';
+import type { Product } from '../types/product';
 
 export type PreviousScreen = 'home' | 'cart' | 'storeAddresses' | null;
 export type PreviousScreenBeforeCart = 'home' | 'productCard' | null;

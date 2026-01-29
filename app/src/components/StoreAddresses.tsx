@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AppHeader from './AppHeader';
 import { fetchShopAddresses, ShopAddress, createShopAddress, updateShopAddress, deleteShopAddress } from '../api/client';
 import { useCart } from '../hooks/useCart';
@@ -21,38 +22,26 @@ const StoreAddresses: React.FC<StoreAddressesProps> = ({
   fromCart = false
 }) => {
   const { setSelectedAddress } = useCart();
-  const [addresses, setAddresses] = useState<ShopAddress[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const {
+    data: addresses = [],
+    isLoading,
+    error,
+  } = useQuery<ShopAddress[]>({
+    queryKey: ['shop-addresses'],
+    queryFn: fetchShopAddresses,
+    enabled: isOpen,
+  });
+
+  const errorMessage = actionError || (error ? 'Не удалось загрузить адреса магазинов' : null);
 
   const isAdmin = userMode === 'ADMIN';
-
-  const loadAddresses = () => {
-    setIsLoading(true);
-    setError(null);
-
-    fetchShopAddresses()
-      .then((data) => {
-        setAddresses(data);
-      })
-      .catch((err) => {
-        console.error('Failed to fetch shop addresses:', err);
-        setError('Не удалось загрузить адреса магазинов');
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    if (isOpen) {
-      loadAddresses();
-    }
-  }, [isOpen]);
 
   const handleAddressClick = (address: string) => {
     // Если зашли из меню (fromCart=false), выбор адреса недоступен
@@ -87,7 +76,7 @@ const StoreAddresses: React.FC<StoreAddressesProps> = ({
     if (!editValue.trim() || !initData) return;
 
     setIsSubmitting(true);
-    setError(null);
+    setActionError(null);
 
     try {
       if (editingId === null) {
@@ -98,8 +87,7 @@ const StoreAddresses: React.FC<StoreAddressesProps> = ({
         await updateShopAddress(editingId, editValue.trim(), initData);
       }
 
-      // Reload addresses
-      await loadAddresses();
+      await queryClient.invalidateQueries({ queryKey: ['shop-addresses'] });
 
       // Clear form
       setIsEditing(false);
@@ -107,7 +95,7 @@ const StoreAddresses: React.FC<StoreAddressesProps> = ({
       setEditValue('');
     } catch (err) {
       console.error('Failed to save address:', err);
-      setError('Не удалось сохранить адрес');
+      setActionError('Не удалось сохранить адрес');
     } finally {
       setIsSubmitting(false);
     }
@@ -118,14 +106,14 @@ const StoreAddresses: React.FC<StoreAddressesProps> = ({
     if (!confirm('Вы уверены, что хотите удалить этот адрес?')) return;
 
     setIsSubmitting(true);
-    setError(null);
+    setActionError(null);
 
     try {
       await deleteShopAddress(addressId, initData);
-      await loadAddresses();
+      await queryClient.invalidateQueries({ queryKey: ['shop-addresses'] });
     } catch (err) {
       console.error('Failed to delete address:', err);
-      setError('Не удалось удалить адрес');
+      setActionError('Не удалось удалить адрес');
     } finally {
       setIsSubmitting(false);
     }
@@ -201,14 +189,14 @@ const StoreAddresses: React.FC<StoreAddressesProps> = ({
         )}
 
         {/* Error State */}
-        {error && !isLoading && (
+        {errorMessage && !isLoading && (
           <div className="flex justify-center items-center mt-[50px]">
-            <p className="text-red-500">{error}</p>
+            <p className="text-red-500">{errorMessage}</p>
           </div>
         )}
 
         {/* Address List */}
-        {!isLoading && !error && (
+        {!isLoading && !errorMessage && (
           <div className="flex flex-col gap-[30px] px-[30px] mt-[25px]">
             {addresses.map((address) => (
               <div key={address.id} className="flex items-center justify-between gap-3">

@@ -1,12 +1,12 @@
-import type { Product } from '../components/ProductGrid';
+import type { Product } from './product';
 
-export interface CartItemData {
+export interface CartItem {
   product: Product;
   quantity: number;
 }
 
 export interface CartState {
-  cartItems: CartItemData[];
+  cartItems: CartItem[];
   deliveryMethod: 'pickup' | 'delivery';
   selectedAddress: string;
 }

@@ -1,6 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Product } from './ProductGrid';
+import type { Product } from '../types/product';
 import { reorderGoodImages, fetchCategories, CategoryDTO, deleteGoodImage } from '../api/client';
+
+const revokeObjectUrls = (urls: string[]) => {
+  urls.forEach((url) => URL.revokeObjectURL(url));
+};
 
 interface AdminProductCardProps {
   onClose: () => void;
@@ -30,6 +34,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const objectUrlsRef = useRef<string[]>([]);
 
   // Categories state
   const [categories, setCategories] = useState<CategoryDTO[]>([]);
@@ -67,20 +72,17 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
 
   // При редактировании заполняем форму данными товара
   useEffect(() => {
+    revokeObjectUrls(objectUrlsRef.current);
+    objectUrlsRef.current = [];
+    setSelectedFiles([]);
+
     if (editingProduct) {
       setName(editingProduct.title);
       setCategory(editingProduct.category || '');
-      // Извлекаем числовое значение из строки "2999 руб."
-      const priceMatch = editingProduct.price.match(/\d+/);
-      if (priceMatch) {
-        setPriceRub(priceMatch[0]);
-      }
+      setPriceRub(String(editingProduct.price ?? ''));
       // Извлекаем числовое значение для non_discount_price если есть
       if (editingProduct.non_discount_price) {
-        const nonDiscountMatch = editingProduct.non_discount_price.match(/\d+/);
-        if (nonDiscountMatch) {
-          setNonDiscountPriceRub(nonDiscountMatch[0]);
-        }
+        setNonDiscountPriceRub(String(editingProduct.non_discount_price));
       } else {
         setNonDiscountPriceRub('');
       }
@@ -102,6 +104,13 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
       }
     }
   }, [editingProduct]);
+
+  useEffect(() => {
+    return () => {
+      revokeObjectUrls(objectUrlsRef.current);
+      objectUrlsRef.current = [];
+    };
+  }, []);
 
   // Debug: отслеживаем изменения orderedImageUrls
   useEffect(() => {
@@ -232,8 +241,12 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
       }
     }
 
+    revokeObjectUrls(objectUrlsRef.current);
+    objectUrlsRef.current = [];
+
     // Create preview URLs for all files
     const urls = fileArray.map(file => URL.createObjectURL(file));
+    objectUrlsRef.current = urls;
 
     setSelectedFiles(fileArray);
     setPreviewUrls(urls);
@@ -259,9 +272,6 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
       if (previewElement) {
         const index = parseInt(previewElement.getAttribute('data-preview-index') || '-1');
         if (index !== -1 && index !== dragOverIndex) {
-          if (import.meta.env.DEV) {
-            console.log('👉 Touch Move Over:', index);
-          }
           setDragOverIndex(index);
         }
       }
@@ -295,9 +305,6 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
 
   // Mouse handlers for desktop devices
   const handleMouseDown = (index: number) => {
-    if (import.meta.env.DEV) {
-      console.log('🖱️ Mouse Down:', index);
-    }
     setMouseStartIndex(index);
     setDraggedIndex(index);
   };
@@ -314,9 +321,6 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
       if (previewElement) {
         const index = parseInt(previewElement.getAttribute('data-preview-index') || '-1');
         if (index !== -1 && index !== dragOverIndex) {
-          if (import.meta.env.DEV) {
-            console.log('🖱️ Mouse Move Over:', index);
-          }
           setDragOverIndex(index);
         }
       }
@@ -324,14 +328,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
   };
 
   const handleMouseUp = () => {
-    if (import.meta.env.DEV) {
-      console.log('🖱️ Mouse Up:', { mouseStartIndex, dragOverIndex });
-    }
-
     if (mouseStartIndex === null || dragOverIndex === null || mouseStartIndex === dragOverIndex) {
-      if (import.meta.env.DEV) {
-        console.log('⚠️ Mouse Cancelled: same index or null');
-      }
       setMouseStartIndex(null);
       setDraggedIndex(null);
       setDragOverIndex(null);

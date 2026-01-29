@@ -2,17 +2,8 @@ import React, { useRef, useState } from 'react';
 import { UserInfo } from '../api/client';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { useCart } from '../hooks/useCart';
-
-interface Product {
-  id: number;
-  image: string;
-  images?: string[];
-  alt: string;
-  title: string;
-  price: string;
-  non_discount_price?: string;
-  description: string;
-}
+import type { Product } from '../types/product';
+import { formatRuble } from '../utils/formatCurrency';
 
 interface ProductCardProps {
   product: Product;
@@ -186,11 +177,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, userInfo
             <div className="flex flex-col items-end gap-1">
               {product.non_discount_price && (
                 <p className="text-sm font-normal leading-[1.174] text-gray-medium line-through">
-                  {product.non_discount_price}
+                  {formatRuble(product.non_discount_price)}
                 </p>
               )}
               <p className="text-xl font-bold leading-[1.174] text-black">
-                {product.price}
+                {formatRuble(product.price)}
               </p>
             </div>
           </div>

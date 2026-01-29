@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { Product } from './ProductGrid';
+import type { Product } from '../types/product';
+import { formatRuble } from '../utils/formatCurrency';
 
 interface ProductGridCardProps {
   product: Product;
@@ -108,9 +109,9 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick, isP
       {/* Price and Title Section */}
       <div className="mt-2 px-1">
         <div className="flex items-baseline gap-2">
-          <span className="text-black font-bold text-base">{product.price.replace('руб.', '₽')}</span>
+          <span className="text-black font-bold text-base">{formatRuble(product.price)}</span>
           {product.non_discount_price && (
-            <span className="text-gray-400 text-xs line-through">{product.non_discount_price.replace('руб.', '₽')}</span>
+            <span className="text-gray-400 text-xs line-through">{formatRuble(product.non_discount_price)}</span>
           )}
         </div>
         <p className="text-black text-sm mt-1 line-clamp-2">{product.title}</p>

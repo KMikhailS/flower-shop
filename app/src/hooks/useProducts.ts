@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { fetchAllGoods, fetchGoods, GoodDTO } from '../api/client';
-import type { Product } from '../components/ProductGrid';
+import type { Product } from '../types/product';
 import { useDebounce } from './useDebounce';
 
 interface UseProductsOptions {
@@ -9,59 +10,54 @@ interface UseProductsOptions {
 }
 
 export const useProducts = ({ userMode, initData }: UseProductsOptions) => {
-  const [products, setProducts] = useState<Product[]>([]);
   const [activeCategory, setActiveCategory] = useState<string[]>(['all']);
   const [searchQuery, setSearchQuery] = useState('');
 
   const debouncedSearchQuery = useDebounce(searchQuery, 200);
 
-  const loadProducts = useCallback(async () => {
-    try {
-      let goods: GoodDTO[];
+  const isAdminMode = userMode === 'ADMIN' && Boolean(initData);
 
-      if (userMode === 'ADMIN' && initData) {
-        goods = await fetchAllGoods(initData);
-      } else {
-        goods = await fetchGoods();
-      }
-
-      const mappedProducts: Product[] = goods.map((good: GoodDTO) => {
-        const sortedImages = (good.images || [])
-          .sort((a, b) => a.display_order - b.display_order)
-          .map(img => img.image_url);
-
-        return {
-          id: good.id,
-          image: sortedImages[0] || '/images/placeholder.png',
-          images: sortedImages,
-          alt: good.name,
-          title: good.name,
-          price: `${good.price} руб.`,
-          non_discount_price: good.non_discount_price ? `${good.non_discount_price} руб.` : undefined,
-          description: good.description,
-          category: good.category,
-          status: good.status,
-          sort_order: good.sort_order ?? good.id,
-        };
-      });
-
-      mappedProducts.sort((a, b) => {
-        const aOrder = a.sort_order ?? a.id;
-        const bOrder = b.sort_order ?? b.id;
-        return aOrder - bOrder;
-      });
-
-      setProducts(mappedProducts);
-    } catch (error) {
-      console.error('Failed to fetch goods:', error);
-      console.error('Error details:', error instanceof Error ? error.message : String(error));
-      setProducts([]);
-    }
-  }, [userMode, initData]);
+  const { data: goods = [], error, refetch } = useQuery<GoodDTO[]>({
+    queryKey: ['goods', isAdminMode ? 'admin' : 'public', initData],
+    queryFn: () => (isAdminMode ? fetchAllGoods(initData as string) : fetchGoods()),
+    enabled: isAdminMode ? Boolean(initData) : true,
+  });
 
   useEffect(() => {
-    loadProducts();
-  }, [loadProducts]);
+    if (!error) return;
+    console.error('Failed to fetch goods:', error);
+  }, [error]);
+
+  const products = useMemo<Product[]>(() => {
+    const mappedProducts = goods.map((good: GoodDTO) => {
+      const sortedImages = (good.images || [])
+        .slice()
+        .sort((a, b) => a.display_order - b.display_order)
+        .map(img => img.image_url);
+
+      return {
+        id: good.id,
+        image: sortedImages[0] || '/images/placeholder.png',
+        images: sortedImages,
+        alt: good.name,
+        title: good.name,
+        price: good.price,
+        non_discount_price: good.non_discount_price ?? undefined,
+        description: good.description,
+        category: good.category,
+        status: good.status,
+        sort_order: good.sort_order ?? good.id,
+      };
+    });
+
+    mappedProducts.sort((a, b) => {
+      const aOrder = a.sort_order ?? a.id;
+      const bOrder = b.sort_order ?? b.id;
+      return aOrder - bOrder;
+    });
+
+    return mappedProducts;
+  }, [goods]);
 
   useEffect(() => {
     setActiveCategory(['all']);
@@ -121,7 +117,7 @@ export const useProducts = ({ userMode, initData }: UseProductsOptions) => {
     setSearchQuery: updateSearchQuery,
     setActiveCategory,
     handleCategoryToggle,
-    reloadProducts: loadProducts,
+    reloadProducts: refetch,
   };
 };
 

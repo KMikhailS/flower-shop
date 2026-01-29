@@ -93,6 +93,17 @@ export const useCartPersistence = (webApp: TelegramWebApp | null): UseCartPersis
   return { saveCart, loadCart, clearCart };
 };
 
+const normalizePrice = (value: unknown): number => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const parsed = parseFloat(value.replace(/[^\d.]/g, ''));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+};
+
 // Валидация и парсинг данных корзины
 function validateAndParseCart(data: string | null): PersistedCartState | null {
   if (!data) return null;
@@ -115,7 +126,27 @@ function validateAndParseCart(data: string | null): PersistedCartState | null {
       return null;
     }
 
-    return cartState;
+    const normalizedItems = Array.isArray(cartState.cartItems)
+      ? cartState.cartItems.map((item) => {
+          const product = item?.product;
+          if (!product) return item;
+          return {
+            ...item,
+            product: {
+              ...product,
+              price: normalizePrice(product.price),
+              non_discount_price: product.non_discount_price != null
+                ? normalizePrice(product.non_discount_price)
+                : undefined,
+            },
+          };
+        })
+      : cartState.cartItems;
+
+    return {
+      ...cartState,
+      cartItems: normalizedItems,
+    };
   } catch (e) {
     console.error('Failed to parse cart data:', e);
     return null;
