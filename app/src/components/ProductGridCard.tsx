@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Product } from './ProductGrid';
 
 interface ProductGridCardProps {
   product: Product;
-  onClick: (product: Product) => void;
+  onClick?: (product: Product) => void;
   isPriority?: boolean;
 }
 
 const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick, isPriority = false }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const touchStartRef = useRef<number | null>(null);
+  const touchEndRef = useRef<number | null>(null);
 
   // Получаем массив изображений (или используем основное изображение)
   const images = product.images && product.images.length > 0 ? product.images : [product.image];
@@ -27,16 +27,18 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick, isP
   const minSwipeDistance = 30;
 
   const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
+    touchEndRef.current = null;
+    touchStartRef.current = e.targetTouches[0].clientX;
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
+    touchEndRef.current = e.targetTouches[0].clientX;
   };
 
   const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
+    const touchStart = touchStartRef.current;
+    const touchEnd = touchEndRef.current;
+    if (touchStart === null || touchEnd === null) return;
 
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
@@ -51,14 +53,14 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick, isP
 
   const handleCardClick = () => {
     // Предотвращаем открытие карточки при свайпе
-    if (touchStart !== null && touchEnd !== null) {
-      const distance = Math.abs(touchStart - touchEnd);
+    if (touchStartRef.current !== null && touchEndRef.current !== null) {
+      const distance = Math.abs(touchStartRef.current - touchEndRef.current);
       if (distance > 10) {
         // Был свайп, не открываем карточку
         return;
       }
     }
-    onClick(product);
+    onClick?.(product);
   };
 
   return (
@@ -117,4 +119,4 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick, isP
   );
 };
 
-export default ProductGridCard;
+export default React.memo(ProductGridCard);

@@ -105,7 +105,9 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
 
   // Debug: отслеживаем изменения orderedImageUrls
   useEffect(() => {
-    console.log('🔄 orderedImageUrls changed:', orderedImageUrls);
+    if (import.meta.env.DEV) {
+      console.log('🔄 orderedImageUrls changed:', orderedImageUrls);
+    }
   }, [orderedImageUrls]);
 
   // Fetch categories on mount
@@ -257,7 +259,9 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
       if (previewElement) {
         const index = parseInt(previewElement.getAttribute('data-preview-index') || '-1');
         if (index !== -1 && index !== dragOverIndex) {
-          console.log('👉 Touch Move Over:', index);
+          if (import.meta.env.DEV) {
+            console.log('👉 Touch Move Over:', index);
+          }
           setDragOverIndex(index);
         }
       }
@@ -291,7 +295,9 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
 
   // Mouse handlers for desktop devices
   const handleMouseDown = (index: number) => {
-    console.log('🖱️ Mouse Down:', index);
+    if (import.meta.env.DEV) {
+      console.log('🖱️ Mouse Down:', index);
+    }
     setMouseStartIndex(index);
     setDraggedIndex(index);
   };
@@ -308,7 +314,9 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
       if (previewElement) {
         const index = parseInt(previewElement.getAttribute('data-preview-index') || '-1');
         if (index !== -1 && index !== dragOverIndex) {
-          console.log('🖱️ Mouse Move Over:', index);
+          if (import.meta.env.DEV) {
+            console.log('🖱️ Mouse Move Over:', index);
+          }
           setDragOverIndex(index);
         }
       }
@@ -316,10 +324,14 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({ onClose, onSave, ed
   };
 
   const handleMouseUp = () => {
-    console.log('🖱️ Mouse Up:', { mouseStartIndex, dragOverIndex });
+    if (import.meta.env.DEV) {
+      console.log('🖱️ Mouse Up:', { mouseStartIndex, dragOverIndex });
+    }
 
     if (mouseStartIndex === null || dragOverIndex === null || mouseStartIndex === dragOverIndex) {
-      console.log('⚠️ Mouse Cancelled: same index or null');
+      if (import.meta.env.DEV) {
+        console.log('⚠️ Mouse Cancelled: same index or null');
+      }
       setMouseStartIndex(null);
       setDraggedIndex(null);
       setDragOverIndex(null);

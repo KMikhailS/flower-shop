@@ -30,7 +30,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductClick, isA
         <ProductGridCard
           key={product.id}
           product={product}
-          onClick={() => onProductClick?.(product)}
+          onClick={onProductClick}
           isPriority={index < 4}
         />
       ))}
@@ -41,4 +41,4 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductClick, isA
   );
 };
 
-export default ProductGrid;
+export default React.memo(ProductGrid);

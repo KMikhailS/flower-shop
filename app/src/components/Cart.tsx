@@ -2,39 +2,24 @@ import React from 'react';
 import AppHeader from './AppHeader';
 import CartItem from './CartItem';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
-import { CartItemData } from '../App';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { useDebounce } from '../hooks/useDebounce';
 import { createOrder, OrderRequest, fetchUserInfo, suggestAddress, AddressSuggestion, fetchDeliveryAmount, fetchPostcardAmount, fetchWorkTime } from '../api/client';
 import DeliveryDateTimeModal from './DeliveryDateTimeModal';
+import { useCart } from '../hooks/useCart';
 
 interface CartProps {
-  cartItems: CartItemData[];
   onOpenMenu: () => void;
-  selectedAddress: string;
   onOpenStoreAddresses: () => void;
-  deliveryMethod: 'pickup' | 'delivery';
-  setDeliveryMethod: (method: 'pickup' | 'delivery') => void;
-  onIncreaseQuantity: (productId: number) => void;
-  onDecreaseQuantity: (productId: number) => void;
-  onRemoveItem: (productId: number) => void;
-  onClearCart: () => void;
   onOpenMyOrders: () => void;
 }
 
 const Cart: React.FC<CartProps> = ({
-  cartItems,
   onOpenMenu,
-  selectedAddress,
   onOpenStoreAddresses,
-  deliveryMethod,
-  setDeliveryMethod,
-  onIncreaseQuantity,
-  onDecreaseQuantity,
-  onRemoveItem,
-  onClearCart,
   onOpenMyOrders
 }) => {
+  const { cartItems, deliveryMethod, selectedAddress, increaseItem, decreaseItem, removeItem, clearCart, setDeliveryMethod } = useCart();
   const { webApp, user } = useTelegramWebApp();
   const [customAddress, setCustomAddress] = React.useState('г Тюмень, ');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -159,17 +144,17 @@ const Cart: React.FC<CartProps> = ({
   const totalPriceWithDelivery = totalPrice + deliveryCost + postcardCost;
 
   const handleDecrease = (productId: number) => {
-    onDecreaseQuantity(productId);
+    decreaseItem(productId);
     webApp?.HapticFeedback.impactOccurred('light');
   };
 
   const handleIncrease = (productId: number) => {
-    onIncreaseQuantity(productId);
+    increaseItem(productId);
     webApp?.HapticFeedback.impactOccurred('light');
   };
 
   const handleRemove = (productId: number) => {
-    onRemoveItem(productId);
+    removeItem(productId);
     webApp?.HapticFeedback.notificationOccurred('warning');
   };
 
@@ -305,7 +290,9 @@ const Cart: React.FC<CartProps> = ({
       // Отправляем заказ на бэкенд
       const createdOrder = await createOrder(orderRequest, initData);
 
-      console.log('Order created successfully:', createdOrder);
+      if (import.meta.env.DEV) {
+        console.log('Order created successfully:', createdOrder);
+      }
 
       // Отправляем данные боту для уведомления (опционально, для обратной совместимости)
       const botData = {
@@ -346,7 +333,7 @@ const Cart: React.FC<CartProps> = ({
       );
 
       // Очищаем корзину после успешной покупки
-      onClearCart();
+      clearCart();
     } catch (error) {
       console.error('Failed to create order:', error);
       webApp?.HapticFeedback.notificationOccurred('error');

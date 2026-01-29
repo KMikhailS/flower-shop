@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import AppHeader from './AppHeader';
 import { fetchMyOrders, OrderDTO, fetchAllGoods, GoodDTO, fetchDeliveryAmount, fetchPostcardAmount } from '../api/client';
 
@@ -46,7 +46,9 @@ const MyOrders: React.FC<MyOrdersProps> = ({
       setIsLoading(true);
       setError(null);
 
-      console.log('MyOrders: Loading orders with initData length:', initData.length);
+      if (import.meta.env.DEV) {
+        console.log('MyOrders: Loading orders with initData length:', initData.length);
+      }
 
       try {
         // Load orders and goods in parallel
@@ -113,12 +115,18 @@ const MyOrders: React.FC<MyOrdersProps> = ({
     return statusMap[status] || status;
   };
 
+  const goodsImageMap = useMemo(() => {
+    const map = new Map<number, string>();
+    goods.forEach((good) => {
+      if (good.images && good.images.length > 0) {
+        map.set(good.id, good.images[0].image_url);
+      }
+    });
+    return map;
+  }, [goods]);
+
   const getGoodImage = (goodId: number): string => {
-    const good = goods.find(g => g.id === goodId);
-    if (good && good.images && good.images.length > 0) {
-      return good.images[0].image_url;
-    }
-    return '/images/placeholder.png';
+    return goodsImageMap.get(goodId) || '/images/placeholder.png';
   };
 
   const filteredOrders = orders.filter(order => {

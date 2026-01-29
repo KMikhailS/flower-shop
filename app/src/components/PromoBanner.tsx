@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { PromoBannerDTO } from '../api/client';
 import AdminAddPromoBanner from './AdminAddPromoBanner';
 
@@ -12,8 +12,8 @@ interface PromoBannerProps {
 
 const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNew, onEdit, onBannerClick }) => {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-  const [touchStart, setTouchStart] = useState(0);
-  const [touchEnd, setTouchEnd] = useState(0);
+  const touchStartRef = useRef<number | null>(null);
+  const touchEndRef = useRef<number | null>(null);
 
   // Функции навигации по стрелкам
   const handlePrevBanner = () => {
@@ -54,15 +54,17 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNe
   const currentBanner = banners[currentBannerIndex];
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.targetTouches[0].clientX);
+    touchStartRef.current = e.targetTouches[0].clientX;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
+    touchEndRef.current = e.targetTouches[0].clientX;
   };
 
   const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
+    const touchStart = touchStartRef.current;
+    const touchEnd = touchEndRef.current;
+    if (touchStart === null || touchEnd === null) return;
 
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > 50;
@@ -77,8 +79,8 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNe
     }
 
     // Reset touch positions
-    setTouchStart(0);
-    setTouchEnd(0);
+    touchStartRef.current = null;
+    touchEndRef.current = null;
   };
 
   const handleBannerClick = () => {
@@ -190,4 +192,4 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ banners, isAdminMode, onAddNe
   );
 };
 
-export default PromoBanner;
+export default React.memo(PromoBanner);

@@ -462,7 +462,9 @@ export async function deletePromoBanner(
 ): Promise<void> {
   const url = `${API_BASE_URL}/promo/${bannerId}`;
 
-  console.log(`[DELETE BANNER] Sending DELETE request to: ${url}, Banner ID: ${bannerId}`);
+  if (import.meta.env.DEV) {
+    console.log(`[DELETE BANNER] Sending DELETE request to: ${url}, Banner ID: ${bannerId}`);
+  }
 
   const response = await fetch(url, {
     method: 'DELETE',
@@ -473,7 +475,9 @@ export async function deletePromoBanner(
     },
   });
 
-  console.log(`[DELETE BANNER] Response received: Status ${response.status}, OK: ${response.ok}`);
+  if (import.meta.env.DEV) {
+    console.log(`[DELETE BANNER] Response received: Status ${response.status}, OK: ${response.ok}`);
+  }
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -481,7 +485,9 @@ export async function deletePromoBanner(
     throw new Error(`Failed to delete promo banner: ${response.status} ${errorText}`);
   }
 
-  console.log(`[DELETE BANNER] Banner ${bannerId} deleted successfully`);
+  if (import.meta.env.DEV) {
+    console.log(`[DELETE BANNER] Banner ${bannerId} deleted successfully`);
+  }
 }
 
 /**

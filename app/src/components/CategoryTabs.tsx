@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 
 interface Category {
   id: string;
@@ -13,17 +13,24 @@ interface CategoryTabsProps {
 
 const CategoryTabs: React.FC<CategoryTabsProps> = ({ categories, activeCategory, onCategoryChange }) => {
   // Build categories array: "Все" (all) first, then dynamic categories
-  const allCategories: Category[] = [
+  const allCategories: Category[] = useMemo(() => ([
     { id: 'all', label: 'Все' },
     ...categories.map(cat => ({ id: cat, label: cat }))
-  ];
+  ]), [categories]);
+
+  const handleCategoryClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    const categoryId = event.currentTarget.dataset.categoryId;
+    if (!categoryId) return;
+    onCategoryChange(categoryId);
+  }, [onCategoryChange]);
 
   return (
     <div className="flex gap-[13px] px-8 overflow-x-auto scrollbar-hide pb-2">
       {allCategories.map((category) => (
         <button
           key={category.id}
-          onClick={() => onCategoryChange(category.id)}
+          data-category-id={category.id}
+          onClick={handleCategoryClick}
           className={`
             rounded-[30px] px-5 py-2.5 whitespace-nowrap shadow-custom transition-colors
             ${
@@ -42,4 +49,4 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({ categories, activeCategory,
   );
 };
 
-export default CategoryTabs;
+export default React.memo(CategoryTabs);

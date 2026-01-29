@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import AppHeader from './AppHeader';
 import { fetchShopAddresses, ShopAddress, createShopAddress, updateShopAddress, deleteShopAddress } from '../api/client';
+import { useCart } from '../hooks/useCart';
 
 interface StoreAddressesProps {
   isOpen: boolean;
-  onSelectAddress: (address: string) => void;
+  onSelectAddress?: (address: string) => void;
   onMenuClick: () => void;
   userMode?: string;
   initData?: string;
@@ -19,6 +20,7 @@ const StoreAddresses: React.FC<StoreAddressesProps> = ({
   initData,
   fromCart = false
 }) => {
+  const { setSelectedAddress } = useCart();
   const [addresses, setAddresses] = useState<ShopAddress[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +61,8 @@ const StoreAddresses: React.FC<StoreAddressesProps> = ({
     }
 
     // Если зашли из корзины (fromCart=true), выбираем адрес и возвращаемся в корзину
-    onSelectAddress(address);
+    setSelectedAddress(address);
+    onSelectAddress?.(address);
   };
 
   const handleAddNew = () => {
