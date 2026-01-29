@@ -480,7 +480,8 @@ const Settings: React.FC<SettingsProps> = ({
 
   return (
     <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto">
-      <div className="h-full overflow-y-auto overflow-x-hidden">
+      <div className="h-full flex flex-col">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {/* Header */}
         <AppHeader
           title="FanFanTulpan"
@@ -688,14 +689,6 @@ const Settings: React.FC<SettingsProps> = ({
                   />
                 </div>
 
-                {/* Save Button */}
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="w-full bg-teal text-white py-3 rounded-[30px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 mt-4"
-                >
-                  {isSaving ? 'Сохранение...' : 'Сохранить'}
-                </button>
               </>
             )}
 
@@ -764,13 +757,6 @@ const Settings: React.FC<SettingsProps> = ({
                   </div>
                 </div>
 
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="w-full bg-teal text-white py-3 rounded-[30px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 mt-4"
-                >
-                  {isSaving ? 'Сохранение...' : 'Сохранить'}
-                </button>
               </>
             )}
 
@@ -960,6 +946,18 @@ const Settings: React.FC<SettingsProps> = ({
                 )}
               </div>
             )}
+          </div>
+        )}
+        </div>
+        {!isLoading && (activeTab === 'notifications' || activeTab === 'delivery') && (
+          <div className="px-6 pb-6 pt-3 bg-white border-t border-gray-100">
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="w-full bg-teal text-white py-3 rounded-[30px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {isSaving ? 'Сохранение...' : 'Сохранить'}
+            </button>
           </div>
         )}
       </div>
