@@ -28,7 +28,16 @@ dist-ssr
 images
 .playwright-mcp
 pages
+__pycache__
 CLAUDE.md
 
 tasks
+
+BACK_MAX_MIGRATION.md
+FRONT_MAX_MIGRATION.md
+REFACTOR.md
+
+db-backup-2026-01-16_05-47-17.db
+
+.claude
 
