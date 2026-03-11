@@ -1,235 +1,97 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import AppHeader from './components/AppHeader';
 import SearchBar from './components/SearchBar';
 import PromoBanner from './components/PromoBanner';
 import CategoryTabs from './components/CategoryTabs';
-import ProductGrid, { Product } from './components/ProductGrid';
-import BottomButton from './components/BottomButton';
+import ProductGrid from './components/ProductGrid';
+import type { Product } from './types/product';
 import MobileMenu from './components/MobileMenu';
-import ProductCard from './components/ProductCard';
-import Cart from './components/Cart';
 import StoreAddresses from './components/StoreAddresses';
-import DeliveryInfo from './components/DeliveryInfo';
-import PaymentInfo from './components/PaymentInfo';
-import Settings from './components/Settings';
-import MyOrders from './components/MyOrders';
-import AdminOrders from './components/AdminOrders';
-import AdminProductCard from './components/AdminProductCard';
-import AdminPromoBannerCard from './components/AdminPromoBannerCard';
+import CartBottomButton from './components/CartBottomButton';
 import { useTelegramWebApp } from './hooks/useTelegramWebApp';
-import { useCartPersistence } from './hooks/useCartPersistence';
-import { fetchUserInfo, UserInfo, createGoodCard, fetchGoods, fetchAllGoods, GoodDTO, addGoodImages, updateGoodCard, deleteGood, blockGood, activateGood, fetchPromoBanners, fetchAllPromoBanners, PromoBannerDTO, createPromoBanner, deletePromoBanner, blockPromoBanner, activatePromoBanner, updatePromoBannerLink, fetchSupportChatId } from './api/client';
+import { useProducts } from './hooks/useProducts';
+import { usePromoBanners } from './hooks/usePromoBanners';
+import { useNavigation } from './hooks/useNavigation';
+import { CartProvider } from './hooks/useCart';
+import { fetchUserInfo, UserInfo, createGoodCard, addGoodImages, updateGoodCard, deleteGood, blockGood, activateGood, PromoBannerDTO, deletePromoBanner, blockPromoBanner, activatePromoBanner, updatePromoBannerLink, fetchSupportChatId } from './api/client';
 
-export interface CartItemData {
-  product: Product;
-  quantity: number;
-}
+const Cart = lazy(() => import('./components/Cart'));
+const ProductCard = lazy(() => import('./components/ProductCard'));
+const AdminOrders = lazy(() => import('./components/AdminOrders'));
+const MyOrders = lazy(() => import('./components/MyOrders'));
+const Settings = lazy(() => import('./components/Settings'));
+const AdminProductCard = lazy(() => import('./components/AdminProductCard'));
+const AdminPromoBannerCard = lazy(() => import('./components/AdminPromoBannerCard'));
+const DeliveryInfo = lazy(() => import('./components/DeliveryInfo'));
+const PaymentInfo = lazy(() => import('./components/PaymentInfo'));
 
 function App() {
   const { webApp } = useTelegramWebApp();
-  const { saveCart, loadCart, clearCart } = useCartPersistence(webApp);
 
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [promoBanners, setPromoBanners] = useState<PromoBannerDTO[]>([]);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isStoreAddressesOpen, setIsStoreAddressesOpen] = useState(false);
-  const [isDeliveryInfoOpen, setIsDeliveryInfoOpen] = useState(false);
-  const [isPaymentInfoOpen, setIsPaymentInfoOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isMyOrdersOpen, setIsMyOrdersOpen] = useState(false);
-  const [isAdminOrdersOpen, setIsAdminOrdersOpen] = useState(false);
-  const [selectedAddress, setSelectedAddress] = useState('г. Тюмень ул. Пермякова, 62');
-  const [previousScreen, setPreviousScreen] = useState<'home' | 'cart' | 'storeAddresses' | null>(null);
-  const [previousScreenBeforeCart, setPreviousScreenBeforeCart] = useState<'home' | 'productCard' | null>(null);
-  const [previousProduct, setPreviousProduct] = useState<Product | null>(null);
-  const [returnToCart, setReturnToCart] = useState(false);
-  const [isAdminCardOpen, setIsAdminCardOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [isAdminBannerCardOpen, setIsAdminBannerCardOpen] = useState(false);
-  const [editingBanner, setEditingBanner] = useState<PromoBannerDTO | null>(null);
-  const [activeCategory, setActiveCategory] = useState<string[]>(['all']);
-  const [searchQuery, setSearchQuery] = useState('');
 
-  // Состояние корзины - теперь массив товаров
-  const [cartItems, setCartItems] = useState<CartItemData[]>([]);
-  const [cartDeliveryMethod, setCartDeliveryMethod] = useState<'pickup' | 'delivery'>('pickup');
+  const {
+    products,
+    uniqueCategories,
+    filteredProducts,
+    activeCategory,
+    setSearchQuery,
+    handleCategoryToggle,
+    reloadProducts,
+  } = useProducts({ userMode: userInfo?.mode, initData: webApp?.initData });
 
-  // Состояние для видимости кнопки корзины
-  const [isBottomButtonVisible, setIsBottomButtonVisible] = useState(false);
+  const {
+    promoBanners,
+    reloadPromoBanners,
+    addPromoBanner,
+  } = usePromoBanners({ userMode: userInfo?.mode, initData: webApp?.initData, webApp });
+
+  const {
+    isMenuOpen,
+    setIsMenuOpen,
+    selectedProduct,
+    setSelectedProduct,
+    isCartOpen,
+    setIsCartOpen,
+    isStoreAddressesOpen,
+    setIsStoreAddressesOpen,
+    isDeliveryInfoOpen,
+    setIsDeliveryInfoOpen,
+    isPaymentInfoOpen,
+    setIsPaymentInfoOpen,
+    isSettingsOpen,
+    setIsSettingsOpen,
+    isMyOrdersOpen,
+    setIsMyOrdersOpen,
+    isAdminOrdersOpen,
+    setIsAdminOrdersOpen,
+    setPreviousScreen,
+    previousScreenBeforeCart,
+    setPreviousScreenBeforeCart,
+    previousProduct,
+    setPreviousProduct,
+    returnToCart,
+    setReturnToCart,
+    isAdminCardOpen,
+    setIsAdminCardOpen,
+    editingProduct,
+    setEditingProduct,
+    isAdminBannerCardOpen,
+    setIsAdminBannerCardOpen,
+    editingBanner,
+    setEditingBanner,
+    isBottomButtonVisible,
+    setIsBottomButtonVisible,
+    openCart,
+    openStoreAddresses,
+    closeStoreAddressesAfterSelect,
+    navigateHome,
+    closeMenu,
+  } = useNavigation();
+
   const productGridRef = useRef<HTMLDivElement>(null);
 
-  // Extract unique categories from products
-  const uniqueCategories = useMemo(() => {
-    const categories = products
-      .map(p => p.category)
-      .filter((cat): cat is string => Boolean(cat));
-    return Array.from(new Set(categories));
-  }, [products]);
-
-  // Filter products based on active categories and search query
-  const filteredProducts = useMemo(() => {
-    let result = products;
-
-    // Filter by category
-    if (!activeCategory.includes('all')) {
-      result = result.filter(p => p.category && activeCategory.includes(p.category));
-    }
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      result = result.filter(p => p.title.toLowerCase().includes(query));
-    }
-
-    return result;
-  }, [products, activeCategory, searchQuery]);
-
-  // Handle category toggle
-  const handleCategoryToggle = (category: string) => {
-    if (category === 'all') {
-      // Clicking "Все" - clear all other selections, keep only "all"
-      setActiveCategory(['all']);
-    } else {
-      setActiveCategory(prev => {
-        const isSelected = prev.includes(category);
-
-        if (isSelected) {
-          // Category is already selected - remove it
-          const newSelection = prev.filter(cat => cat !== category);
-
-          // If nothing left, default to "all"
-          if (newSelection.length === 0) {
-            return ['all'];
-          }
-
-          return newSelection;
-        } else {
-          // Category is not selected - add it
-          // Remove "all" if it was there, and add the new category
-          const withoutAll = prev.filter(cat => cat !== 'all');
-          return [...withoutAll, category];
-        }
-      });
-    }
-  };
-
-  // Функции управления корзиной
-  const handleAddToCart = (product: Product) => {
-    setCartItems(prevItems => {
-      const existingItem = prevItems.find(item => item.product.id === product.id);
-
-      if (existingItem) {
-        // Если товар уже есть - увеличиваем quantity
-        return prevItems.map(item =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      } else {
-        // Если товара нет - добавляем новый
-        return [...prevItems, { product, quantity: 1 }];
-      }
-    });
-  };
-
-  const handleOpenCart = () => {
-    // Определяем текущий экран перед открытием корзины
-    if (selectedProduct) {
-      setPreviousScreenBeforeCart('productCard');
-      setPreviousProduct(selectedProduct); // Сохраняем продукт
-    } else {
-      setPreviousScreenBeforeCart('home');
-      setPreviousProduct(null);
-    }
-
-    // Просто открываем корзину, не добавляем товар
-    setIsCartOpen(true);
-    setSelectedProduct(null);
-  };
-
-  const handleIncreaseQuantity = (productId: number) => {
-    setCartItems(prevItems =>
-      prevItems.map(item =>
-        item.product.id === productId
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      )
-    );
-  };
-
-  const handleDecreaseQuantity = (productId: number) => {
-    setCartItems(prevItems => {
-      const item = prevItems.find(i => i.product.id === productId);
-
-      // Если quantity = 1, ничего не делаем
-      if (item && item.quantity <= 1) {
-        return prevItems;
-      }
-
-      // Иначе уменьшаем quantity
-      return prevItems.map(i =>
-        i.product.id === productId
-          ? { ...i, quantity: i.quantity - 1 }
-          : i
-      );
-    });
-  };
-
-  const handleRemoveItem = (productId: number) => {
-    setCartItems(prevItems => prevItems.filter(item => item.product.id !== productId));
-  };
-
-  // Уменьшает количество или удаляет товар при qty=1
-  const handleRemoveFromCart = (productId: number) => {
-    setCartItems(prevItems => {
-      const item = prevItems.find(i => i.product.id === productId);
-      if (!item) return prevItems;
-
-      if (item.quantity <= 1) {
-        // Удаляем товар из корзины
-        return prevItems.filter(i => i.product.id !== productId);
-      }
-
-      // Уменьшаем количество
-      return prevItems.map(i =>
-        i.product.id === productId
-          ? { ...i, quantity: i.quantity - 1 }
-          : i
-      );
-    });
-  };
-
-  const handleOpenStoreAddresses = (fromCart: boolean = false) => {
-    setReturnToCart(fromCart);
-    if (fromCart) {
-      setIsCartOpen(false);
-    } else {
-      setIsMenuOpen(false);
-    }
-    setIsStoreAddressesOpen(true);
-  };
-
-  const handleSelectAddress = (address: string) => {
-    setSelectedAddress(address);
-    setIsStoreAddressesOpen(false);
-    if (returnToCart) {
-      setIsCartOpen(true);
-      setReturnToCart(false);
-    }
-  };
-
-  const handleNavigateHome = () => {
-    setIsMenuOpen(false);
-    setSelectedProduct(null);
-    setIsCartOpen(false);
-    setIsStoreAddressesOpen(false);
-    setIsSettingsOpen(false);
-  };
-
-  const buildSupportChatLink = (chatId: string) => {
+  const buildSupportChatLink = useCallback((chatId: string) => {
     const normalized = chatId.trim();
     if (!normalized) {
       return null;
@@ -251,9 +113,9 @@ function App() {
     }
 
     return null;
-  };
+  }, []);
 
-  const openSupportLink = (url: string, preferTelegram: boolean) => {
+  const openSupportLink = useCallback((url: string, preferTelegram: boolean) => {
     if (preferTelegram && webApp?.openTelegramLink) {
       try {
         webApp.openTelegramLink(url);
@@ -280,9 +142,9 @@ function App() {
     }
 
     return false;
-  };
+  }, [webApp]);
 
-  const handleOpenFeedback = async () => {
+  const handleOpenFeedback = useCallback(async () => {
     if (!webApp?.initData) {
       alert('Ошибка: нет данных авторизации');
       return;
@@ -317,78 +179,140 @@ function App() {
         alert('Не удалось открыть чат поддержки');
       }
     }
-  };
+  }, [webApp, buildSupportChatLink, openSupportLink]);
 
-  const handleCloseMenu = () => {
-    setIsMenuOpen(false);
-    if (previousScreen === 'cart') {
-      setIsCartOpen(true);
-    } else if (previousScreen === 'storeAddresses') {
-      setIsStoreAddressesOpen(true);
-    }
-    setPreviousScreen(null);
-  };
+  const handleCloseMenu = useCallback(() => {
+    closeMenu();
+  }, [closeMenu]);
 
-  const handleOpenSettings = () => {
+  const handleOpenSettings = useCallback(() => {
     setIsMenuOpen(false);
     setIsSettingsOpen(true);
-  };
+  }, [setIsMenuOpen, setIsSettingsOpen]);
 
-  const handleCloseSettings = () => {
+  const handleCloseSettings = useCallback(() => {
     setIsSettingsOpen(false);
-  };
+  }, [setIsSettingsOpen]);
 
-  const handleOpenDeliveryInfo = () => {
+  const handleOpenDeliveryInfo = useCallback(() => {
     setIsMenuOpen(false);
     setIsDeliveryInfoOpen(true);
-  };
+  }, [setIsMenuOpen, setIsDeliveryInfoOpen]);
 
-  const handleCloseDeliveryInfo = () => {
+  const handleCloseDeliveryInfo = useCallback(() => {
     setIsDeliveryInfoOpen(false);
-  };
+  }, [setIsDeliveryInfoOpen]);
 
-  const handleOpenPaymentInfo = () => {
+  const handleOpenPaymentInfo = useCallback(() => {
     setIsMenuOpen(false);
     setIsPaymentInfoOpen(true);
-  };
+  }, [setIsMenuOpen, setIsPaymentInfoOpen]);
 
-  const handleClosePaymentInfo = () => {
+  const handleClosePaymentInfo = useCallback(() => {
     setIsPaymentInfoOpen(false);
-  };
+  }, [setIsPaymentInfoOpen]);
 
-  const handleOpenMyOrders = () => {
+  const handleOpenMyOrders = useCallback(() => {
     setIsMenuOpen(false);
     setIsMyOrdersOpen(true);
-  };
+  }, [setIsMenuOpen, setIsMyOrdersOpen]);
 
-  const handleOpenAdminOrders = () => {
+  const handleOpenAdminOrders = useCallback(() => {
     setIsMenuOpen(false);
     setIsAdminOrdersOpen(true);
-  };
+  }, [setIsMenuOpen, setIsAdminOrdersOpen]);
 
-  const handleSettingsModeChange = async () => {
+  const handleSettingsModeChange = useCallback(async () => {
     // Reload user info after mode change
     if (!webApp || !webApp.initData) return;
 
     try {
       const data = await fetchUserInfo(webApp.initData);
       setUserInfo(data);
-      console.log('User info reloaded after mode change:', data);
+      if (import.meta.env.DEV) {
+        console.log('User info reloaded after mode change:', data);
+      }
     } catch (error) {
       console.error('Failed to reload user info:', error);
     }
-  };
+  }, [webApp]);
 
-  const handleOpenAdminCard = () => {
+  const handleOpenAdminCard = useCallback(() => {
     setEditingProduct(null);
     setIsAdminCardOpen(true);
-  };
+  }, [setEditingProduct, setIsAdminCardOpen]);
 
-  const handleEditProduct = (product: Product) => {
+  const handleEditProduct = useCallback((product: Product) => {
     setEditingProduct(product);
     setIsAdminCardOpen(true);
     setSelectedProduct(null);
-  };
+  }, [setEditingProduct, setIsAdminCardOpen, setSelectedProduct]);
+
+  const handleEditSelectedProduct = useCallback(() => {
+    if (!selectedProduct) return;
+    handleEditProduct(selectedProduct);
+  }, [selectedProduct, handleEditProduct]);
+
+  const handleProductClick = useCallback((product: Product) => {
+    setSelectedProduct(product);
+  }, [setSelectedProduct]);
+
+  const handleOpenCart = useCallback(() => {
+    openCart();
+  }, [openCart]);
+
+  const handleOpenStoreAddresses = useCallback((fromCart: boolean = false) => {
+    openStoreAddresses(fromCart);
+  }, [openStoreAddresses]);
+
+  const handleSelectAddress = useCallback((_address: string) => {
+    closeStoreAddressesAfterSelect();
+  }, [closeStoreAddressesAfterSelect]);
+
+  const handleNavigateHome = useCallback(() => {
+    navigateHome();
+  }, [navigateHome]);
+
+  const handleOpenMenuFromHome = useCallback(() => {
+    setPreviousScreen('home');
+    setIsMenuOpen(true);
+  }, [setPreviousScreen, setIsMenuOpen]);
+
+  const handleOpenMenuFromCart = useCallback(() => {
+    setPreviousScreen('cart');
+    setIsCartOpen(false);
+    setIsMenuOpen(true);
+  }, [setPreviousScreen, setIsCartOpen, setIsMenuOpen]);
+
+  const handleOpenMenuFromStoreAddresses = useCallback(() => {
+    setPreviousScreen('storeAddresses');
+    setIsStoreAddressesOpen(false);
+    setIsMenuOpen(true);
+  }, [setPreviousScreen, setIsStoreAddressesOpen, setIsMenuOpen]);
+
+  const handleOpenMenuFromSettings = useCallback(() => {
+    setIsSettingsOpen(false);
+    setIsMenuOpen(true);
+  }, [setIsSettingsOpen, setIsMenuOpen]);
+
+  const handleOpenMenuFromOrders = useCallback(() => {
+    setIsMyOrdersOpen(false);
+    setIsMenuOpen(true);
+  }, [setIsMyOrdersOpen, setIsMenuOpen]);
+
+  const handleOpenMenuFromAdminOrders = useCallback(() => {
+    setIsAdminOrdersOpen(false);
+    setIsMenuOpen(true);
+  }, [setIsAdminOrdersOpen, setIsMenuOpen]);
+
+  const handleOpenStoreAddressesFromCart = useCallback(() => {
+    handleOpenStoreAddresses(true);
+  }, [handleOpenStoreAddresses]);
+
+  const handleOpenMyOrdersFromCart = useCallback(() => {
+    setIsCartOpen(false);
+    setIsMyOrdersOpen(true);
+  }, [setIsCartOpen, setIsMyOrdersOpen]);
 
   const handleDeleteProduct = async () => {
     if (!webApp || !webApp.initData || !editingProduct) {
@@ -405,7 +329,7 @@ function App() {
         const onSuccess = () => {
           setIsAdminCardOpen(false);
           setEditingProduct(null);
-          loadProducts();
+          reloadProducts();
         };
 
         if (webApp?.showAlert) {
@@ -455,98 +379,28 @@ function App() {
       }
       setIsAdminCardOpen(false);
       setEditingProduct(null);
-      await loadProducts();
+      await reloadProducts();
     } catch (error) {
       console.error('Failed to toggle block status:', error);
       alert('Ошибка при изменении статуса товара');
     }
   };
 
-  // Функция для загрузки акционных баннеров
-  const loadPromoBanners = async () => {
-    try {
-      let banners: PromoBannerDTO[];
-
-      // Если пользователь ADMIN - загружаем все баннеры, иначе только NEW
-      if (userInfo?.mode === 'ADMIN' && webApp?.initData) {
-        banners = await fetchAllPromoBanners(webApp.initData);
-      } else {
-        banners = await fetchPromoBanners();
-      }
-
-      setPromoBanners(banners);
-    } catch (error) {
-      console.error('Failed to fetch promo banners:', error);
-      setPromoBanners([]);
-    }
-  };
-
-  // Функция для добавления нового промо-баннера
-  const handleAddPromoBanner = () => {
-    // Create hidden file input
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-
-    input.onchange = async (e: Event) => {
-      const target = e.target as HTMLInputElement;
-      const file = target.files?.[0];
-
-      if (!file) return;
-
-      // Validate file size (5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Размер файла не должен превышать 5MB');
-        return;
-      }
-
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        alert('Файл должен быть изображением');
-        return;
-      }
-
-      try {
-        const initData = webApp?.initData || '';
-        console.log('Creating promo banner with initData length:', initData.length);
-
-        if (!initData) {
-          console.error('No initData available');
-          alert('Ошибка авторизации. Перезапустите приложение.');
-          return;
-        }
-
-        const newBanner = await createPromoBanner(file, initData);
-        console.log('Promo banner created:', newBanner);
-
-        // Reload banners to show the new one
-        await loadPromoBanners();
-        alert('Промо-баннер успешно создан!');
-      } catch (error) {
-        console.error('Failed to create promo banner:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-        alert(`Не удалось создать промо-баннер: ${errorMessage}`);
-      }
-    };
-
-    input.click();
-  };
-
   // Обработчик клика по баннеру - открывает товар по link
-  const handleBannerClick = (banner: PromoBannerDTO) => {
+  const handleBannerClick = useCallback((banner: PromoBannerDTO) => {
     if (!banner.link) return;
 
     const product = products.find(p => p.id === banner.link);
     if (product) {
       setSelectedProduct(product);
     }
-  };
+  }, [products, setSelectedProduct]);
 
   // Обработчики для редактирования баннеров
-  const handleEditBanner = (banner: PromoBannerDTO) => {
+  const handleEditBanner = useCallback((banner: PromoBannerDTO) => {
     setEditingBanner(banner);
     setIsAdminBannerCardOpen(true);
-  };
+  }, [setEditingBanner, setIsAdminBannerCardOpen]);
 
   const handleDeleteBanner = async () => {
     if (!webApp || !webApp.initData || !editingBanner) {
@@ -563,7 +417,7 @@ function App() {
         webApp.showAlert('Баннер успешно удалён', () => {
           setIsAdminBannerCardOpen(false);
           setEditingBanner(null);
-          loadPromoBanners();
+          reloadPromoBanners();
         });
       } catch (error) {
         console.error('Failed to delete banner:', error);
@@ -590,7 +444,7 @@ function App() {
       }
       setIsAdminBannerCardOpen(false);
       setEditingBanner(null);
-      await loadPromoBanners();
+      await reloadPromoBanners();
     } catch (error) {
       console.error('Failed to toggle block status:', error);
       alert('Ошибка при изменении статуса баннера');
@@ -607,7 +461,7 @@ function App() {
       await updatePromoBannerLink(editingBanner.id, link, webApp.initData);
       setIsAdminBannerCardOpen(false);
       setEditingBanner(null);
-      await loadPromoBanners();
+      await reloadPromoBanners();
       alert('Баннер успешно сохранён');
     } catch (error) {
       console.error('Failed to save banner:', error);
@@ -615,52 +469,6 @@ function App() {
     }
   };
 
-  // Функция для загрузки товаров с бэкенда
-  const loadProducts = async () => {
-    try {
-      let goods: GoodDTO[];
-
-      // Если пользователь ADMIN - загружаем все товары, иначе только NEW
-      if (userInfo?.mode === 'ADMIN' && webApp?.initData) {
-        goods = await fetchAllGoods(webApp.initData);
-      } else {
-        goods = await fetchGoods();
-      }
-
-      const mappedProducts: Product[] = goods.map((good: GoodDTO) => {
-        const sortedImages = (good.images || [])
-          .sort((a, b) => a.display_order - b.display_order)
-          .map(img => img.image_url);
-
-        return {
-          id: good.id,
-          image: sortedImages[0] || '/images/placeholder.png',
-          images: sortedImages,
-          alt: good.name,
-          title: good.name,
-          price: `${good.price} руб.`,
-          non_discount_price: good.non_discount_price ? `${good.non_discount_price} руб.` : undefined,
-          description: good.description,
-          category: good.category,
-          status: good.status,
-          sort_order: good.sort_order ?? good.id,
-        };
-      });
-
-      mappedProducts.sort((a, b) => {
-        const aOrder = a.sort_order ?? a.id;
-        const bOrder = b.sort_order ?? b.id;
-        return aOrder - bOrder;
-      });
-
-      setProducts(mappedProducts);
-    } catch (error) {
-      console.error('Failed to fetch goods:', error);
-      console.error('Error details:', error instanceof Error ? error.message : String(error));
-      // Показываем пустой массив товаров при ошибке
-      setProducts([]);
-    }
-  };
 
   const handleSaveAdminCard = async (data: {
     id?: number;
@@ -725,25 +533,12 @@ function App() {
       }
 
       // Обновляем список товаров
-      await loadProducts();
+      await reloadProducts();
     } catch (error) {
       console.error('Failed to save good card:', error);
       alert('Ошибка при сохранении товара. Проверьте права доступа.');
     }
   };
-
-  // Восстановление корзины при инициализации
-  useEffect(() => {
-    if (!webApp) return;
-
-    loadCart().then((savedCart) => {
-      if (savedCart && savedCart.cartItems) {
-        setCartItems(savedCart.cartItems);
-        setSelectedAddress(savedCart.selectedAddress);
-        setCartDeliveryMethod(savedCart.deliveryMethod);
-      }
-    });
-  }, [webApp, loadCart]);
 
   // Получение информации о пользователе при инициализации
   useEffect(() => {
@@ -752,29 +547,14 @@ function App() {
     fetchUserInfo(webApp.initData)
       .then((data) => {
         setUserInfo(data);
-        console.log('User info loaded:', data);
+        if (import.meta.env.DEV) {
+          console.log('User info loaded:', data);
+        }
       })
       .catch((error) => {
         console.error('Failed to fetch user info:', error);
       });
   }, [webApp]);
-
-  // Загрузка товаров при инициализации и при изменении режима пользователя
-  useEffect(() => {
-    loadProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userInfo?.mode]);
-
-  // Загрузка акционных баннеров при инициализации и при изменении режима пользователя
-  useEffect(() => {
-    loadPromoBanners();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userInfo?.mode]);
-
-  // Reset category to 'all' when products change
-  useEffect(() => {
-    setActiveCategory(['all']);
-  }, [products]);
 
   // Intersection Observer для отслеживания видимости ProductGrid
   useEffect(() => {
@@ -805,20 +585,6 @@ function App() {
     };
   }, []);
 
-  // Автосохранение корзины при изменении состояния
-  useEffect(() => {
-    if (cartItems.length === 0) {
-      clearCart(); // Очищаем storage при пустой корзине
-      return;
-    }
-
-    saveCart({
-      cartItems,
-      deliveryMethod: cartDeliveryMethod,
-      selectedAddress: selectedAddress,
-      timestamp: new Date().toISOString(),
-    });
-  }, [cartItems, cartDeliveryMethod, selectedAddress, saveCart, clearCart]);
 
   // Управление BackButton Telegram
   useEffect(() => {
@@ -873,175 +639,154 @@ function App() {
     } else {
       webApp.BackButton.hide();
     }
-  }, [webApp, isCartOpen, selectedProduct, isStoreAddressesOpen, isDeliveryInfoOpen, isPaymentInfoOpen, isMenuOpen, isAdminCardOpen, isSettingsOpen, isMyOrdersOpen, isAdminOrdersOpen, returnToCart, cartItems, previousProduct, previousScreenBeforeCart]);
+  }, [webApp, isCartOpen, selectedProduct, isStoreAddressesOpen, isDeliveryInfoOpen, isPaymentInfoOpen, isMenuOpen, isAdminCardOpen, isSettingsOpen, isMyOrdersOpen, isAdminOrdersOpen, returnToCart, previousProduct, previousScreenBeforeCart, handleCloseMenu]);
 
   return (
-    <div className="min-h-screen bg-white max-w-[402px] mx-auto">
-      <MobileMenu
-        isOpen={isMenuOpen}
-        onClose={handleCloseMenu}
-        onOpenStoreAddresses={() => handleOpenStoreAddresses(false)}
-        onOpenDeliveryInfo={handleOpenDeliveryInfo}
-        onOpenPaymentInfo={handleOpenPaymentInfo}
-        onOpenFeedback={handleOpenFeedback}
-        onOpenSettings={handleOpenSettings}
-        onOpenMyOrders={handleOpenMyOrders}
-        onOpenAdminOrders={handleOpenAdminOrders}
-        onNavigateHome={handleNavigateHome}
-        userRole={userInfo?.role}
-      />
-      <DeliveryInfo
-        isOpen={isDeliveryInfoOpen}
-        onClose={handleCloseDeliveryInfo}
-        initData={webApp?.initData}
-        userMode={userInfo?.mode}
-      />
-      <PaymentInfo
-        isOpen={isPaymentInfoOpen}
-        onClose={handleClosePaymentInfo}
-        initData={webApp?.initData}
-        userMode={userInfo?.mode}
-      />
-      <StoreAddresses
-        isOpen={isStoreAddressesOpen}
-        onSelectAddress={handleSelectAddress}
-        onMenuClick={() => {
-          setPreviousScreen('storeAddresses');
-          setIsStoreAddressesOpen(false);
-          setIsMenuOpen(true);
-        }}
-        userMode={userInfo?.mode}
-        initData={webApp?.initData}
-        fromCart={returnToCart}
-      />
-      <Settings
-        isOpen={isSettingsOpen}
-        onClose={handleCloseSettings}
-        onMenuClick={() => {
-          setIsSettingsOpen(false);
-          setIsMenuOpen(true);
-        }}
-        userMode={userInfo?.mode}
-        initData={webApp?.initData}
-        onModeChange={handleSettingsModeChange}
-      />
-      <MyOrders
-        isOpen={isMyOrdersOpen}
-        onMenuClick={() => {
-          setIsMyOrdersOpen(false);
-          setIsMenuOpen(true);
-        }}
-        initData={webApp?.initData}
-      />
-      <AdminOrders
-        isOpen={isAdminOrdersOpen}
-        onMenuClick={() => {
-          setIsAdminOrdersOpen(false);
-          setIsMenuOpen(true);
-        }}
-        initData={webApp?.initData}
-      />
-      {isCartOpen && (
-        <Cart
-          cartItems={cartItems}
-          onOpenMenu={() => {
-            setPreviousScreen('cart');
-            setIsCartOpen(false);
-            setIsMenuOpen(true);
-          }}
-          selectedAddress={selectedAddress}
-          onOpenStoreAddresses={() => handleOpenStoreAddresses(true)}
-          deliveryMethod={cartDeliveryMethod}
-          setDeliveryMethod={setCartDeliveryMethod}
-          onIncreaseQuantity={handleIncreaseQuantity}
-          onDecreaseQuantity={handleDecreaseQuantity}
-          onRemoveItem={handleRemoveItem}
-          onClearCart={() => {
-            setCartItems([]);
-            clearCart();
-          }}
-          onOpenMyOrders={() => {
-            setIsCartOpen(false);
-            setIsMyOrdersOpen(true);
-          }}
+    <CartProvider webApp={webApp}>
+      <div className="min-h-screen bg-white max-w-[402px] mx-auto">
+        <MobileMenu
+          isOpen={isMenuOpen}
+          onClose={handleCloseMenu}
+          onOpenStoreAddresses={handleOpenStoreAddresses}
+          onOpenDeliveryInfo={handleOpenDeliveryInfo}
+          onOpenPaymentInfo={handleOpenPaymentInfo}
+          onOpenFeedback={handleOpenFeedback}
+          onOpenSettings={handleOpenSettings}
+          onOpenMyOrders={handleOpenMyOrders}
+          onOpenAdminOrders={handleOpenAdminOrders}
+          onNavigateHome={handleNavigateHome}
+          userRole={userInfo?.role}
         />
-      )}
-      {selectedProduct && !isCartOpen && (
-        <ProductCard
-          product={selectedProduct}
-          onClose={() => setSelectedProduct(null)}
-          onOpenCart={handleOpenCart}
-          onAddToCart={handleAddToCart}
-          onRemoveFromCart={handleRemoveFromCart}
-          cartItems={cartItems}
-          userInfo={userInfo || undefined}
-          onEdit={() => handleEditProduct(selectedProduct)}
-        />
-      )}
-      {isAdminCardOpen && (
-        <AdminProductCard
-          onClose={() => {
-            setIsAdminCardOpen(false);
-            setEditingProduct(null);
-          }}
-          onSave={handleSaveAdminCard}
-          editingProduct={editingProduct || undefined}
-          onDelete={editingProduct ? handleDeleteProduct : undefined}
-          onBlock={editingProduct ? handleToggleBlockProduct : undefined}
-        />
-      )}
-      {isAdminBannerCardOpen && editingBanner && (
-        <AdminPromoBannerCard
-          banner={editingBanner}
-          onClose={() => {
-            setIsAdminBannerCardOpen(false);
-            setEditingBanner(null);
-          }}
-          onDelete={handleDeleteBanner}
-          onBlock={handleToggleBlockBanner}
-          onSave={handleSaveBanner}
-        />
-      )}
-      <div className="flex flex-col gap-4">
-        <AppHeader
-          title="FanFanTulpan"
-          actionType="menu-text"
-          onAction={() => {
-            setPreviousScreen('home');
-            setIsMenuOpen(true);
-          }}
-        />
-        <SearchBar onSearchChange={setSearchQuery} />
-        <PromoBanner
-          banners={promoBanners}
-          isAdminMode={userInfo?.mode === 'ADMIN'}
-          onAddNew={handleAddPromoBanner}
-          onEdit={handleEditBanner}
-          onBannerClick={handleBannerClick}
-        />
-        <CategoryTabs
-          categories={uniqueCategories}
-          activeCategory={activeCategory}
-          onCategoryChange={handleCategoryToggle}
-        />
-        <div ref={productGridRef}>
-          <ProductGrid
-            products={filteredProducts}
-            onProductClick={setSelectedProduct}
-            isAdminMode={userInfo?.mode === 'ADMIN'}
-            onAddNewCard={handleOpenAdminCard}
+        <Suspense fallback={null}>
+          <DeliveryInfo
+            isOpen={isDeliveryInfoOpen}
+            onClose={handleCloseDeliveryInfo}
+            initData={webApp?.initData}
+            userMode={userInfo?.mode}
           />
-        </div>
-        {isBottomButtonVisible && (
-          <div className="sticky bottom-0 z-10 mt-4 opacity-70">
-            <BottomButton
-              cartItemCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
-              onClick={handleOpenCart}
+        </Suspense>
+        <Suspense fallback={null}>
+          <PaymentInfo
+            isOpen={isPaymentInfoOpen}
+            onClose={handleClosePaymentInfo}
+            initData={webApp?.initData}
+            userMode={userInfo?.mode}
+          />
+        </Suspense>
+        <StoreAddresses
+          isOpen={isStoreAddressesOpen}
+          onSelectAddress={handleSelectAddress}
+          onMenuClick={handleOpenMenuFromStoreAddresses}
+          userMode={userInfo?.mode}
+          initData={webApp?.initData}
+          fromCart={returnToCart}
+        />
+        <Suspense fallback={null}>
+          <Settings
+            isOpen={isSettingsOpen}
+            onClose={handleCloseSettings}
+            onMenuClick={handleOpenMenuFromSettings}
+            userMode={userInfo?.mode}
+            initData={webApp?.initData}
+            onModeChange={handleSettingsModeChange}
+          />
+        </Suspense>
+        <Suspense fallback={null}>
+          <MyOrders
+            isOpen={isMyOrdersOpen}
+            onMenuClick={handleOpenMenuFromOrders}
+            initData={webApp?.initData}
+          />
+        </Suspense>
+        <Suspense fallback={null}>
+          <AdminOrders
+            isOpen={isAdminOrdersOpen}
+            onMenuClick={handleOpenMenuFromAdminOrders}
+            initData={webApp?.initData}
+          />
+        </Suspense>
+        {isCartOpen && (
+          <Suspense fallback={null}>
+            <Cart
+              onOpenMenu={handleOpenMenuFromCart}
+              onOpenStoreAddresses={handleOpenStoreAddressesFromCart}
+              onOpenMyOrders={handleOpenMyOrdersFromCart}
+            />
+          </Suspense>
+        )}
+        {selectedProduct && !isCartOpen && (
+          <Suspense fallback={null}>
+            <ProductCard
+              product={selectedProduct}
+              onClose={() => setSelectedProduct(null)}
+              onOpenCart={handleOpenCart}
+              userInfo={userInfo || undefined}
+              onEdit={handleEditSelectedProduct}
+            />
+          </Suspense>
+        )}
+        {isAdminCardOpen && (
+          <Suspense fallback={null}>
+            <AdminProductCard
+              onClose={() => {
+                setIsAdminCardOpen(false);
+                setEditingProduct(null);
+              }}
+              onSave={handleSaveAdminCard}
+              editingProduct={editingProduct || undefined}
+              onDelete={editingProduct ? handleDeleteProduct : undefined}
+              onBlock={editingProduct ? handleToggleBlockProduct : undefined}
+            />
+          </Suspense>
+        )}
+        {isAdminBannerCardOpen && editingBanner && (
+          <Suspense fallback={null}>
+            <AdminPromoBannerCard
+              banner={editingBanner}
+              onClose={() => {
+                setIsAdminBannerCardOpen(false);
+                setEditingBanner(null);
+              }}
+              onDelete={handleDeleteBanner}
+              onBlock={handleToggleBlockBanner}
+              onSave={handleSaveBanner}
+            />
+          </Suspense>
+        )}
+        <div className="flex flex-col gap-4">
+          <AppHeader
+            title="FanFanTulpan"
+            actionType="menu-text"
+            onAction={handleOpenMenuFromHome}
+          />
+          <SearchBar onSearchChange={setSearchQuery} />
+          <PromoBanner
+            banners={promoBanners}
+            isAdminMode={userInfo?.mode === 'ADMIN'}
+            onAddNew={addPromoBanner}
+            onEdit={handleEditBanner}
+            onBannerClick={handleBannerClick}
+          />
+          <CategoryTabs
+            categories={uniqueCategories}
+            activeCategory={activeCategory}
+            onCategoryChange={handleCategoryToggle}
+          />
+          <div ref={productGridRef}>
+            <ProductGrid
+              products={filteredProducts}
+              onProductClick={handleProductClick}
+              isAdminMode={userInfo?.mode === 'ADMIN'}
+              onAddNewCard={handleOpenAdminCard}
             />
           </div>
-        )}
+          <CartBottomButton
+            isVisible={isBottomButtonVisible}
+            onClick={handleOpenCart}
+          />
+        </div>
       </div>
-    </div>
+    </CartProvider>
   );
 }
 

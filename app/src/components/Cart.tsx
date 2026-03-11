@@ -2,54 +2,47 @@ import React from 'react';
 import AppHeader from './AppHeader';
 import CartItem from './CartItem';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
-import { CartItemData } from '../App';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { useDebounce } from '../hooks/useDebounce';
-import { createOrder, OrderRequest, fetchUserInfo, suggestAddress, AddressSuggestion, fetchDeliveryAmount, fetchPostcardAmount, fetchWorkTime } from '../api/client';
+import { createOrder, OrderRequest, fetchUserInfo, suggestAddress, AddressSuggestion } from '../api/client';
 import DeliveryDateTimeModal from './DeliveryDateTimeModal';
+import { useCart } from '../hooks/useCart';
+import { useServiceAmounts, useWorkTime } from '../hooks/useServiceSettings';
+import { formatRuble } from '../utils/formatCurrency';
 
 interface CartProps {
-  cartItems: CartItemData[];
   onOpenMenu: () => void;
-  selectedAddress: string;
   onOpenStoreAddresses: () => void;
-  deliveryMethod: 'pickup' | 'delivery';
-  setDeliveryMethod: (method: 'pickup' | 'delivery') => void;
-  onIncreaseQuantity: (productId: number) => void;
-  onDecreaseQuantity: (productId: number) => void;
-  onRemoveItem: (productId: number) => void;
-  onClearCart: () => void;
   onOpenMyOrders: () => void;
 }
 
 const Cart: React.FC<CartProps> = ({
-  cartItems,
   onOpenMenu,
-  selectedAddress,
   onOpenStoreAddresses,
-  deliveryMethod,
-  setDeliveryMethod,
-  onIncreaseQuantity,
-  onDecreaseQuantity,
-  onRemoveItem,
-  onClearCart,
   onOpenMyOrders
 }) => {
+  const { cartItems, deliveryMethod, selectedAddress, increaseItem, decreaseItem, removeItem, clearCart, setDeliveryMethod } = useCart();
   const { webApp, user } = useTelegramWebApp();
   const [customAddress, setCustomAddress] = React.useState('г Тюмень, ');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [suggestions, setSuggestions] = React.useState<AddressSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = React.useState(false);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = React.useState(false);
-  const [deliveryAmount, setDeliveryAmount] = React.useState<number>(0);
-  const [postcardAmount, setPostcardAmount] = React.useState<number>(0);
   const [deliveryDate, setDeliveryDate] = React.useState<string>('');
   const [deliveryTime, setDeliveryTime] = React.useState<string>('');
   const [isDeliveryDateTimeOpen, setIsDeliveryDateTimeOpen] = React.useState(false);
-  const [workTimeFrom, setWorkTimeFrom] = React.useState<string>('');
-  const [workTimeTo, setWorkTimeTo] = React.useState<string>('');
   const [addPostcard, setAddPostcard] = React.useState(false);
   const [postcardText, setPostcardText] = React.useState('');
+  const latestSuggestRequestId = React.useRef(0);
+
+  const initData = webApp?.initData || '';
+  const { data: serviceAmounts } = useServiceAmounts(initData, true);
+  const { data: workTime } = useWorkTime(initData, true);
+
+  const deliveryAmount = serviceAmounts?.deliveryAmount ?? 0;
+  const postcardAmount = serviceAmounts?.postcardAmount ?? 0;
+  const workTimeFrom = workTime?.work_time_from ?? '';
+  const workTimeTo = workTime?.work_time_to ?? '';
 
   const debouncedAddress = useDebounce(customAddress, 300);
 
@@ -79,79 +72,35 @@ const Cart: React.FC<CartProps> = ({
   React.useEffect(() => {
     if (deliveryMethod !== 'delivery' || debouncedAddress.length < 3) {
       setSuggestions([]);
+      setIsLoadingSuggestions(false);
       return;
     }
 
-    const fetchSuggestions = async () => {
-      setIsLoadingSuggestions(true);
-      try {
-        const result = await suggestAddress(debouncedAddress);
+    const controller = new AbortController();
+    const requestId = ++latestSuggestRequestId.current;
+    setIsLoadingSuggestions(true);
+
+    suggestAddress(debouncedAddress, controller.signal)
+      .then((result) => {
+        if (requestId !== latestSuggestRequestId.current) return;
         setSuggestions(result);
-      } catch (error) {
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return;
         console.error('Failed to fetch address suggestions:', error);
         setSuggestions([]);
-      } finally {
+      })
+      .finally(() => {
+        if (requestId !== latestSuggestRequestId.current) return;
         setIsLoadingSuggestions(false);
-      }
-    };
+      });
 
-    fetchSuggestions();
+    return () => controller.abort();
   }, [debouncedAddress, deliveryMethod]);
-
-  // Fetch delivery amount for courier delivery
-  React.useEffect(() => {
-    const initData = webApp?.initData || '';
-    if (!initData) return;
-
-    fetchDeliveryAmount(initData)
-      .then((value) => {
-        const parsed = parseFloat(String(value).replace(/[^\d]/g, '')) || 0;
-        setDeliveryAmount(parsed);
-      })
-      .catch((error) => {
-        console.error('Failed to fetch delivery amount:', error);
-        setDeliveryAmount(0);
-      });
-  }, [webApp?.initData]);
-
-  // Fetch postcard amount for cart calculations
-  React.useEffect(() => {
-    const initData = webApp?.initData || '';
-    if (!initData) return;
-
-    fetchPostcardAmount(initData)
-      .then((value) => {
-        const parsed = parseFloat(String(value).replace(/[^\d]/g, '')) || 0;
-        setPostcardAmount(parsed);
-      })
-      .catch((error) => {
-        console.error('Failed to fetch postcard amount:', error);
-        setPostcardAmount(0);
-      });
-  }, [webApp?.initData]);
-
-  // Fetch work time settings for delivery time picker
-  React.useEffect(() => {
-    const initData = webApp?.initData || '';
-    if (!initData) return;
-
-    fetchWorkTime(initData)
-      .then(({ work_time_from, work_time_to }) => {
-        setWorkTimeFrom(work_time_from || '');
-        setWorkTimeTo(work_time_to || '');
-      })
-      .catch((error) => {
-        console.error('Failed to fetch work time:', error);
-        // Fallback to 24/7 if settings are missing/unavailable
-        setWorkTimeFrom('');
-        setWorkTimeTo('');
-      });
-  }, [webApp?.initData]);
 
   // Рассчитываем общую сумму всех товаров
   const totalPrice = cartItems.reduce((sum, item) => {
-    const basePrice = parseFloat(item.product.price.replace(/[^\d]/g, ''));
-    return sum + (basePrice * item.quantity);
+    return sum + (item.product.price * item.quantity);
   }, 0);
 
   const deliveryCost = deliveryMethod === 'delivery' && cartItems.length > 0 ? deliveryAmount : 0;
@@ -159,17 +108,17 @@ const Cart: React.FC<CartProps> = ({
   const totalPriceWithDelivery = totalPrice + deliveryCost + postcardCost;
 
   const handleDecrease = (productId: number) => {
-    onDecreaseQuantity(productId);
+    decreaseItem(productId);
     webApp?.HapticFeedback.impactOccurred('light');
   };
 
   const handleIncrease = (productId: number) => {
-    onIncreaseQuantity(productId);
+    increaseItem(productId);
     webApp?.HapticFeedback.impactOccurred('light');
   };
 
   const handleRemove = (productId: number) => {
-    onRemoveItem(productId);
+    removeItem(productId);
     webApp?.HapticFeedback.notificationOccurred('warning');
   };
 
@@ -214,9 +163,6 @@ const Cart: React.FC<CartProps> = ({
     webApp?.HapticFeedback.notificationOccurred('success');
 
     try {
-      // Получаем initData для авторизации
-      const initData = webApp?.initData || '';
-
       // Проверяем наличие контактных данных пользователя
       let userInfo = await fetchUserInfo(initData);
       
@@ -305,8 +251,6 @@ const Cart: React.FC<CartProps> = ({
       // Отправляем заказ на бэкенд
       const createdOrder = await createOrder(orderRequest, initData);
 
-      console.log('Order created successfully:', createdOrder);
-
       // Отправляем данные боту для уведомления (опционально, для обратной совместимости)
       const botData = {
         order_id: createdOrder.id,
@@ -319,10 +263,10 @@ const Cart: React.FC<CartProps> = ({
         items: cartItems.map(item => ({
           id: item.product.id,
           title: item.product.title,
-          price: parseFloat(item.product.price.replace(/[^\d]/g, '')),
+          price: item.product.price,
           quantity: item.quantity,
         })),
-          totalPrice: totalPriceWithDelivery,
+        totalPrice: totalPriceWithDelivery,
         deliveryMethod: deliveryMethod === 'pickup' ? 'Самовывоз' : 'Курьером',
         address: delivery_address,
         deliveryDate: deliveryMethod === 'delivery' ? deliveryDate : null,
@@ -346,7 +290,7 @@ const Cart: React.FC<CartProps> = ({
       );
 
       // Очищаем корзину после успешной покупки
-      onClearCart();
+      clearCart();
     } catch (error) {
       console.error('Failed to create order:', error);
       webApp?.HapticFeedback.notificationOccurred('error');
@@ -373,7 +317,7 @@ const Cart: React.FC<CartProps> = ({
         ) : (
           <>
             {cartItems.map((item) => {
-              const itemTotalPrice = parseFloat(item.product.price.replace(/[^\d]/g, '')) * item.quantity;
+              const itemTotalPrice = item.product.price * item.quantity;
               return (
                 <CartItem
                   key={item.product.id}
@@ -389,19 +333,19 @@ const Cart: React.FC<CartProps> = ({
             {deliveryMethod === 'delivery' && (
               <div className="flex justify-between items-center mb-2">
                 <span className="text-base font-semibold text-black">Стоимость доставки</span>
-                <span className="text-base font-semibold text-black">{deliveryAmount} руб.</span>
+                <span className="text-base font-semibold text-black">{formatRuble(deliveryAmount)}</span>
               </div>
             )}
             {addPostcard && (
               <div className="flex justify-between items-center mb-2">
                 <span className="text-base font-semibold text-black">Стоимость открытки</span>
-                <span className="text-base font-semibold text-black">{postcardAmount} руб.</span>
+                <span className="text-base font-semibold text-black">{formatRuble(postcardAmount)}</span>
               </div>
             )}
             {/* Total Price */}
             <div className="flex justify-between items-center mb-6">
               <span className="text-base font-bold text-black">Итого:</span>
-              <span className="text-base font-bold text-black">{totalPriceWithDelivery} руб.</span>
+              <span className="text-base font-bold text-black">{formatRuble(totalPriceWithDelivery)}</span>
             </div>
           </>
         )}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AppHeader from './AppHeader';
 import {
   fetchSettings,
@@ -65,12 +66,49 @@ const Settings: React.FC<SettingsProps> = ({
   const [isSearching, setIsSearching] = useState(false);
 
   // Common state
-  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Tracks which setting types existed when we loaded settings (so we can delete them when user clears input)
   const existingSettingTypesRef = useRef<Set<string>>(new Set());
+  const queryClient = useQueryClient();
+
+  const {
+    data: settingsData = [],
+    isLoading: isLoadingSettings,
+    error: settingsError,
+  } = useQuery<Setting[]>({
+    queryKey: ['settings', initData],
+    queryFn: () => fetchSettings(initData as string),
+    enabled: isOpen && Boolean(initData),
+    refetchOnWindowFocus: false,
+  });
+
+  const {
+    data: categoriesData = [],
+    isLoading: isLoadingCategories,
+    error: categoriesError,
+  } = useQuery<CategoryDTO[]>({
+    queryKey: ['categories', 'admin', initData],
+    queryFn: () => fetchAllCategories(initData as string),
+    enabled: isOpen && Boolean(initData),
+    refetchOnWindowFocus: false,
+  });
+
+  const isLoading = isLoadingSettings || isLoadingCategories;
+  const errorMessage = actionError
+    || (settingsError ? 'Не удалось загрузить настройки' : null)
+    || (categoriesError ? 'Не удалось загрузить категории' : null);
+
+  useEffect(() => {
+    if (!settingsError) return;
+    console.error('Failed to load settings:', settingsError);
+  }, [settingsError]);
+
+  useEffect(() => {
+    if (!categoriesError) return;
+    console.error('Failed to load categories:', categoriesError);
+  }, [categoriesError]);
 
   useEffect(() => {
     if (isOpen) {
@@ -86,11 +124,47 @@ const Settings: React.FC<SettingsProps> = ({
 
   // Load settings when component opens
   useEffect(() => {
-    if (isOpen && initData) {
-      loadSettings();
-      loadCategories();
+    if (!isOpen) return;
+    setActionError(null);
+    if (!initData) {
+      setActionError('Ошибка авторизации. Перезапустите приложение.');
     }
   }, [isOpen, initData]);
+
+  useEffect(() => {
+    if (!isOpen || !initData) return;
+    existingSettingTypesRef.current = new Set(settingsData.map((s: Setting) => s.type));
+
+    // Find specific settings by type
+    const supportSetting = settingsData.find((s: Setting) => s.type === 'SUPPORT_CHAT_ID');
+    const managerSetting = settingsData.find((s: Setting) => s.type === 'MANAGER_CHAT_ID');
+    const orderEmailSetting = settingsData.find((s: Setting) => s.type === 'ORDER_EMAIL');
+    const orderEmailToSetting = settingsData.find((s: Setting) => s.type === 'ORDER_EMAIL_TO');
+    const orderEmailPasswordSetting = settingsData.find((s: Setting) => s.type === 'ORDER_EMAIL_PASSWORD');
+    const smtpHostSetting = settingsData.find((s: Setting) => s.type === 'SMTP_HOST');
+    const smtpPortSetting = settingsData.find((s: Setting) => s.type === 'SMTP_PORT');
+    const deliveryAmountSetting = settingsData.find((s: Setting) => s.type === 'DELIVERY_AMOUNT');
+    const postcardAmountSetting = settingsData.find((s: Setting) => s.type === 'POSTCARD_AMOUNT');
+    const workTimeFromSetting = settingsData.find((s: Setting) => s.type === 'WORK_TIME_FROM');
+    const workTimeToSetting = settingsData.find((s: Setting) => s.type === 'WORK_TIME_TO');
+
+    setSupportChatId(supportSetting?.value || '');
+    setManagerChatId(managerSetting?.value || '');
+    setOrderEmail(orderEmailSetting?.value || '');
+    setOrderEmailTo(orderEmailToSetting?.value || '');
+    setOrderEmailPassword(orderEmailPasswordSetting?.value || '');
+    setSmtpHost(smtpHostSetting?.value || '');
+    setSmtpPort(smtpPortSetting?.value || '');
+    setDeliveryAmount(deliveryAmountSetting?.value || '');
+    setPostcardAmount(postcardAmountSetting?.value || '');
+    setWorkTimeFrom(workTimeFromSetting?.value || '');
+    setWorkTimeTo(workTimeToSetting?.value || '');
+  }, [settingsData, isOpen, initData]);
+
+  useEffect(() => {
+    if (!isOpen || !initData) return;
+    setCategories(categoriesData);
+  }, [categoriesData, isOpen, initData]);
 
   // Update local mode when prop changes
   useEffect(() => {
@@ -98,59 +172,6 @@ const Settings: React.FC<SettingsProps> = ({
       setCurrentMode(userMode);
     }
   }, [userMode]);
-
-  const loadSettings = async () => {
-    if (!initData) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const settings = await fetchSettings(initData);
-      existingSettingTypesRef.current = new Set(settings.map((s: Setting) => s.type));
-
-      // Find specific settings by type
-      const supportSetting = settings.find((s: Setting) => s.type === 'SUPPORT_CHAT_ID');
-      const managerSetting = settings.find((s: Setting) => s.type === 'MANAGER_CHAT_ID');
-      const orderEmailSetting = settings.find((s: Setting) => s.type === 'ORDER_EMAIL');
-      const orderEmailToSetting = settings.find((s: Setting) => s.type === 'ORDER_EMAIL_TO');
-      const orderEmailPasswordSetting = settings.find((s: Setting) => s.type === 'ORDER_EMAIL_PASSWORD');
-      const smtpHostSetting = settings.find((s: Setting) => s.type === 'SMTP_HOST');
-      const smtpPortSetting = settings.find((s: Setting) => s.type === 'SMTP_PORT');
-      const deliveryAmountSetting = settings.find((s: Setting) => s.type === 'DELIVERY_AMOUNT');
-      const postcardAmountSetting = settings.find((s: Setting) => s.type === 'POSTCARD_AMOUNT');
-      const workTimeFromSetting = settings.find((s: Setting) => s.type === 'WORK_TIME_FROM');
-      const workTimeToSetting = settings.find((s: Setting) => s.type === 'WORK_TIME_TO');
-
-      setSupportChatId(supportSetting?.value || '');
-      setManagerChatId(managerSetting?.value || '');
-      setOrderEmail(orderEmailSetting?.value || '');
-      setOrderEmailTo(orderEmailToSetting?.value || '');
-      setOrderEmailPassword(orderEmailPasswordSetting?.value || '');
-      setSmtpHost(smtpHostSetting?.value || '');
-      setSmtpPort(smtpPortSetting?.value || '');
-      setDeliveryAmount(deliveryAmountSetting?.value || '');
-      setPostcardAmount(postcardAmountSetting?.value || '');
-      setWorkTimeFrom(workTimeFromSetting?.value || '');
-      setWorkTimeTo(workTimeToSetting?.value || '');
-    } catch (err) {
-      console.error('Failed to load settings:', err);
-      setError('Не удалось загрузить настройки');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadCategories = async () => {
-    if (!initData) return;
-
-    try {
-      const cats = await fetchAllCategories(initData);
-      setCategories(cats);
-    } catch (err) {
-      console.error('Failed to load categories:', err);
-    }
-  };
 
   // Category handlers
   const handleEditCategory = (category: CategoryDTO) => {
@@ -164,12 +185,12 @@ const Settings: React.FC<SettingsProps> = ({
     setIsSaving(true);
     try {
       await updateCategory(editingCategoryId, editingCategoryTitle.trim(), initData);
-      await loadCategories();
+      await queryClient.invalidateQueries({ queryKey: ['categories', 'admin', initData] });
       setEditingCategoryId(null);
       setEditingCategoryTitle('');
     } catch (err) {
       console.error('Failed to update category:', err);
-      setError('Ошибка при обновлении категории');
+      setActionError('Ошибка при обновлении категории');
     } finally {
       setIsSaving(false);
     }
@@ -182,10 +203,10 @@ const Settings: React.FC<SettingsProps> = ({
     setIsSaving(true);
     try {
       await deleteCategory(categoryId, initData);
-      await loadCategories();
+      await queryClient.invalidateQueries({ queryKey: ['categories', 'admin', initData] });
     } catch (err) {
       console.error('Failed to delete category:', err);
-      setError('Ошибка при удалении категории');
+      setActionError('Ошибка при удалении категории');
     } finally {
       setIsSaving(false);
     }
@@ -197,12 +218,12 @@ const Settings: React.FC<SettingsProps> = ({
     setIsSaving(true);
     try {
       await createCategory(newCategoryTitle.trim(), initData);
-      await loadCategories();
+      await queryClient.invalidateQueries({ queryKey: ['categories', 'admin', initData] });
       setNewCategoryTitle('');
       setIsAddingCategory(false);
     } catch (err) {
       console.error('Failed to create category:', err);
-      setError('Ошибка при создании категории');
+      setActionError('Ошибка при создании категории');
     } finally {
       setIsSaving(false);
     }
@@ -213,7 +234,7 @@ const Settings: React.FC<SettingsProps> = ({
     if (!initData || !searchUsername.trim()) return;
 
     setIsSearching(true);
-    setError(null);
+    setActionError(null);
     setFoundUser(null);
 
     try {
@@ -223,7 +244,7 @@ const Settings: React.FC<SettingsProps> = ({
       setEditUserMode(user.mode);
     } catch (err) {
       console.error('Failed to find user:', err);
-      setError('Пользователь не найден');
+      setActionError('Пользователь не найден');
     } finally {
       setIsSearching(false);
     }
@@ -233,7 +254,7 @@ const Settings: React.FC<SettingsProps> = ({
     if (!initData || !foundUser) return;
 
     setIsSaving(true);
-    setError(null);
+    setActionError(null);
 
     try {
       const updatedUser = await updateUser(foundUser.id, editUserRole, editUserMode, initData);
@@ -241,7 +262,7 @@ const Settings: React.FC<SettingsProps> = ({
       alert('Пользователь успешно обновлён!');
     } catch (err) {
       console.error('Failed to update user:', err);
-      setError('Ошибка при обновлении пользователя');
+      setActionError('Ошибка при обновлении пользователя');
     } finally {
       setIsSaving(false);
     }
@@ -254,12 +275,12 @@ const Settings: React.FC<SettingsProps> = ({
 
   const handleSave = async () => {
     if (!initData) {
-      setError('Ошибка авторизации');
+      setActionError('Ошибка авторизации');
       return;
     }
 
     setIsSaving(true);
-    setError(null);
+    setActionError(null);
 
     try {
       // Update mode if changed
@@ -287,7 +308,7 @@ const Settings: React.FC<SettingsProps> = ({
       if (managerChatIdValue) {
         // Validate: digits with optional minus sign (for groups/supergroups)
         if (!/^-?\d+$/.test(managerChatIdValue)) {
-          setError('ID чата менеджера должен быть числом (может быть отрицательным)');
+          setActionError('ID чата менеджера должен быть числом (может быть отрицательным)');
           setIsSaving(false);
           return;
         }
@@ -343,7 +364,7 @@ const Settings: React.FC<SettingsProps> = ({
       if (smtpPortValue) {
         // Validate: digits only
         if (!/^\d+$/.test(smtpPortValue)) {
-          setError('SMTP порт должен быть числом');
+          setActionError('SMTP порт должен быть числом');
           setIsSaving(false);
           return;
         }
@@ -359,7 +380,7 @@ const Settings: React.FC<SettingsProps> = ({
       if (deliveryAmountValue) {
         // Validate: digits only (рубли)
         if (!/^\d+$/.test(deliveryAmountValue)) {
-          setError('Стоимость доставки должна быть числом');
+          setActionError('Стоимость доставки должна быть числом');
           setIsSaving(false);
           return;
         }
@@ -375,7 +396,7 @@ const Settings: React.FC<SettingsProps> = ({
       if (postcardAmountValue) {
         // Validate: digits only (рубли)
         if (!/^\d+$/.test(postcardAmountValue)) {
-          setError('Стоимость открытки должна быть числом');
+          setActionError('Стоимость открытки должна быть числом');
           setIsSaving(false);
           return;
         }
@@ -391,13 +412,13 @@ const Settings: React.FC<SettingsProps> = ({
       const wtTo = workTimeTo.trim();
 
       if (wtFrom && !/^\d+$/.test(wtFrom)) {
-        setError('WORK_TIME_FROM должен быть числом (час)');
+        setActionError('WORK_TIME_FROM должен быть числом (час)');
         setIsSaving(false);
         return;
       }
 
       if (wtTo && !/^\d+$/.test(wtTo)) {
-        setError('WORK_TIME_TO должен быть числом (час)');
+        setActionError('WORK_TIME_TO должен быть числом (час)');
         setIsSaving(false);
         return;
       }
@@ -407,19 +428,19 @@ const Settings: React.FC<SettingsProps> = ({
         const toNum = parseInt(wtTo, 10);
 
         if (fromNum < 0 || fromNum > 23) {
-          setError('WORK_TIME_FROM должен быть в диапазоне 0–23');
+          setActionError('WORK_TIME_FROM должен быть в диапазоне 0–23');
           setIsSaving(false);
           return;
         }
 
         if (toNum < 1 || toNum > 24) {
-          setError('WORK_TIME_TO должен быть в диапазоне 1–24');
+          setActionError('WORK_TIME_TO должен быть в диапазоне 1–24');
           setIsSaving(false);
           return;
         }
 
         if (fromNum >= toNum) {
-          setError('WORK_TIME_FROM должен быть меньше чем WORK_TIME_TO');
+          setActionError('WORK_TIME_FROM должен быть меньше чем WORK_TIME_TO');
           setIsSaving(false);
           return;
         }
@@ -441,11 +462,15 @@ const Settings: React.FC<SettingsProps> = ({
         existingSettingTypesRef.current.delete('WORK_TIME_TO');
       }
 
+      await queryClient.invalidateQueries({ queryKey: ['settings', initData] });
+      await queryClient.invalidateQueries({ queryKey: ['service-amounts', initData] });
+      await queryClient.invalidateQueries({ queryKey: ['work-time', initData] });
+
       // Success - keep settings open (don't navigate away)
       alert('Настройки успешно сохранены!');
     } catch (err) {
       console.error('Failed to save settings:', err);
-      setError('Ошибка при сохранении настроек');
+      setActionError('Ошибка при сохранении настроек');
     } finally {
       setIsSaving(false);
     }
@@ -455,7 +480,8 @@ const Settings: React.FC<SettingsProps> = ({
 
   return (
     <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto">
-      <div className="h-full overflow-y-auto overflow-x-hidden">
+      <div className="h-full flex flex-col">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {/* Header */}
         <AppHeader
           title="FanFanTulpan"
@@ -476,9 +502,9 @@ const Settings: React.FC<SettingsProps> = ({
         )}
 
         {/* Error State */}
-        {error && !isLoading && (
+        {errorMessage && !isLoading && (
           <div className="flex justify-center items-center px-6 mt-4">
-            <p className="text-red-500 text-center">{error}</p>
+            <p className="text-red-500 text-center">{errorMessage}</p>
           </div>
         )}
 
@@ -663,14 +689,6 @@ const Settings: React.FC<SettingsProps> = ({
                   />
                 </div>
 
-                {/* Save Button */}
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="w-full bg-teal text-white py-3 rounded-[30px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 mt-4"
-                >
-                  {isSaving ? 'Сохранение...' : 'Сохранить'}
-                </button>
               </>
             )}
 
@@ -739,13 +757,6 @@ const Settings: React.FC<SettingsProps> = ({
                   </div>
                 </div>
 
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="w-full bg-teal text-white py-3 rounded-[30px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 mt-4"
-                >
-                  {isSaving ? 'Сохранение...' : 'Сохранить'}
-                </button>
               </>
             )}
 
@@ -935,6 +946,18 @@ const Settings: React.FC<SettingsProps> = ({
                 )}
               </div>
             )}
+          </div>
+        )}
+        </div>
+        {!isLoading && (activeTab === 'notifications' || activeTab === 'delivery') && (
+          <div className="px-6 pb-6 pt-3 bg-white border-t border-gray-100">
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="w-full bg-teal text-white py-3 rounded-[30px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {isSaving ? 'Сохранение...' : 'Сохранить'}
+            </button>
           </div>
         )}
       </div>

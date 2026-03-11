@@ -22,4 +22,4 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearchChange }) => {
   );
 };
 
-export default SearchBar;
+export default React.memo(SearchBar);

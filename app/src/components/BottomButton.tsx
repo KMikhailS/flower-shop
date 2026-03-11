@@ -27,4 +27,4 @@ const BottomButton: React.FC<BottomButtonProps> = ({ cartItemCount, onClick }) =
   );
 };
 
-export default BottomButton;
+export default React.memo(BottomButton);

@@ -1,19 +1,19 @@
 import { useCallback } from 'react';
-import { CartState } from '../types/cart';
+import type { PersistedCartState } from '../types/cart';
 
 const CART_STORAGE_KEY = 'fanfantulpan_cart';
 const CART_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 часа
 
 interface UseCartPersistenceReturn {
-  saveCart: (cartState: CartState) => void;
-  loadCart: () => Promise<CartState | null>;
+  saveCart: (cartState: PersistedCartState) => void;
+  loadCart: () => Promise<PersistedCartState | null>;
   clearCart: () => void;
 }
 
 export const useCartPersistence = (webApp: TelegramWebApp | null): UseCartPersistenceReturn => {
 
   // Сохранение в CloudStorage или localStorage
-  const saveCart = useCallback((cartState: CartState) => {
+  const saveCart = useCallback((cartState: PersistedCartState) => {
     const dataToSave = JSON.stringify(cartState);
 
     // Пытаемся использовать CloudStorage
@@ -40,7 +40,7 @@ export const useCartPersistence = (webApp: TelegramWebApp | null): UseCartPersis
   }, [webApp]);
 
   // Загрузка из CloudStorage или localStorage
-  const loadCart = useCallback((): Promise<CartState | null> => {
+  const loadCart = useCallback((): Promise<PersistedCartState | null> => {
     return new Promise((resolve) => {
       // Пытаемся загрузить из CloudStorage
       if (webApp?.CloudStorage) {
@@ -93,12 +93,23 @@ export const useCartPersistence = (webApp: TelegramWebApp | null): UseCartPersis
   return { saveCart, loadCart, clearCart };
 };
 
+const normalizePrice = (value: unknown): number => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const parsed = parseFloat(value.replace(/[^\d.]/g, ''));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+};
+
 // Валидация и парсинг данных корзины
-function validateAndParseCart(data: string | null): CartState | null {
+function validateAndParseCart(data: string | null): PersistedCartState | null {
   if (!data) return null;
 
   try {
-    const cartState: CartState = JSON.parse(data);
+    const cartState: PersistedCartState = JSON.parse(data);
 
     // Проверяем структуру данных
     if (!cartState || typeof cartState !== 'object') {
@@ -109,11 +120,33 @@ function validateAndParseCart(data: string | null): CartState | null {
     const timestamp = new Date(cartState.timestamp).getTime();
     const now = Date.now();
     if (now - timestamp > CART_MAX_AGE_MS) {
-      console.log('Cart data is too old, discarding');
+      if (import.meta.env.DEV) {
+        console.log('Cart data is too old, discarding');
+      }
       return null;
     }
 
-    return cartState;
+    const normalizedItems = Array.isArray(cartState.cartItems)
+      ? cartState.cartItems.map((item) => {
+          const product = item?.product;
+          if (!product) return item;
+          return {
+            ...item,
+            product: {
+              ...product,
+              price: normalizePrice(product.price),
+              non_discount_price: product.non_discount_price != null
+                ? normalizePrice(product.non_discount_price)
+                : undefined,
+            },
+          };
+        })
+      : cartState.cartItems;
+
+    return {
+      ...cartState,
+      cartItems: normalizedItems,
+    };
   } catch (e) {
     console.error('Failed to parse cart data:', e);
     return null;

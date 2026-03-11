@@ -1,33 +1,20 @@
-import React, { useState } from 'react';
-import { CartItemData } from '../App';
+import React, { useRef, useState } from 'react';
 import { UserInfo } from '../api/client';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
-
-interface Product {
-  id: number;
-  image: string;
-  images?: string[];
-  alt: string;
-  title: string;
-  price: string;
-  non_discount_price?: string;
-  description: string;
-}
+import { useCart } from '../hooks/useCart';
+import type { Product } from '../types/product';
+import { formatRuble } from '../utils/formatCurrency';
 
 interface ProductCardProps {
   product: Product;
   onClose: () => void;
   onOpenCart: () => void;
-  onAddToCart: (product: Product) => void;
-  onRemoveFromCart: (productId: number) => void;
-  cartItems: CartItemData[];
   userInfo?: UserInfo;
   onEdit?: () => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, onAddToCart, onRemoveFromCart, cartItems, userInfo, onEdit }) => {
-  // Вычисляем общее количество товаров в корзине
-  const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, userInfo, onEdit }) => {
+  const { cartItems, cartItemCount, addItem, decreaseOrRemove } = useCart();
 
   // Находим количество данного товара в корзине
   const productInCart = cartItems.find(item => item.product.id === product.id);
@@ -39,8 +26,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, onAddToC
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Состояние для отслеживания touch events
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const touchStartRef = useRef<number | null>(null);
+  const touchEndRef = useRef<number | null>(null);
 
   // Получаем массив изображений (или используем основное изображение)
   const images = product.images && product.images.length > 0 ? product.images : [product.image];
@@ -57,16 +44,18 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, onAddToC
   const minSwipeDistance = 50;
 
   const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
+    touchEndRef.current = null;
+    touchStartRef.current = e.targetTouches[0].clientX;
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
+    touchEndRef.current = e.targetTouches[0].clientX;
   };
 
   const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
+    const touchStart = touchStartRef.current;
+    const touchEnd = touchEndRef.current;
+    if (touchStart === null || touchEnd === null) return;
 
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
@@ -80,15 +69,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, onAddToC
   };
 
   return (
-    <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto overflow-y-auto">
-      <div className="min-h-full flex flex-col">
-        {/* Product Image Section */}
-        <div
-          className="relative h-[505px] flex-shrink-0"
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
-        >
+    <div className="fixed inset-0 bg-white z-50 max-w-[402px] mx-auto">
+      <div className="h-full flex flex-col">
+        <div className="flex-1 overflow-y-auto">
+          <div className="min-h-full flex flex-col">
+            {/* Product Image Section */}
+            <div
+              className="relative h-[505px] flex-shrink-0"
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+            >
           <img
             src={images[currentImageIndex]}
             alt={product.alt}
@@ -188,11 +179,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, onAddToC
             <div className="flex flex-col items-end gap-1">
               {product.non_discount_price && (
                 <p className="text-sm font-normal leading-[1.174] text-gray-medium line-through">
-                  {product.non_discount_price}
+                  {formatRuble(product.non_discount_price)}
                 </p>
               )}
               <p className="text-xl font-bold leading-[1.174] text-black">
-                {product.price}
+                {formatRuble(product.price)}
               </p>
             </div>
           </div>
@@ -210,21 +201,29 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, onAddToC
           )}
         </div>
 
+          </div>
+        </div>
         {/* Action Buttons - wider than text area */}
         <div className="flex gap-[10px] px-4 pb-8">
           <button
             onClick={() => {
-              onAddToCart(product);
+              if (productQuantity > 0) {
+                onOpenCart();
+                return;
+              }
+              addItem(product);
               onOpenCart();
             }}
             className="w-[180px] h-[66px] bg-[#80D1C1] rounded-[30px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] flex items-center justify-center"
           >
-            <span className="text-sm font-semibold leading-[1.174] text-black">Купить сейчас</span>
+            <span className="text-sm font-semibold leading-[1.174] text-black">
+              {productQuantity > 0 ? 'В корзину' : 'Купить сейчас'}
+            </span>
           </button>
           {productQuantity > 0 ? (
             <div className="w-[180px] h-[66px] bg-[#80D1C1] rounded-[30px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] flex items-center justify-between px-4">
               <button
-                onClick={() => onRemoveFromCart(product.id)}
+                onClick={() => decreaseOrRemove(product.id)}
                 className="w-[32px] h-[32px] rounded-full bg-white/30 flex items-center justify-center"
               >
                 <span className="text-lg font-medium text-black/70">−</span>
@@ -234,7 +233,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, onAddToC
                 <span className="text-[11px] font-medium text-black/70 leading-none">В корзине</span>
               </div>
               <button
-                onClick={() => onAddToCart(product)}
+                onClick={() => addItem(product)}
                 className="w-[32px] h-[32px] rounded-full bg-white/30 flex items-center justify-center"
               >
                 <span className="text-lg font-medium text-black/70">+</span>
@@ -242,7 +241,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenCart, onAddToC
             </div>
           ) : (
             <button
-              onClick={() => onAddToCart(product)}
+              onClick={() => addItem(product)}
               className="w-[180px] h-[66px] bg-[#80D1C1] rounded-[30px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] flex items-center justify-center"
             >
               <span className="text-sm font-semibold leading-[1.174] text-black">Добавить в корзину</span>

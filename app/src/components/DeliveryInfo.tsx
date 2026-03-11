@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AppHeader from './AppHeader';
 import { fetchDeliveryInfoText, upsertSetting } from '../api/client';
 
@@ -16,11 +17,24 @@ const DeliveryInfo: React.FC<DeliveryInfoProps> = ({
   userMode
 }) => {
   const [deliveryText, setDeliveryText] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [draftText, setDraftText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const {
+    data: deliveryInfoText = '',
+    isLoading,
+    error,
+  } = useQuery<string>({
+    queryKey: ['delivery-info-text', initData],
+    queryFn: () => fetchDeliveryInfoText(initData as string),
+    enabled: isOpen && Boolean(initData),
+    refetchOnWindowFocus: false,
+  });
+
+  const errorMessage = actionError || (error ? 'Не удалось загрузить информацию о доставке' : null);
 
   const paragraphs = useMemo(() => {
     return deliveryText
@@ -33,31 +47,19 @@ const DeliveryInfo: React.FC<DeliveryInfoProps> = ({
     if (!isOpen) return;
     setIsEditing(false);
     setIsSaving(false);
-    setError(null);
-
+    setActionError(null);
     if (!initData) {
-      console.error('DeliveryInfo: initData is not available');
-      setError('Ошибка авторизации. Перезапустите приложение.');
-      return;
+      setActionError('Ошибка авторизации. Перезапустите приложение.');
     }
-
-    const loadText = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const value = await fetchDeliveryInfoText(initData);
-        setDeliveryText(value || '');
-        setDraftText(value || '');
-      } catch (err) {
-        console.error('Failed to load delivery info text:', err);
-        setError('Не удалось загрузить информацию о доставке');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadText();
   }, [isOpen, initData]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setDeliveryText(deliveryInfoText || '');
+    if (!isEditing) {
+      setDraftText(deliveryInfoText || '');
+    }
+  }, [deliveryInfoText, isOpen, isEditing]);
 
   const isAdmin = userMode === 'ADMIN';
 
@@ -75,14 +77,15 @@ const DeliveryInfo: React.FC<DeliveryInfoProps> = ({
     if (!initData) return;
 
     setIsSaving(true);
-    setError(null);
+    setActionError(null);
     try {
       await upsertSetting('DELIVERY_INFO_TEXT', draftText, initData);
       setDeliveryText(draftText);
+      queryClient.setQueryData(['delivery-info-text', initData], draftText);
       setIsEditing(false);
     } catch (err) {
       console.error('Failed to save delivery info text:', err);
-      setError('Не удалось сохранить информацию о доставке');
+      setActionError('Не удалось сохранить информацию о доставке');
     } finally {
       setIsSaving(false);
     }
@@ -129,9 +132,9 @@ const DeliveryInfo: React.FC<DeliveryInfoProps> = ({
           </div>
         )}
 
-        {error && (
+        {errorMessage && (
           <div className="mb-4 text-sm text-red-600">
-            {error}
+            {errorMessage}
           </div>
         )}
 

@@ -1,6 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import AppHeader from './AppHeader';
-import { fetchAllOrders, OrderDTO, fetchAllGoods, GoodDTO, updateOrderStatus, OrdersFilterParams, fetchDeliveryAmount, fetchPostcardAmount } from '../api/client';
+import { fetchAllOrders, OrderDTO, OrdersPageDTO, fetchAllGoods, GoodDTO, updateOrderStatus, OrdersFilterParams } from '../api/client';
+import { useServiceAmounts } from '../hooks/useServiceSettings';
+import { formatRuble } from '../utils/formatCurrency';
 
 type DatePeriod = 'all' | 'today' | '3days' | 'week' | 'month' | 'custom';
 const ORDERS_PER_PAGE = 20;
@@ -17,12 +20,6 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
   onMenuClick,
   initData
 }) => {
-  const [orders, setOrders] = useState<OrderDTO[]>([]);
-  const [goods, setGoods] = useState<GoodDTO[]>([]);
-  const [deliveryAmount, setDeliveryAmount] = useState<number>(0);
-  const [postcardAmount, setPostcardAmount] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [statusPopupOrderId, setStatusPopupOrderId] = useState<number | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>('');
 
@@ -35,7 +32,6 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalOrders, setTotalOrders] = useState(0);
 
   useEffect(() => {
     if (isOpen) {
@@ -94,80 +90,50 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
     }
   }, [datePeriod, customDateFrom, customDateTo]);
 
-  // Load orders with current filters
-  const loadOrders = useCallback(async () => {
-    if (!initData) return;
+  const dateRange = useMemo(() => getDateRange(), [getDateRange]);
+  const filters = useMemo<OrdersFilterParams>(() => ({
+    statuses: selectedStatuses.length > 0 ? selectedStatuses : undefined,
+    dateFrom: dateRange.dateFrom,
+    dateTo: dateRange.dateTo,
+    limit: ORDERS_PER_PAGE,
+    offset: (currentPage - 1) * ORDERS_PER_PAGE,
+  }), [selectedStatuses, dateRange, currentPage]);
 
-    setIsLoading(true);
-    setError(null);
+  const {
+    data: ordersPage,
+    isLoading,
+    error,
+    refetch: refetchOrders,
+  } = useQuery<OrdersPageDTO>({
+    queryKey: ['orders', 'admin', initData, filters],
+    queryFn: () => fetchAllOrders(initData as string, filters),
+    enabled: isOpen && Boolean(initData),
+    placeholderData: (previous) => previous,
+  });
 
-    try {
-      const dateRange = getDateRange();
-      const filters: OrdersFilterParams = {
-        statuses: selectedStatuses.length > 0 ? selectedStatuses : undefined,
-        dateFrom: dateRange.dateFrom,
-        dateTo: dateRange.dateTo,
-        limit: ORDERS_PER_PAGE,
-        offset: (currentPage - 1) * ORDERS_PER_PAGE,
-      };
+  const { data: goods = [] } = useQuery<GoodDTO[]>({
+    queryKey: ['goods', 'admin', initData],
+    queryFn: () => fetchAllGoods(initData as string),
+    enabled: isOpen && Boolean(initData),
+  });
 
-      const result = await fetchAllOrders(initData, filters);
-      setOrders(result.items);
-      setTotalOrders(result.total);
-    } catch (err) {
-      console.error('Failed to load orders:', err);
-      setError('Не удалось загрузить заказы');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [initData, selectedStatuses, getDateRange, currentPage]);
+  const { data: serviceAmounts } = useServiceAmounts(initData, isOpen);
+  const deliveryAmount = serviceAmounts?.deliveryAmount ?? 0;
+  const postcardAmount = serviceAmounts?.postcardAmount ?? 0;
 
-  // Load goods once on mount
+  const orders: OrderDTO[] = ordersPage?.items ?? [];
+  const totalOrders = ordersPage?.total ?? 0;
+
+  const errorMessage = !initData && isOpen
+    ? 'Ошибка авторизации. Перезапустите приложение.'
+    : error
+      ? 'Не удалось загрузить заказы'
+      : null;
+
   useEffect(() => {
-    if (!isOpen || !initData) return;
-
-    const loadGoods = async () => {
-      try {
-        const goodsData = await fetchAllGoods(initData);
-        setGoods(goodsData);
-      } catch (err) {
-        console.error('Failed to load goods:', err);
-      }
-    };
-
-    loadGoods();
-  }, [isOpen, initData]);
-
-  // Load service amounts once when screen opens
-  useEffect(() => {
-    if (!isOpen || !initData) return;
-
-    Promise.all([fetchDeliveryAmount(initData), fetchPostcardAmount(initData)])
-      .then(([deliveryAmountValue, postcardAmountValue]) => {
-        const parsedDelivery = parseFloat(String(deliveryAmountValue).replace(/[^\d]/g, '')) || 0;
-        const parsedPostcard = parseFloat(String(postcardAmountValue).replace(/[^\d]/g, '')) || 0;
-        setDeliveryAmount(parsedDelivery);
-        setPostcardAmount(parsedPostcard);
-      })
-      .catch((err) => {
-        console.error('Failed to fetch service amounts:', err);
-        setDeliveryAmount(0);
-        setPostcardAmount(0);
-      });
-  }, [isOpen, initData]);
-
-  // Load orders when filters or page changes
-  useEffect(() => {
-    if (!isOpen) return;
-
-    if (!initData) {
-      console.error('AdminOrders: initData is not available');
-      setError('Ошибка авторизации. Перезапустите приложение.');
-      return;
-    }
-
-    loadOrders();
-  }, [isOpen, initData, loadOrders]);
+    if (!error) return;
+    console.error('Failed to load orders:', error);
+  }, [error]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -229,12 +195,18 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
     return statusMap[status] || status;
   };
 
+  const goodsImageMap = useMemo(() => {
+    const map = new Map<number, string>();
+    goods.forEach((good) => {
+      if (good.images && good.images.length > 0) {
+        map.set(good.id, good.images[0].image_url);
+      }
+    });
+    return map;
+  }, [goods]);
+
   const getGoodImage = (goodId: number): string => {
-    const good = goods.find(g => g.id === goodId);
-    if (good && good.images && good.images.length > 0) {
-      return good.images[0].image_url;
-    }
-    return '/images/placeholder.png';
+    return goodsImageMap.get(goodId) || '/images/placeholder.png';
   };
 
   const toggleStatus = (status: string) => {
@@ -277,7 +249,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
 
     try {
       await updateOrderStatus(orderId, 'CANCELLED', initData);
-      await loadOrders();
+      await refetchOrders();
       alert('Заказ отменён');
     } catch (err) {
       console.error('Failed to cancel order:', err);
@@ -299,7 +271,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
 
     try {
       await updateOrderStatus(statusPopupOrderId, selectedStatus, initData);
-      await loadOrders();
+      await refetchOrders();
       setStatusPopupOrderId(null);
       alert('Статус заказа изменён');
     } catch (err) {
@@ -460,19 +432,19 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
             </div>
           )}
 
-          {error && (
+          {errorMessage && (
             <div className="text-center py-8 text-red-500">
-              {error}
+              {errorMessage}
             </div>
           )}
 
-          {!isLoading && !error && orders.length === 0 && (
+          {!isLoading && !errorMessage && orders.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               Нет заказов
             </div>
           )}
 
-          {!isLoading && !error && orders.length > 0 && (
+          {!isLoading && !errorMessage && orders.length > 0 && (
             <div className="space-y-4">
               {orders.map((order) => (
                 <div
@@ -534,13 +506,13 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
                               {item.good_name}
                             </div>
                             <div className="text-sm text-black">
-                              {item.count} шт. × {item.price} руб.
+                              {item.count} шт. × {formatRuble(item.price)}
                             </div>
                           </div>
 
                           {/* Total Price */}
                           <div className="text-sm font-semibold">
-                            {item.count * item.price} руб.
+                            {formatRuble(item.count * item.price)}
                           </div>
                         </div>
                       ))}
@@ -565,7 +537,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
                                 className="flex justify-between items-center text-sm text-black"
                               >
                                 <span>{service.label}</span>
-                                <span className="font-semibold">{service.amount} руб.</span>
+                                <span className="font-semibold">{formatRuble(service.amount)}</span>
                               </div>
                             ))}
                           </div>
@@ -581,8 +553,8 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
                           const goodsTotal = order.cart_items.reduce((sum, item) => sum + (item.count * item.price), 0);
                           const deliveryCost = order.delivery_type === 'COURIER' ? deliveryAmount : 0;
                           const postcardCost = order.postcard_text && order.postcard_text.trim() ? postcardAmount : 0;
-                          return goodsTotal + deliveryCost + postcardCost;
-                        })()} руб.
+                          return formatRuble(goodsTotal + deliveryCost + postcardCost);
+                        })()}
                       </div>
                     </div>
 
