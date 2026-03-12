@@ -2,7 +2,7 @@
 feature: max-frontend-migration
 type: refactoring
 size: L
-status: draft
+status: approved
 created: 2026-03-12
 ---
 
