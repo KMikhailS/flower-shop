@@ -1,6 +1,7 @@
 services:
   nginx:
     image: nginx:stable-alpine3.21-perl
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
@@ -17,6 +18,12 @@ services:
   backend:
     build:
       context: ./api
+    restart: unless-stopped
+    # DNS hands out Telegram addresses that are blackholed from this host;
+    # 149.154.167.220 is the one that stays reachable. TLS still validates
+    # against the hostname, so pinning the address changes nothing else.
+    extra_hosts:
+      - "api.telegram.org:149.154.167.220"
     expose:
       - "8000"
     volumes:
@@ -27,6 +34,7 @@ services:
   frontend:
     build:
       context: ./app
+    restart: unless-stopped
     ports:
       - "3000:3000"
     volumes:

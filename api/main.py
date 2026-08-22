@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import time
 from dotenv import load_dotenv
 import uvicorn
 
@@ -21,6 +22,11 @@ logger = logging.getLogger(__name__)
 # Bot token from environment
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 APP_URL = os.getenv("APP_URL")
+
+# Bot supervisor: how long to wait before reconnecting after a Telegram failure
+BOT_RETRY_MIN_DELAY = 5
+BOT_RETRY_MAX_DELAY = 300
+BOT_HEALTHY_UPTIME = 60
 
 # Create bot and dispatcher
 bot = Bot(token=BOT_TOKEN)
@@ -154,17 +160,43 @@ async def contact_handler(message: types.Message):
 
 
 async def run_bot():
-    """Run Telegram bot with polling"""
+    """Run Telegram bot with polling
+
+    Telegram can be unreachable from the server (blocked route, provider outage).
+    That must never take down the FastAPI server, so failures are logged and
+    retried with backoff instead of propagating out of main().
+    """
     logger.info("Starting Telegram bot...")
 
-    # Initialize database
-    await init_db()
+    delay = BOT_RETRY_MIN_DELAY
 
-    # Delete webhook to use polling
-    await bot.delete_webhook(drop_pending_updates=True)
+    while True:
+        started_at = time.monotonic()
 
-    # Start polling
-    await dp.start_polling(bot)
+        try:
+            # Delete webhook to use polling
+            await bot.delete_webhook(drop_pending_updates=True)
+
+            # Start polling
+            await dp.start_polling(bot)
+
+            logger.info("Telegram bot polling stopped")
+            return
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            # A session that lived a while and then died is a new incident,
+            # not a retry storm - start backing off from scratch
+            if time.monotonic() - started_at > BOT_HEALTHY_UPTIME:
+                delay = BOT_RETRY_MIN_DELAY
+
+            logger.error(
+                f"Telegram bot failed ({type(e).__name__}: {e}). "
+                f"Retrying in {delay}s, API keeps serving."
+            )
+
+            await asyncio.sleep(delay)
+            delay = min(delay * 2, BOT_RETRY_MAX_DELAY)
 
 
 async def run_fastapi():
@@ -184,11 +216,18 @@ async def main():
     """Start both Telegram bot and FastAPI server"""
     logger.info("Starting services...")
 
-    # Run both services concurrently
-    await asyncio.gather(
-        run_bot(),
-        run_fastapi()
-    )
+    # The API needs the schema even if the bot cannot start
+    await init_db()
+
+    try:
+        # Run both services concurrently
+        await asyncio.gather(
+            run_bot(),
+            run_fastapi()
+        )
+    finally:
+        # Release the aiohttp session held by the bot
+        await bot.session.close()
 
 
 if __name__ == "__main__":
